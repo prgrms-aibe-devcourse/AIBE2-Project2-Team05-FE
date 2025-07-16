@@ -61,3 +61,6 @@ replay_pid*
 /config/
 /backend/src/main/resources/application.properties
 /backend/docker-compose.yaml
+
+# OS
+DS_Store
