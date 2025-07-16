@@ -1,0 +1,866 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>여행 매칭 서비스</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Regular.otf') format('opentype');
+            font-weight: normal;
+        }
+        
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Medium.otf') format('opentype');
+            font-weight: 500;
+        }
+        
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Bold.otf') format('opentype');
+            font-weight: bold;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'NotoSansHans', sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            width: 1920px;
+        }
+
+        .container {
+            width: 100%;
+        }
+
+        /* 네비게이션 바 */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-item {
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: #3b82f6;
+            background-color: #eef2ff;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #e0e7ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+            cursor: pointer;
+        }
+
+        /* 메인 콘텐츠 */
+        .main-content {
+            padding: 40px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        /* 탭 메뉴 */
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        /* 매칭 찾기 콘텐츠 */
+        .matching-content {
+            display: flex;
+            gap: 30px;
+        }
+
+        /* 필터 섹션 */
+        .filter-section {
+            width: 320px;
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .date-range {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .date-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .number-input {
+            width: 80px;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .slider-container {
+            padding: 10px 0;
+        }
+
+        .slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .slider-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-button:hover {
+            background-color: #2563eb;
+        }
+
+        /* 매칭 결과 섹션 */
+        .matching-results {
+            flex: 1;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-count {
+            font-size: 16px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .sort-select {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .match-card {
+            background-color: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .match-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .profile-pic {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+            font-size: 20px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .user-age {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .match-rate {
+            background-color: #eef2ff;
+            color: #3b82f6;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .trip-info {
+            margin-bottom: 12px;
+        }
+
+        .trip-destination {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .trip-date {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trip-description {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .trip-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .trip-tag {
+            background-color: #f3f4f6;
+            color: #666;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .card-footer {
+            padding: 16px;
+            border-top: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .match-button {
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .match-button:hover {
+            background-color: #2563eb;
+        }
+
+        .detail-button {
+            padding: 8px 16px;
+            background-color: transparent;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .detail-button:hover {
+            background-color: #eef2ff;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            gap: 10px;
+        }
+
+        .page-item {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-item:hover {
+            background-color: #eef2ff;
+            color: #3b82f6;
+        }
+
+        .page-item.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        /* 푸터 */
+        .footer {
+            padding: 30px 40px;
+            background-color: white;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 40px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-link {
+            font-size: 14px;
+            color: #666;
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 네비게이션 바 -->
+        <nav class="navbar">
+            <div class="logo">트래블메이트</div>
+            <div class="nav-menu">
+                <a href="#" class="nav-item">여행 계획</a>
+                <a href="#" class="nav-item active">매칭</a>
+                <a href="#" class="nav-item">채팅</a>
+                <a href="#" class="nav-item">여행 피드</a>
+                <a href="#" class="nav-item">리뷰</a>
+            </div>
+            <div class="profile-icon">
+                <i class="ri-user-line"></i>
+            </div>
+        </nav>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="main-content">
+            <h1 class="page-title">여행 매칭</h1>
+
+            <!-- 탭 메뉴 -->
+            <div class="tabs">
+                <div class="tab active">매칭 찾기</div>
+                <div class="tab">받은 요청</div>
+                <div class="tab">보낸 요청</div>
+            </div>
+
+            <!-- 매칭 찾기 콘텐츠 -->
+            <div class="matching-content">
+                <!-- 필터 섹션 -->
+                <div class="filter-section">
+                    <h2 class="filter-title">필터링 옵션</h2>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">여행지</label>
+                        <input type="text" class="filter-input" placeholder="여행지 검색">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">여행 기간</label>
+                        <div class="date-range">
+                            <input type="date" class="date-input">
+                            <span>~</span>
+                            <input type="date" class="date-input">
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">여행 스타일</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="style1">
+                                <label for="style1">자연/풍경</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="style2">
+                                <label for="style2">문화/역사</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="style3">
+                                <label for="style3">음식/맛집</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="style4">
+                                <label for="style4">쇼핑</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="style5">
+                                <label for="style5">액티비티</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="style6">
+                                <label for="style6">휴양/힐링</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">인원 수</label>
+                        <input type="number" class="number-input" min="1" value="1">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">예산 범위</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" min="0" max="1000000" step="50000" value="500000">
+                            <div class="slider-values">
+                                <span>0원</span>
+                                <span>1,000,000원</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">성별</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="gender1" name="gender" checked>
+                                <label for="gender1">전체</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="gender2" name="gender">
+                                <label for="gender2">남성</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="gender3" name="gender">
+                                <label for="gender3">여성</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">나이대</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" min="20" max="60" step="1" value="30">
+                            <div class="slider-values">
+                                <span>20세</span>
+                                <span>60세</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="filter-button">필터 적용하기</button>
+                </div>
+
+                <!-- 매칭 결과 섹션 -->
+                <div class="matching-results">
+                    <div class="results-header">
+                        <div class="results-count">총 24개의 매칭 결과</div>
+                        <select class="sort-select">
+                            <option>최신순</option>
+                            <option>매칭률 높은순</option>
+                            <option>여행 날짜순</option>
+                        </select>
+                    </div>
+
+                    <div class="results-grid">
+                        <!-- 매칭 카드 1 -->
+                        <div class="match-card">
+                            <div class="card-header">
+                                <div class="profile-pic">
+                                    <i class="ri-user-smile-line"></i>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">김여행</div>
+                                    <div class="user-age">28세</div>
+                                </div>
+                                <div class="match-rate">매칭 95%</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="trip-info">
+                                    <div class="trip-destination">제주도</div>
+                                    <div class="trip-date">
+                                        <i class="ri-calendar-line"></i>
+                                        2023.06.15 - 2023.06.20
+                                    </div>
+                                    <div class="trip-description">
+                                        제주도의 아름다운 자연을 느끼며 힐링하는 여행을 계획 중입니다. 올레길 걷기, 맛집 탐방, 해변에서 휴식 등 여유로운 일정으로 진행할 예정입니다.
+                                    </div>
+                                </div>
+                                <div class="trip-tags">
+                                    <div class="trip-tag">자연/풍경</div>
+                                    <div class="trip-tag">음식/맛집</div>
+                                    <div class="trip-tag">휴양/힐링</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="detail-button">상세보기</button>
+                                <button class="match-button">매칭 요청</button>
+                            </div>
+                        </div>
+
+                        <!-- 매칭 카드 2 -->
+                        <div class="match-card">
+                            <div class="card-header">
+                                <div class="profile-pic">
+                                    <i class="ri-user-smile-line"></i>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">박트립</div>
+                                    <div class="user-age">32세</div>
+                                </div>
+                                <div class="match-rate">매칭 88%</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="trip-info">
+                                    <div class="trip-destination">부산</div>
+                                    <div class="trip-date">
+                                        <i class="ri-calendar-line"></i>
+                                        2023.07.01 - 2023.07.03
+                                    </div>
+                                    <div class="trip-description">
+                                        부산의 해변과 맛집을 중심으로 여행할 계획입니다. 해운대, 광안리, 감천문화마을 등 주요 관광지를 방문하고 싶습니다. 사진 찍는 것을 좋아합니다.
+                                    </div>
+                                </div>
+                                <div class="trip-tags">
+                                    <div class="trip-tag">문화/역사</div>
+                                    <div class="trip-tag">음식/맛집</div>
+                                    <div class="trip-tag">자연/풍경</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="detail-button">상세보기</button>
+                                <button class="match-button">매칭 요청</button>
+                            </div>
+                        </div>
+
+                        <!-- 매칭 카드 3 -->
+                        <div class="match-card">
+                            <div class="card-header">
+                                <div class="profile-pic">
+                                    <i class="ri-user-smile-line"></i>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">이방랑</div>
+                                    <div class="user-age">25세</div>
+                                </div>
+                                <div class="match-rate">매칭 85%</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="trip-info">
+                                    <div class="trip-destination">경주</div>
+                                    <div class="trip-date">
+                                        <i class="ri-calendar-line"></i>
+                                        2023.06.25 - 2023.06.27
+                                    </div>
+                                    <div class="trip-description">
+                                        경주의 역사적인 명소들을 둘러보는 문화 여행을 계획 중입니다. 불국사, 석굴암, 첨성대 등을 방문하고 전통 음식도 체험하고 싶습니다.
+                                    </div>
+                                </div>
+                                <div class="trip-tags">
+                                    <div class="trip-tag">문화/역사</div>
+                                    <div class="trip-tag">음식/맛집</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="detail-button">상세보기</button>
+                                <button class="match-button">매칭 요청</button>
+                            </div>
+                        </div>
+
+                        <!-- 매칭 카드 4 -->
+                        <div class="match-card">
+                            <div class="card-header">
+                                <div class="profile-pic">
+                                    <i class="ri-user-smile-line"></i>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">최여정</div>
+                                    <div class="user-age">30세</div>
+                                </div>
+                                <div class="match-rate">매칭 82%</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="trip-info">
+                                    <div class="trip-destination">강원도</div>
+                                    <div class="trip-date">
+                                        <i class="ri-calendar-line"></i>
+                                        2023.07.15 - 2023.07.18
+                                    </div>
+                                    <div class="trip-description">
+                                        강원도의 산과 바다를 모두 즐기는 액티비티 중심의 여행을 계획 중입니다. 등산, 래프팅, 서핑 등 다양한 활동을 하고 싶습니다.
+                                    </div>
+                                </div>
+                                <div class="trip-tags">
+                                    <div class="trip-tag">액티비티</div>
+                                    <div class="trip-tag">자연/풍경</div>
+                                    <div class="trip-tag">휴양/힐링</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="detail-button">상세보기</button>
+                                <button class="match-button">매칭 요청</button>
+                            </div>
+                        </div>
+
+                        <!-- 매칭 카드 5 -->
+                        <div class="match-card">
+                            <div class="card-header">
+                                <div class="profile-pic">
+                                    <i class="ri-user-smile-line"></i>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">정트래블</div>
+                                    <div class="user-age">27세</div>
+                                </div>
+                                <div class="match-rate">매칭 80%</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="trip-info">
+                                    <div class="trip-destination">서울</div>
+                                    <div class="trip-date">
+                                        <i class="ri-calendar-line"></i>
+                                        2023.06.10 - 2023.06.12
+                                    </div>
+                                    <div class="trip-description">
+                                        서울의 핫플레이스와 맛집을 탐방하는 도시 여행을 계획 중입니다. 인스타그램에 올릴 만한 카페, 전시회, 쇼핑몰 등을 방문하고 싶습니다.
+                                    </div>
+                                </div>
+                                <div class="trip-tags">
+                                    <div class="trip-tag">쇼핑</div>
+                                    <div class="trip-tag">음식/맛집</div>
+                                    <div class="trip-tag">문화/역사</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="detail-button">상세보기</button>
+                                <button class="match-button">매칭 요청</button>
+                            </div>
+                        </div>
+
+                        <!-- 매칭 카드 6 -->
+                        <div class="match-card">
+                            <div class="card-header">
+                                <div class="profile-pic">
+                                    <i class="ri-user-smile-line"></i>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">한여행자</div>
+                                    <div class="user-age">35세</div>
+                                </div>
+                                <div class="match-rate">매칭 78%</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="trip-info">
+                                    <div class="trip-destination">전주</div>
+                                    <div class="trip-date">
+                                        <i class="ri-calendar-line"></i>
+                                        2023.07.08 - 2023.07.10
+                                    </div>
+                                    <div class="trip-description">
+                                        전주 한옥마을을 중심으로 전통문화와 맛집을 탐방하는 여행을 계획 중입니다. 한복 체험, 전통 공예 체험 등 다양한 문화 활동을 하고 싶습니다.
+                                    </div>
+                                </div>
+                                <div class="trip-tags">
+                                    <div class="trip-tag">문화/역사</div>
+                                    <div class="trip-tag">음식/맛집</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="detail-button">상세보기</button>
+                                <button class="match-button">매칭 요청</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 페이지네이션 -->
+                    <div class="pagination">
+                        <div class="page-item active">1</div>
+                        <div class="page-item">2</div>
+                        <div class="page-item">3</div>
+                        <div class="page-item">4</div>
+                        <div class="page-item">
+                            <i class="ri-arrow-right-s-line"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-info">© 2023 트래블메이트. All rights reserved.</div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">서비스 소개</a>
+                    <a href="#" class="footer-link">이용약관</a>
+                    <a href="#" class="footer-link">개인정보처리방침</a>
+                    <a href="#" class="footer-link">고객센터</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
