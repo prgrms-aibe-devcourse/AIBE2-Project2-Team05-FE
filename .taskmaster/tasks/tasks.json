@@ -1435,7 +1435,7 @@
         "id": 4,
         "title": "Implement Home Page with Feed Preview",
         "description": "피드 미리보기와 추천 사용자가 있는 메인 랜딩 페이지를 생성합니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           3
@@ -1788,7 +1788,7 @@
         "id": 14,
         "title": "Implement User Profile Page",
         "description": "사용자 정보, 피드 및 활동이 포함된 사용자 프로필 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           10
@@ -1802,7 +1802,7 @@
         "id": 15,
         "title": "Implement My Page",
         "description": "사용자 자신의 콘텐츠 및 활동 관리가 포함된 마이 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           14
@@ -1815,7 +1815,7 @@
             "id": 1,
             "title": "마이 페이지 기본 레이아웃 구현",
             "description": "'/mypage' 경로에 기본 페이지 레이아웃과 탐색 구조 설정",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -1824,7 +1824,7 @@
             "id": 2,
             "title": "콘텐츠 탭 구현",
             "description": "내 피드, 리뷰, 여행 계획 및 매치를 위한 탭 인터페이스 생성",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -1833,7 +1833,7 @@
             "id": 3,
             "title": "설정 섹션 구현",
             "description": "계정 관리, 알림 환경설정, 비밀번호 변경을 위한 설정 페이지 생성",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -1842,7 +1842,7 @@
             "id": 4,
             "title": "저장된 콘텐츠 섹션 구현",
             "description": "사용자가 저장하거나 북마크한 콘텐츠를 표시하는 섹션 생성",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -1851,7 +1851,7 @@
             "id": 5,
             "title": "계정 삭제 기능 구현",
             "description": "확인 과정이 포함된 계정 삭제 기능 개발",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -1860,7 +1860,7 @@
             "id": 6,
             "title": "데이터 내보내기 기능 구현",
             "description": "GDPR 준수를 위한 사용자 데이터 내보내기 옵션 개발",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -1869,7 +1869,7 @@
             "id": 7,
             "title": "React Query 통합",
             "description": "백그라운드 업데이트가 있는 데이터 가져오기를 위한 React Query 설정",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2250,7 +2250,7 @@
         "id": 26,
         "title": "Implement Error Handling and 404 Page",
         "description": "예외 처리를 위한 오류 경계 및 404 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1
         ],
@@ -2525,7 +2525,7 @@
     ],
     "metadata": {
       "created": "2025-07-17T06:09:55.251Z",
-      "updated": "2025-07-17T06:28:02.244Z",
+      "updated": "2025-07-17T06:39:23.827Z",
       "description": "test/part2_page branch work"
     }
   }
