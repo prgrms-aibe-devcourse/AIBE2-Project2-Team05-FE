@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -10,6 +11,11 @@ const pageVariants = {
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('posts');
+  const navigate = useNavigate();
+
+  const handleEditProfile = () => {
+    navigate('/mypage');
+  };
 
   return (
     <motion.div
@@ -30,7 +36,7 @@ const ProfilePage = () => {
           </Stats>
           <Bio>사진과 여행을 사랑하는 개발자. ✈️</Bio>
         </ProfileInfo>
-        <EditProfileButton>프로필 수정</EditProfileButton>
+        <EditProfileButton onClick={handleEditProfile}>프로필 수정</EditProfileButton>
       </ProfileHeader>
       
       <Tabs>
@@ -46,13 +52,23 @@ const ProfilePage = () => {
       </Tabs>
 
       <TabContent>
-        {activeTab === 'posts' && <div>게시물 콘텐츠</div>}
-        {activeTab === 'saved' && <div>저장된 콘텐츠</div>}
-        {activeTab === 'tagged' && <div>태그된 콘텐츠</div>}
+        {activeTab === 'posts' && <PostGrid />}
+        {activeTab === 'saved' && <PostGrid />}
+        {activeTab === 'tagged' && <PostGrid />}
       </TabContent>
     </motion.div>
   );
 };
+
+const PostGrid = () => (
+  <PostsGridContainer>
+    {Array.from({ length: 9 }).map((_, index) => (
+      <PostItem key={index}>
+        <img src={`https://picsum.photos/300/300?random=${index}`} alt={`post-${index}`} />
+      </PostItem>
+    ))}
+  </PostsGridContainer>
+);
 
 export default ProfilePage;
 
@@ -131,5 +147,25 @@ const Tab = styled.div`
 
 const TabContent = styled.div`
   padding: 20px;
-  /* 여기에 그리드 레이아웃 등이 추가될 수 있습니다. */
+`;
+
+const PostsGridContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+`;
+
+const PostItem = styled.div`
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* 1:1 Aspect Ratio */
+  
+  img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `; 
