@@ -20,11 +20,6 @@ const Header = () => {
       </Logo>
       <NavLinks className={isMenuOpen ? 'open' : ''}>
         <li>
-          <Link to="/feed" onClick={toggleMenu}>
-            피드
-          </Link>
-        </li>
-        <li>
           <Link to="/match" onClick={toggleMenu}>
             여행 메이트 찾기
           </Link>

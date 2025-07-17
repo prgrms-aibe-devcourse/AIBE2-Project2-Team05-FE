@@ -32,7 +32,8 @@ function App() {
         <Routes location={location} key={location.pathname}>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
-            <Route path="/feed" element={<FeedPage />} />
+            <Route path="/feed" element={<HomePage />} /> {/* /feed도 홈으로 연결 */}
+            <Route path="/feed/:id" element={<FeedPage />} /> {/* 상세 페이지 */}
             <Route path="/match" element={<MatchPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/profile" element={<ProfilePage />} />

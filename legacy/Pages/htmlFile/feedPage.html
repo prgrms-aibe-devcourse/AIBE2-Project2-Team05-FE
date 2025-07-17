@@ -5,1061 +5,458 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>여행 피드 - 여행 매칭 서비스</title>
+    <title>트래블메이트 - 피드 상세</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
     <style>
         @font-face {
-            font-family: 'MiSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf') format('truetype');
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Regular.otf') format('opentype');
             font-weight: normal;
         }
         @font-face {
-            font-family: 'MiSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf') format('truetype');
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Medium.otf') format('opentype');
             font-weight: 500;
         }
         @font-face {
-            font-family: 'MiSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Bold.otf') format('opentype');
             font-weight: bold;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'MiSans', sans-serif;
+            font-family: 'NotoSansHans', sans-serif;
         }
-        
+
         body {
+            width: 1080px;
             background-color: #f8f9fa;
-            color: #333;
-            width: 1920px;
+            color: #333333;
         }
-        
+
         .container {
-            width: 1920px;
-            margin: 0 auto;
+            width: 100%;
+            background-color: #ffffff;
         }
-        
-        /* 네비게이션 바 */
-        .navbar {
+
+        /* Header Styles */
+        .header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 20px 40px;
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            justify-content: space-between;
+            padding: 20px 30px;
+            background-color: #3366FF;
+            color: white;
             position: sticky;
             top: 0;
             z-index: 100;
         }
-        
-        .logo {
+
+        .header-title {
             font-size: 24px;
             font-weight: bold;
-            color: #3498db;
+            letter-spacing: -0.5px;
         }
-        
-        .nav-menu {
-            display: flex;
-            gap: 30px;
-        }
-        
-        .nav-menu a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            font-size: 16px;
-            transition: color 0.3s;
-        }
-        
-        .nav-menu a:hover {
-            color: #3498db;
-        }
-        
-        .nav-menu a.active {
-            color: #3498db;
-            font-weight: bold;
-        }
-        
-        .profile {
-            width: 40px;
-            height: 40px;
-            background-color: #ddd;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+
+        .header-icon {
+            font-size: 24px;
             cursor: pointer;
         }
-        
-        /* 페이지 제목 */
-        .page-title {
-            padding: 30px 40px;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        
-        /* 필터링 및 정렬 옵션 바 */
-        .filter-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 40px;
-            background-color: white;
-            border-radius: 10px;
-            margin: 0 40px 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-        
-        .filter-options {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .filter-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .filter-label {
-            font-size: 14px;
-            color: #777;
-        }
-        
-        .filter-select {
-            padding: 8px 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 20px;
-            background-color: #f8f9fa;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .filter-select:hover {
-            background-color: #f0f0f0;
-        }
-        
-        .filter-select.active {
-            background-color: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
-        
-        .search-bar {
-            display: flex;
-            align-items: center;
-            background-color: #f8f9fa;
-            border-radius: 20px;
-            padding: 8px 15px;
-            width: 250px;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .search-bar i {
-            color: #777;
-            margin-right: 8px;
-        }
-        
-        .search-bar input {
-            border: none;
-            background: transparent;
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-        }
-        
-        .create-post-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 10px 20px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background-color 0.3s;
-        }
-        
-        .create-post-btn:hover {
-            background-color: #2980b9;
-        }
-        
-        /* 메인 콘텐츠 영역 */
+
+        /* Content Styles */
         .content {
-            display: flex;
-            padding: 0 40px;
-            gap: 30px;
+            padding: 30px;
         }
-        
-        .feed-container {
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 25px;
-        }
-        
-        .feed-card {
-            background-color: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .feed-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .feed-image {
-            height: 250px;
-            background-color: #e0e0e0;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-        }
-        
-        .feed-content {
-            padding: 20px;
-        }
-        
+
+        /* Author Info */
         .author-info {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
         }
-        
-        .author-avatar {
+
+        .profile-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            overflow: hidden;
+        }
+
+        .profile-image i {
+            font-size: 30px;
+            color: #999;
+        }
+
+        .author-details {
+            flex: 1;
+        }
+
+        .author-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .travel-style {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: #f0f5ff;
+            color: #3366FF;
+            border-radius: 15px;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        .follow-btn {
+            padding: 8px 20px;
+            background-color: #3366FF;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Post Title */
+        .post-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        /* Travel Info */
+        .travel-info {
+            display: flex;
+            margin-bottom: 25px;
+        }
+
+        .travel-date, .travel-location {
+            display: flex;
+            align-items: center;
+            margin-right: 30px;
+            color: #666666;
+        }
+
+        .travel-info i {
+            margin-right: 8px;
+            color: #3366FF;
+        }
+
+        /* Image Slider */
+        .image-slider {
+            position: relative;
+            margin-bottom: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            height: 500px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slider-placeholder {
+            color: #999;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .slider-indicators {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .indicator.active {
+            background-color: #3366FF;
+        }
+
+        /* Post Content */
+        .post-content {
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 16px;
+            color: #333333;
+        }
+
+        /* Tags */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+
+        .tag {
+            padding: 8px 15px;
+            background-color: #e6f0ff;
+            color: #3366FF;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* Interaction Buttons */
+        .interaction-buttons {
+            display: flex;
+            border-top: 1px solid #eeeeee;
+            border-bottom: 1px solid #eeeeee;
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+
+        .interaction-btn {
+            display: flex;
+            align-items: center;
+            margin-right: 30px;
+            color: #666666;
+            cursor: pointer;
+        }
+
+        .interaction-btn i {
+            margin-right: 8px;
+            font-size: 22px;
+        }
+
+        .interaction-btn.liked {
+            color: #ff3366;
+        }
+
+        /* Comments Section */
+        .comments-section {
+            margin-bottom: 100px;
+        }
+
+        .comments-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .comment {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .comment-profile {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             background-color: #e0e0e0;
-            margin-right: 10px;
+            margin-right: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .comment-profile i {
+            font-size: 20px;
             color: #999;
         }
-        
-        .author-name {
-            font-weight: 500;
-            font-size: 15px;
-        }
-        
-        .travel-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #777;
-        }
-        
-        .location {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .feed-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-        
-        .feed-description {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 15px;
-            line-height: 1.5;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .hashtags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-        
-        .hashtag {
-            background-color: #f0f7ff;
-            color: #3498db;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-        }
-        
-        .feed-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #f0f0f0;
-            padding-top: 15px;
-        }
-        
-        .stat-group {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #777;
-            font-size: 14px;
-        }
-        
-        .stat i {
-            font-size: 16px;
-        }
-        
-        .timestamp {
-            color: #999;
-            font-size: 12px;
-        }
-        
-        /* 사이드바 */
-        .sidebar {
-            width: 350px;
-        }
-        
-        .sidebar-section {
-            background-color: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .section-title i {
-            color: #3498db;
-        }
-        
-        .popular-destinations {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .destination-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .destination-image {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-            background-color: #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-        }
-        
-        .destination-info {
+
+        .comment-content {
             flex: 1;
         }
-        
-        .destination-name {
-            font-weight: 500;
-            margin-bottom: 3px;
+
+        .comment-author {
+            font-weight: bold;
+            margin-bottom: 5px;
         }
-        
-        .destination-count {
-            font-size: 12px;
-            color: #777;
-        }
-        
-        .recommended-feeds {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .recommended-feed {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .recommended-image {
-            width: 80px;
-            height: 60px;
-            border-radius: 8px;
-            background-color: #e0e0e0;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-        }
-        
-        .recommended-content {
-            flex: 1;
-        }
-        
-        .recommended-title {
-            font-weight: 500;
-            font-size: 14px;
+
+        .comment-text {
             margin-bottom: 5px;
             line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
         }
-        
-        .recommended-author {
+
+        .comment-time {
             font-size: 12px;
-            color: #777;
+            color: #999999;
         }
-        
-        .hashtag-cloud {
+
+        /* Comment Input */
+        .comment-input {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            align-items: center;
+            background-color: #f8f9fa;
+            border-radius: 30px;
+            padding: 10px 20px;
+            margin-top: 30px;
         }
-        
-        .cloud-tag {
-            background-color: #f0f7ff;
-            color: #3498db;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 13px;
-            transition: all 0.3s;
-        }
-        
-        .cloud-tag:hover {
-            background-color: #3498db;
-            color: white;
-            cursor: pointer;
-        }
-        
-        .cloud-tag.size-1 {
-            font-size: 12px;
-        }
-        
-        .cloud-tag.size-2 {
-            font-size: 13px;
-        }
-        
-        .cloud-tag.size-3 {
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .cloud-tag.size-4 {
-            font-size: 15px;
-            font-weight: 500;
-        }
-        
-        .cloud-tag.size-5 {
-            font-size: 16px;
-            font-weight: bold;
-        }
-        
-        .travel-tips {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .tip-item {
-            display: flex;
-            gap: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .tip-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        
-        .tip-icon {
-            color: #3498db;
-            font-size: 18px;
-        }
-        
-        .tip-content {
+
+        .comment-input input {
             flex: 1;
-            font-size: 14px;
-            line-height: 1.5;
+            border: none;
+            background: transparent;
+            padding: 10px 0;
+            outline: none;
+            font-size: 16px;
         }
-        
-        /* 푸터 */
-        .footer {
-            margin-top: 50px;
-            padding: 30px 40px;
-            background-color: #f0f0f0;
-            text-align: center;
-            color: #777;
-            font-size: 14px;
-        }
-        
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 15px;
-        }
-        
-        .footer-links a {
-            color: #555;
-            text-decoration: none;
-        }
-        
-        .footer-links a:hover {
-            color: #3498db;
+
+        .comment-input button {
+            background-color: #3366FF;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 네비게이션 바 -->
-        <div class="navbar">
-            <div class="logo">트래블메이트</div>
-            <div class="nav-menu">
-                <a href="#">여행 계획</a>
-                <a href="#">매칭</a>
-                <a href="#">채팅</a>
-                <a href="#" class="active">여행 피드</a>
-                <a href="#">리뷰</a>
-            </div>
-            <div class="profile">
-                <i class="ri-user-line"></i>
-            </div>
+        <!-- Header -->
+        <div class="header">
+            <i class="ri-arrow-left-line header-icon"></i>
+            <div class="header-title">트래블메이트</div>
+            <i class="ri-share-forward-line header-icon"></i>
         </div>
-        
-        <!-- 페이지 제목 -->
-        <div class="page-title">여행 피드</div>
-        
-        <!-- 필터링 및 정렬 옵션 바 -->
-        <div class="filter-bar">
-            <div class="filter-options">
-                <div class="filter-group">
-                    <div class="filter-label">정렬:</div>
-                    <div class="filter-select active">최신순</div>
-                    <div class="filter-select">인기순</div>
-                    <div class="filter-select">추천순</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">여행지:</div>
-                    <div class="filter-select">국내</div>
-                    <div class="filter-select">해외</div>
-                    <div class="filter-select">전체</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">스타일:</div>
-                    <div class="filter-select">힐링</div>
-                    <div class="filter-select">액티비티</div>
-                    <div class="filter-select">맛집</div>
-                </div>
-            </div>
-            <div class="filter-right">
-                <div class="search-bar">
-                    <i class="ri-search-line"></i>
-                    <input type="text" placeholder="검색어를 입력하세요">
-                </div>
-            </div>
-        </div>
-        
-        <!-- 메인 콘텐츠 영역 -->
+
+        <!-- Main Content -->
         <div class="content">
-            <!-- 피드 목록 -->
-            <div class="feed-container">
-                <!-- 피드 카드 1 -->
-                <div class="feed-card">
-                    <div class="feed-image">
-                        <i class="ri-image-line" style="font-size: 24px;"></i>
-                    </div>
-                    <div class="feed-content">
-                        <div class="author-info">
-                            <div class="author-avatar">
-                                <i class="ri-user-line"></i>
-                            </div>
-                            <div class="author-name">김여행</div>
-                        </div>
-                        <div class="travel-info">
-                            <div class="location">
-                                <i class="ri-map-pin-line"></i>
-                                <span>제주도</span>
-                            </div>
-                            <div class="duration">2023.10.15 - 2023.10.18</div>
-                        </div>
-                        <div class="feed-title">제주도 3박 4일 힐링 여행, 숨은 명소 찾기</div>
-                        <div class="feed-description">
-                            제주도의 숨겨진 명소들을 찾아다니며 특별한 추억을 만들었습니다. 
-                            관광객이 많지 않은 곳에서 제주의 진짜 모습을 발견할 수 있었어요. 
-                            특히 동쪽 해안가의 작은 카페들이 인상적이었습니다.
-                        </div>
-                        <div class="hashtags">
-                            <div class="hashtag">#제주도</div>
-                            <div class="hashtag">#힐링여행</div>
-                            <div class="hashtag">#로컬맛집</div>
-                        </div>
-                        <div class="feed-stats">
-                            <div class="stat-group">
-                                <div class="stat">
-                                    <i class="ri-heart-line"></i>
-                                    <span>128</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-chat-1-line"></i>
-                                    <span>32</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-share-line"></i>
-                                </div>
-                            </div>
-                            <div class="timestamp">2시간 전</div>
-                        </div>
-                    </div>
+            <!-- Author Info -->
+            <div class="author-info">
+                <div class="profile-image">
+                    <i class="ri-user-line"></i>
                 </div>
-                
-                <!-- 피드 카드 2 -->
-                <div class="feed-card">
-                    <div class="feed-image">
-                        <i class="ri-image-line" style="font-size: 24px;"></i>
-                    </div>
-                    <div class="feed-content">
-                        <div class="author-info">
-                            <div class="author-avatar">
-                                <i class="ri-user-line"></i>
-                            </div>
-                            <div class="author-name">박세계</div>
-                        </div>
-                        <div class="travel-info">
-                            <div class="location">
-                                <i class="ri-map-pin-line"></i>
-                                <span>방콕, 태국</span>
-                            </div>
-                            <div class="duration">2023.09.20 - 2023.09.26</div>
-                        </div>
-                        <div class="feed-title">방콕에서의 7일, 현지인처럼 살아보기</div>
-                        <div class="feed-description">
-                            방콕의 번화가를 벗어나 현지인들이 사는 동네에서 일주일을 보냈습니다.
-                            아침 시장에서 장을 보고, 길거리 음식을 먹으며 태국의 일상을 경험했어요.
-                            특히 추천하는 곳은 톤부리 지역의 수상 시장입니다.
-                        </div>
-                        <div class="hashtags">
-                            <div class="hashtag">#방콕</div>
-                            <div class="hashtag">#태국</div>
-                            <div class="hashtag">#현지체험</div>
-                            <div class="hashtag">#길거리음식</div>
-                        </div>
-                        <div class="feed-stats">
-                            <div class="stat-group">
-                                <div class="stat">
-                                    <i class="ri-heart-line"></i>
-                                    <span>256</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-chat-1-line"></i>
-                                    <span>48</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-share-line"></i>
-                                </div>
-                            </div>
-                            <div class="timestamp">1일 전</div>
-                        </div>
-                    </div>
+                <div class="author-details">
+                    <div class="author-name">김여행</div>
+                    <span class="travel-style">자유여행가</span>
+                    <span class="travel-style">사진작가</span>
                 </div>
-                
-                <!-- 피드 카드 3 -->
-                <div class="feed-card">
-                    <div class="feed-image">
-                        <i class="ri-image-line" style="font-size: 24px;"></i>
-                    </div>
-                    <div class="feed-content">
-                        <div class="author-info">
-                            <div class="author-avatar">
-                                <i class="ri-user-line"></i>
-                            </div>
-                            <div class="author-name">이산책</div>
-                        </div>
-                        <div class="travel-info">
-                            <div class="location">
-                                <i class="ri-map-pin-line"></i>
-                                <span>교토, 일본</span>
-                            </div>
-                            <div class="duration">2023.11.01 - 2023.11.05</div>
-                        </div>
-                        <div class="feed-title">가을 교토, 단풍 명소 순례 여행</div>
-                        <div class="feed-description">
-                            교토의 가을은 정말 아름답습니다. 특히 단풍이 물든 사찰과 정원은 
-                            말로 표현할 수 없는 감동을 줍니다. 아라시야마의 대나무 숲과 
-                            키요미즈데라 사원은 꼭 방문해보세요.
-                        </div>
-                        <div class="hashtags">
-                            <div class="hashtag">#교토</div>
-                            <div class="hashtag">#일본여행</div>
-                            <div class="hashtag">#단풍구경</div>
-                            <div class="hashtag">#가을여행</div>
-                        </div>
-                        <div class="feed-stats">
-                            <div class="stat-group">
-                                <div class="stat">
-                                    <i class="ri-heart-line"></i>
-                                    <span>312</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-chat-1-line"></i>
-                                    <span>76</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-share-line"></i>
-                                </div>
-                            </div>
-                            <div class="timestamp">3일 전</div>
-                        </div>
-                    </div>
+                <button class="follow-btn">팔로우</button>
+            </div>
+
+            <!-- Post Title -->
+            <h1 class="post-title">제주도에서의 잊지 못할 3일간의 힐링 여행</h1>
+
+            <!-- Travel Info -->
+            <div class="travel-info">
+                <div class="travel-date">
+                    <i class="ri-calendar-line"></i>
+                    <span>2023.06.15 - 2023.06.18</span>
                 </div>
-                
-                <!-- 피드 카드 4 -->
-                <div class="feed-card">
-                    <div class="feed-image">
-                        <i class="ri-image-line" style="font-size: 24px;"></i>
-                    </div>
-                    <div class="feed-content">
-                        <div class="author-info">
-                            <div class="author-avatar">
-                                <i class="ri-user-line"></i>
-                            </div>
-                            <div class="author-name">최모험</div>
-                        </div>
-                        <div class="travel-info">
-                            <div class="location">
-                                <i class="ri-map-pin-line"></i>
-                                <span>양양, 강원도</span>
-                            </div>
-                            <div class="duration">2023.08.10 - 2023.08.12</div>
-                        </div>
-                        <div class="feed-title">서핑의 성지, 양양에서의 주말 서핑 캠프</div>
-                        <div class="feed-description">
-                            처음 도전해본 서핑! 생각보다 어렵지만 정말 재미있었습니다.
-                            양양의 죽도해변은 초보자에게 적합한 파도와 친절한 강사님들이 있어요.
-                            저녁에는 해변 근처 캠핑장에서 바베큐를 즐겼습니다.
-                        </div>
-                        <div class="hashtags">
-                            <div class="hashtag">#양양</div>
-                            <div class="hashtag">#서핑</div>
-                            <div class="hashtag">#액티비티</div>
-                            <div class="hashtag">#주말여행</div>
-                        </div>
-                        <div class="feed-stats">
-                            <div class="stat-group">
-                                <div class="stat">
-                                    <i class="ri-heart-line"></i>
-                                    <span>184</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-chat-1-line"></i>
-                                    <span>42</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-share-line"></i>
-                                </div>
-                            </div>
-                            <div class="timestamp">1주일 전</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 피드 카드 5 -->
-                <div class="feed-card">
-                    <div class="feed-image">
-                        <i class="ri-image-line" style="font-size: 24px;"></i>
-                    </div>
-                    <div class="feed-content">
-                        <div class="author-info">
-                            <div class="author-avatar">
-                                <i class="ri-user-line"></i>
-                            </div>
-                            <div class="author-name">정맛집</div>
-                        </div>
-                        <div class="travel-info">
-                            <div class="location">
-                                <i class="ri-map-pin-line"></i>
-                                <span>전주, 전라북도</span>
-                            </div>
-                            <div class="duration">2023.10.28 - 2023.10.29</div>
-                        </div>
-                        <div class="feed-title">전주 한옥마을 먹방 투어, 이틀간의 식도락 여행</div>
-                        <div class="feed-description">
-                            전주 한옥마을에서 진행한 먹방 투어! 초코파이 빙수부터 
-                            전주비빔밥, 콩나물국밥까지 다양한 음식을 맛봤습니다.
-                            특히 야시장의 길거리 음식은 놓치지 마세요.
-                        </div>
-                        <div class="hashtags">
-                            <div class="hashtag">#전주</div>
-                            <div class="hashtag">#한옥마을</div>
-                            <div class="hashtag">#먹방투어</div>
-                            <div class="hashtag">#식도락여행</div>
-                        </div>
-                        <div class="feed-stats">
-                            <div class="stat-group">
-                                <div class="stat">
-                                    <i class="ri-heart-line"></i>
-                                    <span>276</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-chat-1-line"></i>
-                                    <span>58</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-share-line"></i>
-                                </div>
-                            </div>
-                            <div class="timestamp">5일 전</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 피드 카드 6 -->
-                <div class="feed-card">
-                    <div class="feed-image">
-                        <i class="ri-image-line" style="font-size: 24px;"></i>
-                    </div>
-                    <div class="feed-content">
-                        <div class="author-info">
-                            <div class="author-avatar">
-                                <i class="ri-user-line"></i>
-                            </div>
-                            <div class="author-name">한백팩</div>
-                        </div>
-                        <div class="travel-info">
-                            <div class="location">
-                                <i class="ri-map-pin-line"></i>
-                                <span>베트남 북부</span>
-                            </div>
-                            <div class="duration">2023.07.05 - 2023.07.15</div>
-                        </div>
-                        <div class="feed-title">베트남 북부 백패킹, 사파에서 하롱베이까지</div>
-                        <div class="feed-description">
-                            베트남 북부를 10일간 백패킹했습니다. 사파의 계단식 논부터 
-                            하롱베이의 아름다운 석회암 지형까지, 다양한 자연경관을 
-                            만날 수 있었어요. 현지 소수민족과의 홈스테이도 특별한 경험이었습니다.
-                        </div>
-                        <div class="hashtags">
-                            <div class="hashtag">#베트남</div>
-                            <div class="hashtag">#백패킹</div>
-                            <div class="hashtag">#사파</div>
-                            <div class="hashtag">#하롱베이</div>
-                        </div>
-                        <div class="feed-stats">
-                            <div class="stat-group">
-                                <div class="stat">
-                                    <i class="ri-heart-line"></i>
-                                    <span>342</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-chat-1-line"></i>
-                                    <span>87</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="ri-share-line"></i>
-                                </div>
-                            </div>
-                            <div class="timestamp">2주일 전</div>
-                        </div>
-                    </div>
+                <div class="travel-location">
+                    <i class="ri-map-pin-line"></i>
+                    <span>제주특별자치도 서귀포시</span>
                 </div>
             </div>
-            
-            <!-- 사이드바 -->
-            <div class="sidebar">
-                <!-- 피드 작성 버튼 -->
-                <button class="create-post-btn" style="width: 100%; margin-bottom: 25px;">
-                    <i class="ri-add-line"></i>
-                    <span>새 여행 피드 작성하기</span>
-                </button>
-                
-                <!-- 인기 여행지 섹션 -->
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i class="ri-fire-line"></i>
-                        <span>인기 여행지</span>
-                    </div>
-                    <div class="popular-destinations">
-                        <div class="destination-item">
-                            <div class="destination-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="destination-info">
-                                <div class="destination-name">제주도</div>
-                                <div class="destination-count">이번 주 방문 피드 128개</div>
-                            </div>
-                        </div>
-                        <div class="destination-item">
-                            <div class="destination-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="destination-info">
-                                <div class="destination-name">오사카, 일본</div>
-                                <div class="destination-count">이번 주 방문 피드 96개</div>
-                            </div>
-                        </div>
-                        <div class="destination-item">
-                            <div class="destination-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="destination-info">
-                                <div class="destination-name">다낭, 베트남</div>
-                                <div class="destination-count">이번 주 방문 피드 82개</div>
-                            </div>
-                        </div>
-                        <div class="destination-item">
-                            <div class="destination-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="destination-info">
-                                <div class="destination-name">부산</div>
-                                <div class="destination-count">이번 주 방문 피드 75개</div>
-                            </div>
-                        </div>
-                        <div class="destination-item">
-                            <div class="destination-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="destination-info">
-                                <div class="destination-name">방콕, 태국</div>
-                                <div class="destination-count">이번 주 방문 피드 68개</div>
-                            </div>
-                        </div>
-                    </div>
+
+            <!-- Image Slider -->
+            <div class="image-slider">
+                <div class="slider-placeholder">
+                    <i class="ri-image-line" style="font-size: 48px; margin-bottom: 10px;"></i>
+                    <p>여행 사진 슬라이더</p>
                 </div>
-                
-                <!-- 추천 피드 섹션 -->
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i class="ri-thumb-up-line"></i>
-                        <span>추천 피드</span>
-                    </div>
-                    <div class="recommended-feeds">
-                        <div class="recommended-feed">
-                            <div class="recommended-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="recommended-content">
-                                <div class="recommended-title">유럽 3개국 2주 일정 완벽 정리, 효율적인 동선 공유</div>
-                                <div class="recommended-author">by 유로트립</div>
-                            </div>
-                        </div>
-                        <div class="recommended-feed">
-                            <div class="recommended-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="recommended-content">
-                                <div class="recommended-title">혼자 떠난 제주 3박 4일, 렌트카 없이 대중교통으로 완성</div>
-                                <div class="recommended-author">by 솔로여행자</div>
-                            </div>
-                        </div>
-                        <div class="recommended-feed">
-                            <div class="recommended-image">
-                                <i class="ri-image-line"></i>
-                            </div>
-                            <div class="recommended-content">
-                                <div class="recommended-title">가족과 함께한 강원도 힐링 여행, 아이들이 좋아한 장소 BEST 5</div>
-                                <div class="recommended-author">by 행복한가족</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 인기 해시태그 클라우드 -->
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i class="ri-hashtag"></i>
-                        <span>인기 해시태그</span>
-                    </div>
-                    <div class="hashtag-cloud">
-                        <div class="cloud-tag size-5">#제주도</div>
-                        <div class="cloud-tag size-4">#맛집투어</div>
-                        <div class="cloud-tag size-3">#가을여행</div>
-                        <div class="cloud-tag size-4">#일본</div>
-                        <div class="cloud-tag size-2">#백패킹</div>
-                        <div class="cloud-tag size-3">#혼자여행</div>
-                        <div class="cloud-tag size-1">#호캉스</div>
-                        <div class="cloud-tag size-2">#캠핑</div>
-                        <div class="cloud-tag size-5">#방콕</div>
-                        <div class="cloud-tag size-3">#국내여행</div>
-                        <div class="cloud-tag size-2">#힐링</div>
-                        <div class="cloud-tag size-4">#액티비티</div>
-                        <div class="cloud-tag size-1">#가족여행</div>
-                        <div class="cloud-tag size-3">#유럽</div>
-                    </div>
-                </div>
-                
-                <!-- 여행 팁 섹션 -->
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i class="ri-lightbulb-line"></i>
-                        <span>여행 팁</span>
-                    </div>
-                    <div class="travel-tips">
-                        <div class="tip-item">
-                            <div class="tip-icon">
-                                <i class="ri-flight-takeoff-line"></i>
-                            </div>
-                            <div class="tip-content">
-                                항공권은 출발일로부터 2-3개월 전에 예약하면 가장 저렴합니다.
-                            </div>
-                        </div>
-                        <div class="tip-item">
-                            <div class="tip-icon">
-                                <i class="ri-bank-card-line"></i>
-                            </div>
-                            <div class="tip-content">
-                                해외여행 시 현지 ATM 이용이 환전소보다 수수료가 저렴한 경우가 많아요.
-                            </div>
-                        </div>
-                        <div class="tip-item">
-                            <div class="tip-icon">
-                                <i class="ri-plug-line"></i>
-                            </div>
-                            <div class="tip-content">
-                                여행 국가에 맞는 어댑터를 미리 준비하세요. 현지에서 구매하면 비쌉니다.
-                            </div>
-                        </div>
-                    </div>
+                <div class="slider-indicators">
+                    <div class="indicator active"></div>
+                    <div class="indicator"></div>
+                    <div class="indicator"></div>
+                    <div class="indicator"></div>
                 </div>
             </div>
-        </div>
-        
-        <!-- 푸터 -->
-        <div class="footer">
-            <div>© 2023 트래블메이트. All rights reserved.</div>
-            <div class="footer-links">
-                <a href="#">서비스 소개</a>
-                <a href="#">이용약관</a>
-                <a href="#">개인정보처리방침</a>
-                <a href="#">고객센터</a>
+
+            <!-- Post Content -->
+            <div class="post-content">
+                <p>제주도에서의 3일간의 여행은 정말 잊을 수 없는 경험이었습니다. 첫째 날에는 성산일출봉에서 아름다운 일출을 감상하고, 우도로 향했습니다. 우도의 하얀 모래해변과 에메랄드빛 바다는 정말 환상적이었어요.</p>
+                <br>
+                <p>둘째 날에는 중문 관광단지의 여러 해변을 돌아다니며 시간을 보냈습니다. 특히 중문색달해변에서의 수영은 정말 상쾌했어요. 저녁에는 제주 흑돼지 바비큐를 즐기며 하루를 마무리했습니다.</p>
+                <br>
+                <p>마지막 날에는 한라산 등반에 도전했습니다. 비록 정상까지는 가지 못했지만, 중간 지점에서 바라본 제주의 전경은 정말 장관이었습니다. 다음에 제주도를 방문한다면 꼭 정상까지 올라가보고 싶네요.</p>
+                <br>
+                <p>제주도의 자연, 음식, 그리고 사람들의 따뜻함이 모두 기억에 남습니다. 여러분도 기회가 된다면 꼭 방문해보세요!</p>
+            </div>
+
+            <!-- Tags -->
+            <div class="tags">
+                <div class="tag">#제주도</div>
+                <div class="tag">#힐링여행</div>
+                <div class="tag">#성산일출봉</div>
+                <div class="tag">#우도</div>
+                <div class="tag">#한라산</div>
+                <div class="tag">#여름휴가</div>
+            </div>
+
+            <!-- Interaction Buttons -->
+            <div class="interaction-buttons">
+                <div class="interaction-btn liked">
+                    <i class="ri-heart-fill"></i>
+                    <span>128</span>
+                </div>
+                <div class="interaction-btn">
+                    <i class="ri-chat-3-line"></i>
+                    <span>24</span>
+                </div>
+                <div class="interaction-btn">
+                    <i class="ri-share-forward-line"></i>
+                    <span>15</span>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="comments-section">
+                <h2 class="comments-title">댓글 24개</h2>
+                
+                <!-- Comment 1 -->
+                <div class="comment">
+                    <div class="comment-profile">
+                        <i class="ri-user-line"></i>
+                    </div>
+                    <div class="comment-content">
+                        <div class="comment-author">이제주</div>
+                        <div class="comment-text">저도 지난달에 제주도 다녀왔는데, 정말 좋았어요! 성산일출봉 일출은 정말 장관이죠.</div>
+                        <div class="comment-time">2시간 전</div>
+                    </div>
+                </div>
+
+                <!-- Comment 2 -->
+                <div class="comment">
+                    <div class="comment-profile">
+                        <i class="ri-user-line"></i>
+                    </div>
+                    <div class="comment-content">
+                        <div class="comment-author">박여행</div>
+                        <div class="comment-text">흑돼지 바비큐 어디서 드셨나요? 저도 다음 달에 제주도 가는데 맛집 추천 부탁드려요!</div>
+                        <div class="comment-time">1시간 전</div>
+                    </div>
+                </div>
+
+                <!-- Comment 3 -->
+                <div class="comment">
+                    <div class="comment-profile">
+                        <i class="ri-user-line"></i>
+                    </div>
+                    <div class="comment-content">
+                        <div class="comment-author">최사진</div>
+                        <div class="comment-text">사진이 정말 예쁘게 잘 나왔네요! 카메라 종류가 궁금합니다.</div>
+                        <div class="comment-time">30분 전</div>
+                    </div>
+                </div>
+
+                <!-- Comment Input -->
+                <div class="comment-input">
+                    <input type="text" placeholder="댓글을 입력하세요...">
+                    <button>게시</button>
+                </div>
             </div>
         </div>
     </div>
