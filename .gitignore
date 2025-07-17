@@ -1,90 +1,38 @@
-# Maven
-target/
-.mvn/wrapper/maven-wrapper.jar
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# STS
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# IntelliJ IDEA
-.idea
-.idea/
-*.iws
-*.iml
-*.ipr
+# testing
+/coverage
 
-# NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# production
+/build
 
-# VS Code
-.vscode/
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Compiled class file
-*.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs
-hs_err_pid*
-replay_pid*
-
-# 백엔드 MySQL 데이터 폴더 무시
-/backend/mysql-data/
-
-# Firebase service account key
-/backend/config/
-/config/
-/backend/src/main/resources/application.properties
-/backend/docker-compose.yaml
-
-# OS
-DS_Store
-
-# Logs
-logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-dev-debug.log
-# Dependency directories
-node_modules/
-# Environment variables
-.env
-# Editor directories and files
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-# OS specific
-.DS_Store
 
-# Task files
-# tasks.json
-# tasks/ 
+# Editor directories and files
+.vscode/
+
+# Legacy files
+legacy/
+
+# Distribution folder
+dist/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db

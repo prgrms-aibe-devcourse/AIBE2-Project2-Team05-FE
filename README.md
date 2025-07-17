@@ -1,51 +1,46 @@
-# 트래블메이트 (Travel Mate) - 여행 동반자 매칭 플랫폼
+# Getting Started with Create React App
 
-## 1. 프로젝트 소개
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-**트래블메이트**는 비슷한 여행 스타일과 취향을 가진 사람들을 연결하여 함께 여행을 계획하고, 소중한 추억을 만들 수 있도록 돕는 여행 동반자 매칭 웹 서비스입니다. 사용자들은 자신의 여행 계획을 공유하고, 조건에 맞는 동행을 찾으며, 여행 후기를 나누는 등 다양한 소셜 활동을 통해 여행의 즐거움을 배가시킬 수 있습니다.
+## Available Scripts
 
-## 2. 주요 기능
+In the project directory, you can run:
 
-### 🧑‍🤝‍🧑 여행 동반자 매칭
-- **상세 필터링:** 여행지, 기간, 예산, 여행 스타일, 연령, 성별 등 다양한 조건으로 원하는 동반자를 검색할 수 있습니다.
-- **AI 추천:** 사용자의 프로필과 선호도를 분석하여 최적의 동반자를 추천합니다.
+### `npm start`
 
-### 🗺️ 여행 계획 생성 및 공유
-- **일정 생성:** 날짜별로 상세한 여행 일정을 쉽게 작성하고 관리할 수 있습니다.
-- **계획 공유:** 완성된 여행 계획을 다른 사용자들에게 공유하여 '좋아요'를 받거나 동행 제안을 받을 수 있습니다.
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-### 💬 실시간 채팅
-- 매칭이 성사된 사용자 간에 실시간으로 소통하며 세부 일정을 조율할 수 있습니다.
+The page will reload if you make edits.\
+You will also see any lint errors in the console.
 
-### 📝 소셜 피드 및 프로필
-- **여행 피드:** 사진과 함께 자신의 여행 경험을 공유하고 다른 사용자들의 여행기를 탐색할 수 있습니다.
-- **사용자 프로필:** 자기소개, 여행 스타일, 선호도, 언어 능력 등을 포함한 개인 프로필을 작성하고 관리합니다.
+### `npm test`
 
-### 📈 관리자 대시보드
-- 회원 관리, 피드 관리, 신고 처리, 통계 확인 등 서비스 운영을 위한 관리자 전용 페이지가 제공됩니다.
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-## 3. 화면 구성
+### `npm run build`
 
-본 프로젝트는 다음과 같은 페이지들로 구성되어 있습니다.
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-| 페이지 파일 | 설명 |
-|---|---|
-| `mainPage.html` | 서비스의 특징과 기능을 소개하는 메인 랜딩 페이지입니다. |
-| `loginPage.html` | 사용자의 로그인 및 회원가입을 처리하는 페이지입니다. |
-| `mainFeedPage.html`, `feedPage.html` | 다른 사용자들의 여행 후기를 볼 수 있는 소셜 피드 페이지입니다. |
-| `matchPage.html` | 상세 필터를 통해 여행 동반자를 찾는 핵심 매칭 페이지입니다. |
-| `planWritePage.html` | 사용자가 직접 여행 계획을 생성하고 수정하는 페이지입니다. |
-| `planPage.html` | 작성된 여행 계획의 상세 내용을 보여주는 페이지입니다. |
-| `myPage.html`, `infoPage.html` | 사용자의 프로필 정보(여행 스타일, 선호도 등)를 관리하는 페이지입니다. |
-| `chatPage.html` | 매칭된 사용자와 실시간으로 대화하는 채팅 페이지입니다. |
-| `likePage.html` | 특정 여행 계획에 '좋아요'를 누른 사용자 목록을 보여주는 페이지입니다. |
-| `reviewPage.html` | 여행 동반자나 여행 경험에 대한 후기를 작성하고 조회하는 페이지입니다. |
-| `adminPage.html` | 서비스 운영자가 회원 및 콘텐츠를 관리하는 관리자 대시보드입니다. |
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-## 4. 기술 스택 (예상)
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-- **Frontend:** HTML, CSS, JavaScript
-- **Backend:** (필요) Spring Boot, Java 등
-- **Database:** (필요) MySQL, PostgreSQL 등
+### `npm run eject`
 
-> 현재는 프론트엔드 화면만 구현되어 있으며, 모든 기능을 정상적으로 사용하기 위해서는 백엔드 및 데이터베이스 연동 개발이 필요합니다.
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+
+You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
