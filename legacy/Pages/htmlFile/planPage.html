@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>트립 플래너 - 제주도 힐링 여행</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      @font-face {
+        font-family: 'MiSans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf')
+          format('truetype');
+        font-weight: normal;
+      }
+      @font-face {
+        font-family: 'MiSans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf')
+          format('truetype');
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: 'MiSans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf')
+          format('truetype');
+        font-weight: bold;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'MiSans', sans-serif;
+      }
+
+      body {
+        width: 1080px;
+        background-color: #ffffff;
+        color: #333333;
+        line-height: 1.6;
+      }
+
+      /* 헤더 스타일 */
+      header {
+        background-color: #3388ff;
+        color: white;
+        padding: 20px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+      }
+
+      .logo i {
+        margin-right: 8px;
+        font-size: 28px;
+      }
+
+      .nav-menu {
+        display: flex;
+        gap: 30px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+      }
+
+      /* 메인 정보 스타일 */
+      .main-info {
+        padding: 40px;
+        text-align: center;
+      }
+
+      .trip-title {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .trip-date {
+        font-size: 18px;
+        color: #666666;
+        margin-bottom: 30px;
+      }
+
+      .summary-cards {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+
+      .summary-card {
+        flex: 1;
+        background-color: #f5f5f5;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .card-title {
+        font-size: 16px;
+        color: #888888;
+        margin-bottom: 10px;
+      }
+
+      .card-value {
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      /* 타임라인 스타일 */
+      .timeline {
+        padding: 0 40px 40px;
+      }
+
+      .day-section {
+        margin-bottom: 40px;
+        position: relative;
+      }
+
+      .day-marker {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .day-circle {
+        width: 40px;
+        height: 40px;
+        background-color: #3388ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-right: 15px;
+      }
+
+      .day-title {
+        font-size: 22px;
+        font-weight: bold;
+      }
+
+      .day-date {
+        color: #888888;
+        margin-left: 10px;
+      }
+
+      .timeline-events {
+        margin-left: 20px;
+        border-left: 2px solid #e0e0e0;
+        padding-left: 30px;
+      }
+
+      .event {
+        position: relative;
+        margin-bottom: 30px;
+      }
+
+      .event::before {
+        content: '';
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background-color: #3388ff;
+        border-radius: 50%;
+        left: -36px;
+        top: 10px;
+      }
+
+      .event-time {
+        font-weight: 500;
+        color: #3388ff;
+        margin-bottom: 5px;
+      }
+
+      .event-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .event-location {
+        display: flex;
+        align-items: center;
+        color: #666666;
+        margin-bottom: 10px;
+      }
+
+      .event-location i {
+        margin-right: 5px;
+        color: #888888;
+      }
+
+      .event-details {
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 10px;
+      }
+
+      .event-image {
+        width: 100%;
+        height: 200px;
+        background-color: #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #888888;
+      }
+
+      .event-tags {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .tag {
+        background-color: #e8f1ff;
+        color: #3388ff;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+      }
+
+      .price-tag {
+        background-color: #f0f0f0;
+        color: #666666;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+      }
+
+      /* 푸터 스타일 */
+      footer {
+        padding: 20px 40px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .likes {
+        display: flex;
+        align-items: center;
+      }
+
+      .like-button {
+        display: flex;
+        align-items: center;
+        margin-right: 15px;
+        cursor: pointer;
+      }
+
+      .like-button i {
+        color: #ff4d4d;
+        margin-right: 5px;
+        font-size: 22px;
+      }
+
+      .profile-images {
+        display: flex;
+        margin-right: 10px;
+      }
+
+      .profile-image {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: #e0e0e0;
+        border: 2px solid white;
+        margin-left: -10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #888888;
+        font-size: 12px;
+      }
+
+      .profile-image:first-child {
+        margin-left: 0;
+      }
+
+      .like-text {
+        color: #3388ff;
+        cursor: pointer;
+      }
+
+      .share-button {
+        background-color: #3388ff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+      }
+
+      .share-button i {
+        margin-right: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 헤더 -->
+    <header>
+      <div class="logo">
+        <i class="ri-map-pin-line"></i>
+        트립 플래너
+      </div>
+      <div class="nav-menu">
+        <div class="nav-item">
+          <i class="ri-compass-3-line"></i>
+          탐색
+        </div>
+        <div class="nav-item">
+          <i class="ri-bookmark-line"></i>
+          저장됨
+        </div>
+        <div class="nav-item">
+          <i class="ri-user-line"></i>
+          프로필
+        </div>
+      </div>
+    </header>
+
+    <!-- 메인 정보 -->
+    <div class="main-info">
+      <h1 class="trip-title">제주도 힐링 여행</h1>
+      <p class="trip-date">2023년 6월 15일 - 2023년 6월 19일</p>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <p class="card-title">여행 기간</p>
+          <p class="card-value">5일 4박</p>
+        </div>
+        <div class="summary-card">
+          <p class="card-title">여행지</p>
+          <p class="card-value">제주도</p>
+        </div>
+        <div class="summary-card">
+          <p class="card-title">예산</p>
+          <p class="card-value">₩800,000</p>
+        </div>
+        <div class="summary-card">
+          <p class="card-title">인원</p>
+          <p class="card-value">2명</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상세 일정 타임라인 -->
+    <div class="timeline">
+      <!-- Day 1 -->
+      <div class="day-section">
+        <div class="day-marker">
+          <div class="day-circle">1</div>
+          <h2 class="day-title">첫째 날</h2>
+          <span class="day-date">2023년 6월 15일 (목)</span>
+        </div>
+
+        <div class="timeline-events">
+          <div class="event">
+            <div class="event-time">09:30</div>
+            <h3 class="event-title">제주공항 도착</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주국제공항
+            </div>
+            <p>
+              김포공항에서 출발한 비행기가 제주공항에 도착합니다. 렌트카를
+              수령하고 여행을 시작합니다.
+            </p>
+          </div>
+
+          <div class="event">
+            <div class="event-time">11:00</div>
+            <h3 class="event-title">함덕 서우봉 해변</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 조천읍 함덕리
+            </div>
+            <div class="event-details">
+              <div class="event-image">
+                <i class="ri-image-line"></i> 함덕 서우봉 해변 이미지
+              </div>
+              <p>
+                에메랄드빛 바다가 아름다운 함덕 해변에서 여유로운 시간을
+                보냅니다. 해변 산책과 함께 주변 카페에서 브런치를 즐깁니다.
+              </p>
+              <div class="event-tags">
+                <span class="tag">해변</span>
+                <span class="tag">힐링</span>
+                <span class="price-tag">무료</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">14:00</div>
+            <h3 class="event-title">비자림</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 구좌읍 비자숲길
+            </div>
+            <p>
+              천년의 역사를 간직한 비자나무 군락지에서 산림욕을 즐깁니다. 맑은
+              공기와 함께 힐링의 시간을 가집니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">자연</span>
+              <span class="tag">산책</span>
+              <span class="price-tag">₩3,000</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">18:00</div>
+            <h3 class="event-title">숙소 체크인</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 애월읍 힐링 리조트
+            </div>
+            <p>
+              오션뷰가 보이는 리조트에 체크인하고 휴식을 취합니다. 저녁은 리조트
+              내 레스토랑에서 제주 향토 음식을 즐깁니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 2 -->
+      <div class="day-section">
+        <div class="day-marker">
+          <div class="day-circle">2</div>
+          <h2 class="day-title">둘째 날</h2>
+          <span class="day-date">2023년 6월 16일 (금)</span>
+        </div>
+
+        <div class="timeline-events">
+          <div class="event">
+            <div class="event-time">08:00</div>
+            <h3 class="event-title">아침 요가 클래스</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              리조트 야외 데크
+            </div>
+            <p>
+              바다를 바라보며 아침 요가로 하루를 시작합니다. 몸과 마음의 균형을
+              찾는 시간을 가집니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">웰니스</span>
+              <span class="price-tag">₩20,000</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">10:30</div>
+            <h3 class="event-title">카멜리아 힐</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 안덕면
+            </div>
+            <div class="event-details">
+              <div class="event-image">
+                <i class="ri-image-line"></i> 카멜리아 힐 이미지
+              </div>
+              <p>
+                동양에서 가장 큰 동백 수목원에서 아름다운 꽃과 나무들을
+                감상합니다. 다양한 포토존에서 추억을 남깁니다.
+              </p>
+              <div class="event-tags">
+                <span class="tag">정원</span>
+                <span class="tag">자연</span>
+                <span class="price-tag">₩9,000</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">14:00</div>
+            <h3 class="event-title">오설록 티 뮤지엄</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 안덕면
+            </div>
+            <p>
+              푸른 녹차 밭과 함께 차 문화를 체험합니다. 녹차 아이스크림과 다양한
+              차를 시음하며 여유로운 오후를 보냅니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">문화</span>
+              <span class="tag">카페</span>
+              <span class="price-tag">무료(입장)</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">17:30</div>
+            <h3 class="event-title">산방산 일몰</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 안덕면
+            </div>
+            <p>
+              산방산에서 아름다운 일몰을 감상합니다. 형제섬과 바다가 어우러진
+              환상적인 풍경을 볼 수 있습니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">일몰</span>
+              <span class="tag">경치</span>
+              <span class="price-tag">무료</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 3 -->
+      <div class="day-section">
+        <div class="day-marker">
+          <div class="day-circle">3</div>
+          <h2 class="day-title">셋째 날</h2>
+          <span class="day-date">2023년 6월 17일 (토)</span>
+        </div>
+
+        <div class="timeline-events">
+          <div class="event">
+            <div class="event-time">09:00</div>
+            <h3 class="event-title">성산일출봉</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 성산읍
+            </div>
+            <div class="event-details">
+              <div class="event-image">
+                <i class="ri-image-line"></i> 성산일출봉 이미지
+              </div>
+              <p>
+                유네스코 세계자연유산인 성산일출봉을 오릅니다. 정상에서 바라보는
+                제주의 전경이 장관입니다.
+              </p>
+              <div class="event-tags">
+                <span class="tag">트레킹</span>
+                <span class="tag">유네스코</span>
+                <span class="price-tag">₩5,000</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">12:00</div>
+            <h3 class="event-title">섭지코지</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 성산읍
+            </div>
+            <p>
+              아름다운 해안 절경을 감상하며 산책합니다. 드라마 촬영지로도 유명한
+              곳에서 인생샷을 남깁니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">해안</span>
+              <span class="tag">산책</span>
+              <span class="price-tag">무료</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">15:00</div>
+            <h3 class="event-title">아쿠아플라넷 제주</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 성산읍
+            </div>
+            <p>
+              아시아 최대 규모의 아쿠아리움에서 다양한 해양 생물을 만나봅니다.
+              메인 수조의 아름다운 풍경에 힐링합니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">실내</span>
+              <span class="tag">체험</span>
+              <span class="price-tag">₩38,000</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">19:00</div>
+            <h3 class="event-title">제주 흑돼지 BBQ</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 중문동
+            </div>
+            <p>
+              제주 특산품인 흑돼지를 맛볼 수 있는 유명 맛집에서 저녁 식사를
+              즐깁니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">맛집</span>
+              <span class="tag">로컬푸드</span>
+              <span class="price-tag">₩60,000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 4 -->
+      <div class="day-section">
+        <div class="day-marker">
+          <div class="day-circle">4</div>
+          <h2 class="day-title">넷째 날</h2>
+          <span class="day-date">2023년 6월 18일 (일)</span>
+        </div>
+
+        <div class="timeline-events">
+          <div class="event">
+            <div class="event-time">10:00</div>
+            <h3 class="event-title">한라산 국립공원</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 오등동
+            </div>
+            <div class="event-details">
+              <div class="event-image">
+                <i class="ri-image-line"></i> 한라산 이미지
+              </div>
+              <p>
+                영실 코스를 따라 한라산을 트레킹합니다. 제주의 자연을 만끽하며
+                힐링의 시간을 가집니다.
+              </p>
+              <div class="event-tags">
+                <span class="tag">트레킹</span>
+                <span class="tag">자연</span>
+                <span class="price-tag">무료</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">14:00</div>
+            <h3 class="event-title">에코랜드</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 조천읍
+            </div>
+            <p>
+              증기기관차를 타고 제주의 아름다운 숲을 둘러봅니다. 편안하게 자연을
+              감상할 수 있는 시간입니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">테마파크</span>
+              <span class="tag">가족</span>
+              <span class="price-tag">₩15,000</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">17:00</div>
+            <h3 class="event-title">제주 민속촌</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              서귀포시 표선면
+            </div>
+            <p>
+              제주의 전통 문화와 생활 방식을 체험할 수 있는 민속촌을 방문합니다.
+              다양한 전통 체험 프로그램에 참여합니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">문화</span>
+              <span class="tag">역사</span>
+              <span class="price-tag">₩12,000</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">20:00</div>
+            <h3 class="event-title">제주 야시장</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 중앙로
+            </div>
+            <p>
+              제주 시내의 야시장에서 다양한 로컬 음식과 기념품을 구경하고
+              쇼핑합니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">쇼핑</span>
+              <span class="tag">음식</span>
+              <span class="price-tag">자유</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 5 -->
+      <div class="day-section">
+        <div class="day-marker">
+          <div class="day-circle">5</div>
+          <h2 class="day-title">다섯째 날</h2>
+          <span class="day-date">2023년 6월 19일 (월)</span>
+        </div>
+
+        <div class="timeline-events">
+          <div class="event">
+            <div class="event-time">09:00</div>
+            <h3 class="event-title">숙소 체크아웃</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 애월읍 힐링 리조트
+            </div>
+            <p>숙소에서 체크아웃하고 마지막 일정을 준비합니다.</p>
+          </div>
+
+          <div class="event">
+            <div class="event-time">10:30</div>
+            <h3 class="event-title">카페 투어</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 애월읍 해안도로
+            </div>
+            <div class="event-details">
+              <div class="event-image">
+                <i class="ri-image-line"></i> 애월 카페 이미지
+              </div>
+              <p>
+                애월 해안도로를 따라 인기 있는 오션뷰 카페들을 방문합니다.
+                커피와 디저트를 즐기며 여행의 마무리를 합니다.
+              </p>
+              <div class="event-tags">
+                <span class="tag">카페</span>
+                <span class="tag">힐링</span>
+                <span class="price-tag">₩15,000</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">13:00</div>
+            <h3 class="event-title">용두암</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주시 용담동
+            </div>
+            <p>
+              용의 머리를 닮은 독특한 바위 용두암을 방문합니다. 제주 바다의
+              아름다운 풍경을 마지막으로 감상합니다.
+            </p>
+            <div class="event-tags">
+              <span class="tag">자연</span>
+              <span class="tag">경치</span>
+              <span class="price-tag">무료</span>
+            </div>
+          </div>
+
+          <div class="event">
+            <div class="event-time">16:00</div>
+            <h3 class="event-title">제주공항 출발</h3>
+            <div class="event-location">
+              <i class="ri-map-pin-line"></i>
+              제주국제공항
+            </div>
+            <p>
+              렌트카를 반납하고 제주공항에서 서울행 비행기에 탑승합니다.
+              아름다운 제주도 여행의 마무리입니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer>
+      <div class="likes">
+        <div class="like-button">
+          <i class="ri-heart-fill"></i>
+          <span>128</span>
+        </div>
+        <div class="profile-images">
+          <div class="profile-image">J</div>
+          <div class="profile-image">K</div>
+          <div class="profile-image">S</div>
+        </div>
+        <span class="like-text">좋아요 누른 사람을 보기</span>
+      </div>
+      <button class="share-button">
+        <i class="ri-share-line"></i>
+        공유하기
+      </button>
+    </footer>
+  </body>
+</html>
