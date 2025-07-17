@@ -60,7 +60,7 @@ const Header = () => {
       <Nav>
         <NavLink to="/feed">피드</NavLink>
         <NavLink to="/map-test">여행 계획</NavLink>
-        <NavLink to="/match">동행 찾기</NavLink>
+        <NavLink to="/match/recommend">동행 찾기</NavLink>
       </Nav>
       <AuthActions>
         {isAuthenticated ? (

@@ -6,6 +6,7 @@ interface AuthContextType {
   user: { email: string; role: string } | null; // role 추가
   login: (token: string, email: string, role: string) => void; // login 함수 인자 변경
   logout: () => void;
+  isLoading: boolean; // 로딩 상태 추가
 }
 
 // React.createContext를 사용하여 AuthContext를 생성합니다.
@@ -24,6 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<{ email: string; role: string } | null>(
     null,
   );
+  const [isLoading, setIsLoading] = useState(true); // 로딩 상태 추가
 
   useEffect(() => {
     // 앱이 처음 로드될 때 localStorage에서 토큰과 사용자 정보를 확인합니다.
@@ -31,10 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const userEmail = localStorage.getItem('userEmail');
     const userRole = localStorage.getItem('userRole');
 
+    console.log('AuthProvider useEffect - token:', token);
+    console.log('AuthProvider useEffect - userEmail:', userEmail);
+    console.log('AuthProvider useEffect - userRole:', userRole);
+
     if (token && userEmail && userRole) {
       setIsAuthenticated(true);
       setUser({ email: userEmail, role: userRole });
     }
+
+    setIsLoading(false); // 초기화 완료
   }, []);
 
   const login = (token: string, email: string, role: string) => {
@@ -56,7 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, user, login, logout, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );

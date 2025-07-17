@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import MapTestPage from './pages/MapTestPage';
 import FeedPage from './pages/FeedPage';
 import MatchPage from './pages/MatchPage';
+import MatchRecommendPage from './pages/MatchRecommendPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
 import { AuthProvider } from './contexts/AuthContext';
@@ -26,6 +27,7 @@ function App() {
             <Route path="/map-test" element={<MapTestPage />} />
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/match" element={<MatchPage />} />
+            <Route path="/match/recommend" element={<MatchRecommendPage />} />
           </Route>
         </Route>
       </Routes>
