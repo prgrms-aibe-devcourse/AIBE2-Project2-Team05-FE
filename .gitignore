@@ -36,3 +36,6 @@ dist/
 .DS_Store?
 ._*
 Thumbs.db
+
+# API Key
+.env

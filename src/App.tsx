@@ -2,12 +2,14 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import MapTestPage from './pages/MapTestPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<AuthPage />} />
+      <Route path="/map-test" element={<MapTestPage />} />
       <Route path="/" element={<ProtectedRoute />}>
         <Route index element={<Dashboard />} />
         <Route path="dashboard" element={<Dashboard />} />
