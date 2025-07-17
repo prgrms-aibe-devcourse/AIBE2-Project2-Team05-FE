@@ -52,11 +52,11 @@ const LogoutButton = styled.button`
  * 로고, 네비게이션 링크, 인증 상태에 따른 UI를 표시합니다.
  */
 const Header = () => {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <HeaderContainer>
-      <Logo to="/">Trip'mate</Logo>
+      <Logo to="/">TravelMate</Logo>
       <Nav>
         <NavLink to="/feed">피드</NavLink>
         <NavLink to="/map-test">여행 계획</NavLink>
@@ -65,7 +65,7 @@ const Header = () => {
       <AuthActions>
         {isAuthenticated ? (
           <>
-            <span>{user?.nickname}님 환영합니다!</span>
+            <span>{user?.email.split('@')[0]}님 환영합니다!</span>
             <LogoutButton onClick={logout}>로그아웃</LogoutButton>
           </>
         ) : (

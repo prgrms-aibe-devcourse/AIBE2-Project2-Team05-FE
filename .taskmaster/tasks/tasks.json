@@ -16,7 +16,7 @@
         "id": 2,
         "title": "Implement Authentication System",
         "description": "사용자 인증을 위한 인증 컨텍스트, 로그인/회원가입 양식 및 기본 상태 관리를 구현합니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1
         ],
@@ -64,7 +64,7 @@
             "id": 5,
             "title": "인증 상태 UI 반영",
             "description": "사용자 인증 상태에 따라 UI 요소를 조건부로 표시",
-            "status": "deferred",
+            "status": "done",
             "dependencies": [],
             "details": "로그인 상태에 따라 네비게이션 메뉴, 사용자 프로필 정보 등의 UI 요소를 조건부로 표시하는 기능을 구현합니다.",
             "testStrategy": "다양한 인증 상태에서 UI가 올바르게 표시되는지 테스트합니다."
@@ -82,7 +82,7 @@
             "id": 7,
             "title": "React Query 통합",
             "description": "인증 상태 및 API 호출 관리를 위한 React Query 설정",
-            "status": "deferred",
+            "status": "done",
             "dependencies": [],
             "details": "로그인, 회원가입 등의 인증 관련 API 호출을 React Query를 사용하여 구현합니다. 로딩 상태, 오류 처리 등을 관리합니다.",
             "testStrategy": "API 호출의 다양한 상태(로딩, 성공, 오류)를 테스트합니다."
@@ -93,7 +93,7 @@
         "id": 3,
         "title": "Create Navigation and Layout Components",
         "description": "애플리케이션의 메인 레이아웃, 네비게이션 바, 반응형 디자인을 구현합니다.",
-        "status": "pending",
+        "status": "deferred",
         "dependencies": [
           1
         ],
@@ -170,7 +170,7 @@
         "id": 4,
         "title": "Implement Home Page with Feed Preview",
         "description": "피드 미리보기와 추천 사용자가 있는 메인 랜딩 페이지를 생성합니다.",
-        "status": "pending",
+        "status": "deferred",
         "dependencies": [
           2,
           3
@@ -184,7 +184,7 @@
         "id": 5,
         "title": "Implement User Authentication Pages",
         "description": "양식 유효성 검사 및 오류 처리가 포함된 로그인 및 회원가입 페이지를 생성합니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2
         ],
@@ -251,7 +251,7 @@
         "id": 10,
         "title": "Implement Feed List Page",
         "description": "인스타그램과 유사한 그리드 레이아웃과 무한 스크롤 기능이 있는 피드 목록 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           3,
           4
@@ -264,7 +264,7 @@
             "id": 1,
             "title": "피드 목록 페이지 기본 구조 생성",
             "description": "'/feed' 경로에 피드 목록 페이지의 기본 레이아웃과 구조를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -273,7 +273,7 @@
             "id": 2,
             "title": "메이슨리 그리드 레이아웃 구현",
             "description": "react-masonry-css v1.0+ 또는 CSS Grid를 사용하여 인스타그램과 유사한 그리드 레이아웃을 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -282,7 +282,7 @@
             "id": 3,
             "title": "무한 스크롤 기능 추가",
             "description": "Intersection Observer API를 사용하여 사용자가 페이지 하단에 도달할 때 추가 피드를 로드하는 무한 스크롤을 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -291,7 +291,7 @@
             "id": 4,
             "title": "피드 카드 컴포넌트 생성",
             "description": "이미지, 제목, 좋아요 수 및 기본 정보가 포함된 재사용 가능한 피드 카드 컴포넌트를 개발합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -300,7 +300,7 @@
             "id": 5,
             "title": "필터링 기능 구현",
             "description": "카테고리, 날짜 또는 인기도별로 피드를 필터링할 수 있는 기능을 추가합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -309,7 +309,7 @@
             "id": 6,
             "title": "스켈레톤 로딩 추가",
             "description": "데이터 가져오기 중에 표시될 피드 아이템의 스켈레톤 로딩 상태를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -318,7 +318,7 @@
             "id": 7,
             "title": "빠른 좋아요 기능 구현",
             "description": "상세 페이지로 이동하지 않고 피드 목록에서 직접 게시물에 좋아요를 할 수 있는 기능을 추가합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -327,7 +327,7 @@
             "id": 8,
             "title": "검색 기능 구현",
             "description": "피드 목록 내에서 키워드로 피드를 검색할 수 있는 기능을 추가합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -336,7 +336,7 @@
             "id": 9,
             "title": "React Query 통합",
             "description": "캐싱 및 백그라운드 업데이트가 있는 데이터 가져오기를 위해 React Query를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -347,7 +347,7 @@
         "id": 11,
         "title": "Implement Feed Detail Page",
         "description": "콘텐츠, 좋아요, 댓글 및 리뷰 탭이 있는 피드 상세 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           10
         ],
@@ -359,7 +359,7 @@
             "id": 1,
             "title": "이미지 캐러셀 구현",
             "description": "react-slick v0.29+를 사용하여 여러 이미지를 표시하는 캐러셀 구현",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -368,7 +368,7 @@
             "id": 2,
             "title": "좋아요 기능 구현",
             "description": "애니메이션 효과와 카운트가 있는 좋아요 버튼 구현",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -377,7 +377,7 @@
             "id": 3,
             "title": "댓글 섹션 구현",
             "description": "페이지네이션이 있는 댓글 작성 및 표시 기능 구현",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -386,7 +386,7 @@
             "id": 4,
             "title": "탭 인터페이스 구현",
             "description": "콘텐츠, 댓글 및 리뷰를 위한 탭 인터페이스 생성",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -395,7 +395,7 @@
             "id": 5,
             "title": "공유 기능 구현",
             "description": "다양한 소셜 미디어 플랫폼에 공유할 수 있는 공유 버튼 추가",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -404,7 +404,7 @@
             "id": 6,
             "title": "신고 기능 구현",
             "description": "부적절한 콘텐츠를 신고하기 위한 모달 구현",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -413,7 +413,7 @@
             "id": 7,
             "title": "작성자 정보 표시",
             "description": "프로필 링크가 있는 작성자 정보 섹션 추가",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -422,7 +422,7 @@
             "id": 8,
             "title": "React Query 통합",
             "description": "데이터 가져오기 및 낙관적 업데이트를 위한 React Query 설정",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -523,7 +523,7 @@
         "id": 14,
         "title": "Implement User Profile Page",
         "description": "사용자 정보, 피드 및 활동이 포함된 사용자 프로필 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "deferred",
         "dependencies": [
           2,
           10
@@ -537,7 +537,7 @@
         "id": 15,
         "title": "Implement My Page",
         "description": "사용자 자신의 콘텐츠 및 활동 관리가 포함된 마이 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "deferred",
         "dependencies": [
           2,
           14
@@ -985,7 +985,7 @@
         "id": 26,
         "title": "Implement Error Handling and 404 Page",
         "description": "예외 처리를 위한 오류 경계 및 404 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "deferred",
         "dependencies": [
           1
         ],
@@ -1260,7 +1260,7 @@
     ],
     "metadata": {
       "created": "2025-07-17T03:16:56.152Z",
-      "updated": "2025-07-17T07:34:30.306Z",
+      "updated": "2025-07-17T10:22:49.189Z",
       "description": "Tasks for master context"
     }
   }

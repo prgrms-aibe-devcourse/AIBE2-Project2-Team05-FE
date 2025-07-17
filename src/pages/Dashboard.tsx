@@ -12,7 +12,7 @@ const Dashboard = () => {
     <Container>
       <Header>
         <h1>대시보드</h1>
-        <p>안녕하세요, {user?.nickname || '사용자'}님!</p>
+        <p>안녕하세요, {user?.email.split('@')[0] || '사용자'}님!</p>
       </Header>
 
       <Content>
