@@ -1,698 +1,785 @@
-
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>여행 계획 작성/수정/삭제</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css"
+      rel="stylesheet"
+    />
     <style>
-        @font-face {
-            font-family: 'NotoSansHans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Regular.otf') format('opentype');
-            font-weight: normal;
-        }
-        @font-face {
-            font-family: 'NotoSansHans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Medium.otf') format('opentype');
-            font-weight: 500;
-        }
-        @font-face {
-            font-family: 'NotoSansHans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Bold.otf') format('opentype');
-            font-weight: bold;
-        }
-        @font-face {
-            font-family: 'MiSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf') format('truetype');
-            font-weight: normal;
-        }
-        @font-face {
-            font-family: 'MiSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf') format('truetype');
-            font-weight: 500;
-        }
-        @font-face {
-            font-family: 'MiSans';
-            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
-            font-weight: bold;
-        }
+      @font-face {
+        font-family: 'NotoSansHans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Regular.otf')
+          format('opentype');
+        font-weight: normal;
+      }
+      @font-face {
+        font-family: 'NotoSansHans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Medium.otf')
+          format('opentype');
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: 'NotoSansHans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Bold.otf')
+          format('opentype');
+        font-weight: bold;
+      }
+      @font-face {
+        font-family: 'MiSans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf')
+          format('truetype');
+        font-weight: normal;
+      }
+      @font-face {
+        font-family: 'MiSans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf')
+          format('truetype');
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: 'MiSans';
+        src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf')
+          format('truetype');
+        font-weight: bold;
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'NotoSansHans', sans-serif;
-            color: #333;
-            background-color: #f8f9fa;
-            line-height: 1.6;
-            width: 1920px;
-        }
+      body {
+        font-family: 'NotoSansHans', sans-serif;
+        color: #333;
+        background-color: #f8f9fa;
+        line-height: 1.6;
+        width: 1920px;
+      }
 
-        .container {
-            width: 100%;
-            max-width: 1920px;
-            margin: 0 auto;
-        }
+      .container {
+        width: 100%;
+        max-width: 1920px;
+        margin: 0 auto;
+      }
 
-        /* 네비게이션 바 */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #fff;
-            padding: 15px 40px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+      /* 네비게이션 바 */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #fff;
+        padding: 15px 40px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #3498db;
-        }
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #3498db;
+      }
 
-        .nav-menu {
-            display: flex;
-            list-style: none;
-            gap: 30px;
-        }
+      .nav-menu {
+        display: flex;
+        list-style: none;
+        gap: 30px;
+      }
 
-        .nav-menu li a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            font-size: 16px;
-            transition: color 0.3s;
-        }
+      .nav-menu li a {
+        text-decoration: none;
+        color: #555;
+        font-weight: 500;
+        font-size: 16px;
+        transition: color 0.3s;
+      }
 
-        .nav-menu li a:hover {
-            color: #3498db;
-        }
+      .nav-menu li a:hover {
+        color: #3498db;
+      }
 
-        .profile-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #e0e0e0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
+      .profile-icon {
+        width: 40px;
+        height: 40px;
+        background-color: #e0e0e0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
 
-        /* 메인 콘텐츠 */
-        .main-content {
-            padding: 40px;
-            background-color: #fff;
-            border-radius: 10px;
-            margin: 30px 40px;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-        }
+      /* 메인 콘텐츠 */
+      .main-content {
+        padding: 40px;
+        background-color: #fff;
+        border-radius: 10px;
+        margin: 30px 40px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+      }
 
-        .page-title {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-        }
+      .page-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 30px;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+      }
 
-        .page-title i {
-            margin-right: 10px;
-            color: #3498db;
-        }
+      .page-title i {
+        margin-right: 10px;
+        color: #3498db;
+      }
 
-        .section {
-            margin-bottom: 40px;
-        }
+      .section {
+        margin-bottom: 40px;
+      }
 
-        .section-title {
-            font-size: 20px;
-            font-weight: 500;
-            margin-bottom: 20px;
-            color: #2c3e50;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
+      .section-title {
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 20px;
+        color: #2c3e50;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+      }
 
-        /* 폼 스타일 */
-        .form-group {
-            margin-bottom: 20px;
-        }
+      /* 폼 스타일 */
+      .form-group {
+        margin-bottom: 20px;
+      }
 
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0 -15px;
-        }
+      .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -15px;
+      }
 
-        .form-col {
-            padding: 0 15px;
-            margin-bottom: 20px;
-        }
+      .form-col {
+        padding: 0 15px;
+        margin-bottom: 20px;
+      }
 
-        .form-col-6 {
-            width: 50%;
-        }
+      .form-col-6 {
+        width: 50%;
+      }
 
-        .form-col-4 {
-            width: 33.333%;
-        }
+      .form-col-4 {
+        width: 33.333%;
+      }
 
-        .form-col-3 {
-            width: 25%;
-        }
+      .form-col-3 {
+        width: 25%;
+      }
 
-        .form-col-12 {
-            width: 100%;
-        }
+      .form-col-12 {
+        width: 100%;
+      }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #555;
-        }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+      }
 
-        input, select, textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 15px;
-            color: #333;
-            transition: border-color 0.3s;
-        }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 15px;
+        color: #333;
+        transition: border-color 0.3s;
+      }
 
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-        }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+      }
 
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
 
-        .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 10px;
-        }
+      .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 10px;
+      }
 
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+      }
 
-        .checkbox-item input {
-            width: auto;
-            margin-right: 8px;
-        }
+      .checkbox-item input {
+        width: auto;
+        margin-right: 8px;
+      }
 
-        /* 탭 메뉴 */
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-        }
+      /* 탭 메뉴 */
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #ddd;
+      }
 
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
-            margin-right: 5px;
-            background-color: #f5f5f5;
-            transition: all 0.3s;
-        }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 5px 5px 0 0;
+        margin-right: 5px;
+        background-color: #f5f5f5;
+        transition: all 0.3s;
+      }
 
-        .tab.active {
-            background-color: #fff;
-            border-color: #ddd;
-            color: #3498db;
-            font-weight: 500;
-        }
+      .tab.active {
+        background-color: #fff;
+        border-color: #ddd;
+        color: #3498db;
+        font-weight: 500;
+      }
 
-        .tab-content {
-            display: none;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-top: none;
-            border-radius: 0 0 5px 5px;
-        }
+      .tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+      }
 
-        .tab-content.active {
-            display: block;
-        }
+      .tab-content.active {
+        display: block;
+      }
 
-        /* 일정 항목 */
-        .schedule-item {
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            position: relative;
-        }
+      /* 일정 항목 */
+      .schedule-item {
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        position: relative;
+      }
 
-        .schedule-item-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
+      .schedule-item-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
 
-        .remove-item {
-            color: #e74c3c;
-            cursor: pointer;
-            font-size: 18px;
-        }
+      .remove-item {
+        color: #e74c3c;
+        cursor: pointer;
+        font-size: 18px;
+      }
 
-        .add-schedule-btn {
-            display: flex;
-            align-items: center;
-            background-color: #f0f8ff;
-            border: 1px dashed #3498db;
-            color: #3498db;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-top: 15px;
-            transition: all 0.3s;
-            width: fit-content;
-        }
+      .add-schedule-btn {
+        display: flex;
+        align-items: center;
+        background-color: #f0f8ff;
+        border: 1px dashed #3498db;
+        color: #3498db;
+        padding: 10px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: 15px;
+        transition: all 0.3s;
+        width: fit-content;
+      }
 
-        .add-schedule-btn i {
-            margin-right: 8px;
-        }
+      .add-schedule-btn i {
+        margin-right: 8px;
+      }
 
-        .add-schedule-btn:hover {
-            background-color: #e6f3ff;
-        }
+      .add-schedule-btn:hover {
+        background-color: #e6f3ff;
+      }
 
-        /* 버튼 스타일 */
-        .btn-section {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-top: 40px;
-        }
+      /* 버튼 스타일 */
+      .btn-section {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 40px;
+      }
 
-        .btn {
-            padding: 12px 25px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-        }
+      .btn {
+        padding: 12px 25px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: none;
+      }
 
-        .btn-primary {
-            background-color: #3498db;
-            color: white;
-        }
+      .btn-primary {
+        background-color: #3498db;
+        color: white;
+      }
 
-        .btn-primary:hover {
-            background-color: #2980b9;
-        }
+      .btn-primary:hover {
+        background-color: #2980b9;
+      }
 
-        .btn-secondary {
-            background-color: #95a5a6;
-            color: white;
-        }
+      .btn-secondary {
+        background-color: #95a5a6;
+        color: white;
+      }
 
-        .btn-secondary:hover {
-            background-color: #7f8c8d;
-        }
+      .btn-secondary:hover {
+        background-color: #7f8c8d;
+      }
 
-        .btn-danger {
-            background-color: #e74c3c;
-            color: white;
-        }
+      .btn-danger {
+        background-color: #e74c3c;
+        color: white;
+      }
 
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
+      .btn-danger:hover {
+        background-color: #c0392b;
+      }
 
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid #ddd;
-            color: #555;
-        }
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid #ddd;
+        color: #555;
+      }
 
-        .btn-outline:hover {
-            background-color: #f5f5f5;
-        }
+      .btn-outline:hover {
+        background-color: #f5f5f5;
+      }
 
-        /* 푸터 */
-        .footer {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 30px 40px;
-            margin-top: 50px;
-        }
+      /* 푸터 */
+      .footer {
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        padding: 30px 40px;
+        margin-top: 50px;
+      }
 
-        .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+      .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-        .footer-logo {
-            font-size: 20px;
-            font-weight: bold;
-            color: #3498db;
-        }
+      .footer-logo {
+        font-size: 20px;
+        font-weight: bold;
+        color: #3498db;
+      }
 
-        .footer-links {
-            display: flex;
-            gap: 20px;
-        }
+      .footer-links {
+        display: flex;
+        gap: 20px;
+      }
 
-        .footer-links a {
-            color: #ecf0f1;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
+      .footer-links a {
+        color: #ecf0f1;
+        text-decoration: none;
+        transition: color 0.3s;
+      }
 
-        .footer-links a:hover {
-            color: #3498db;
-        }
+      .footer-links a:hover {
+        color: #3498db;
+      }
 
-        .footer-copyright {
-            margin-top: 20px;
-            text-align: center;
-            color: #95a5a6;
-            font-size: 14px;
-        }
+      .footer-copyright {
+        margin-top: 20px;
+        text-align: center;
+        color: #95a5a6;
+        font-size: 14px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <!-- 네비게이션 바 -->
-        <nav class="navbar">
-            <div class="logo">트립매치</div>
-            <ul class="nav-menu">
-                <li><a href="#" style="color: #3498db;"><i class="ri-map-pin-line"></i> 여행 계획</a></li>
-                <li><a href="#"><i class="ri-group-line"></i> 매칭</a></li>
-                <li><a href="#"><i class="ri-chat-3-line"></i> 채팅</a></li>
-                <li><a href="#"><i class="ri-gallery-line"></i> 여행 피드</a></li>
-                <li><a href="#"><i class="ri-star-line"></i> 리뷰</a></li>
-            </ul>
-            <div class="profile-icon">
-                <i class="ri-user-line"></i>
+      <!-- 네비게이션 바 -->
+      <nav class="navbar">
+        <div class="logo">트립매치</div>
+        <ul class="nav-menu">
+          <li>
+            <a href="#" style="color: #3498db"
+              ><i class="ri-map-pin-line"></i> 여행 계획</a
+            >
+          </li>
+          <li>
+            <a href="#"><i class="ri-group-line"></i> 매칭</a>
+          </li>
+          <li>
+            <a href="#"><i class="ri-chat-3-line"></i> 채팅</a>
+          </li>
+          <li>
+            <a href="#"><i class="ri-gallery-line"></i> 여행 피드</a>
+          </li>
+          <li>
+            <a href="#"><i class="ri-star-line"></i> 리뷰</a>
+          </li>
+        </ul>
+        <div class="profile-icon">
+          <i class="ri-user-line"></i>
+        </div>
+      </nav>
+
+      <!-- 메인 콘텐츠 -->
+      <div class="main-content">
+        <h1 class="page-title">
+          <i class="ri-edit-box-line"></i> 여행 계획 작성/수정
+        </h1>
+
+        <!-- 기본 정보 섹션 -->
+        <div class="section">
+          <h2 class="section-title">기본 정보</h2>
+          <div class="form-row">
+            <div class="form-col form-col-12">
+              <div class="form-group">
+                <label for="trip-title">여행 제목</label>
+                <input
+                  type="text"
+                  id="trip-title"
+                  placeholder="여행 제목을 입력하세요"
+                />
+              </div>
             </div>
-        </nav>
-
-        <!-- 메인 콘텐츠 -->
-        <div class="main-content">
-            <h1 class="page-title"><i class="ri-edit-box-line"></i> 여행 계획 작성/수정</h1>
-
-            <!-- 기본 정보 섹션 -->
-            <div class="section">
-                <h2 class="section-title">기본 정보</h2>
-                <div class="form-row">
-                    <div class="form-col form-col-12">
-                        <div class="form-group">
-                            <label for="trip-title">여행 제목</label>
-                            <input type="text" id="trip-title" placeholder="여행 제목을 입력하세요">
-                        </div>
-                    </div>
-                    <div class="form-col form-col-6">
-                        <div class="form-group">
-                            <label for="trip-start-date">여행 시작일</label>
-                            <input type="date" id="trip-start-date">
-                        </div>
-                    </div>
-                    <div class="form-col form-col-6">
-                        <div class="form-group">
-                            <label for="trip-end-date">여행 종료일</label>
-                            <input type="date" id="trip-end-date">
-                        </div>
-                    </div>
-                    <div class="form-col form-col-6">
-                        <div class="form-group">
-                            <label for="trip-destination">여행지</label>
-                            <input type="text" id="trip-destination" placeholder="여행지를 입력하세요">
-                        </div>
-                    </div>
-                    <div class="form-col form-col-3">
-                        <div class="form-group">
-                            <label for="trip-budget">예산 (원)</label>
-                            <input type="number" id="trip-budget" placeholder="0">
-                        </div>
-                    </div>
-                    <div class="form-col form-col-3">
-                        <div class="form-group">
-                            <label for="trip-people">인원 수</label>
-                            <input type="number" id="trip-people" min="1" placeholder="1">
-                        </div>
-                    </div>
-                    <div class="form-col form-col-12">
-                        <div class="form-group">
-                            <label>여행 스타일</label>
-                            <div class="checkbox-group">
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="planned"> 계획적
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="spontaneous"> 즉흥적
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="tourism"> 관광 중심
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="relaxation"> 휴식 중심
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="food"> 맛집 탐방
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="nature"> 자연 체험
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="culture"> 문화 체험
-                                </label>
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="trip-style" value="shopping"> 쇼핑
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+            <div class="form-col form-col-6">
+              <div class="form-group">
+                <label for="trip-start-date">여행 시작일</label>
+                <input type="date" id="trip-start-date" />
+              </div>
+            </div>
+            <div class="form-col form-col-6">
+              <div class="form-group">
+                <label for="trip-end-date">여행 종료일</label>
+                <input type="date" id="trip-end-date" />
+              </div>
+            </div>
+            <div class="form-col form-col-6">
+              <div class="form-group">
+                <label for="trip-destination">여행지</label>
+                <input
+                  type="text"
+                  id="trip-destination"
+                  placeholder="여행지를 입력하세요"
+                />
+              </div>
+            </div>
+            <div class="form-col form-col-3">
+              <div class="form-group">
+                <label for="trip-budget">예산 (원)</label>
+                <input type="number" id="trip-budget" placeholder="0" />
+              </div>
+            </div>
+            <div class="form-col form-col-3">
+              <div class="form-group">
+                <label for="trip-people">인원 수</label>
+                <input type="number" id="trip-people" min="1" placeholder="1" />
+              </div>
+            </div>
+            <div class="form-col form-col-12">
+              <div class="form-group">
+                <label>여행 스타일</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="trip-style" value="planned" />
+                    계획적
+                  </label>
+                  <label class="checkbox-item">
+                    <input
+                      type="checkbox"
+                      name="trip-style"
+                      value="spontaneous"
+                    />
+                    즉흥적
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="trip-style" value="tourism" />
+                    관광 중심
+                  </label>
+                  <label class="checkbox-item">
+                    <input
+                      type="checkbox"
+                      name="trip-style"
+                      value="relaxation"
+                    />
+                    휴식 중심
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="trip-style" value="food" />
+                    맛집 탐방
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="trip-style" value="nature" />
+                    자연 체험
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="trip-style" value="culture" />
+                    문화 체험
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="trip-style" value="shopping" />
+                    쇼핑
+                  </label>
                 </div>
+              </div>
             </div>
-
-            <!-- 세부 일정 섹션 -->
-            <div class="section">
-                <h2 class="section-title">세부 일정</h2>
-                <div class="tabs">
-                    <div class="tab active">Day 1</div>
-                    <div class="tab">Day 2</div>
-                    <div class="tab">Day 3</div>
-                    <div class="tab"><i class="ri-add-line"></i></div>
-                </div>
-
-                <div class="tab-content active">
-                    <div class="schedule-item">
-                        <div class="schedule-item-header">
-                            <h4>일정 #1</h4>
-                            <span class="remove-item"><i class="ri-delete-bin-line"></i></span>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-col form-col-3">
-                                <div class="form-group">
-                                    <label for="schedule-time-1">시간</label>
-                                    <input type="time" id="schedule-time-1">
-                                </div>
-                            </div>
-                            <div class="form-col form-col-9">
-                                <div class="form-group">
-                                    <label for="schedule-place-1">장소</label>
-                                    <input type="text" id="schedule-place-1" placeholder="장소를 입력하세요">
-                                </div>
-                            </div>
-                            <div class="form-col form-col-12">
-                                <div class="form-group">
-                                    <label for="schedule-activity-1">활동</label>
-                                    <input type="text" id="schedule-activity-1" placeholder="활동을 입력하세요">
-                                </div>
-                            </div>
-                            <div class="form-col form-col-9">
-                                <div class="form-group">
-                                    <label for="schedule-memo-1">메모</label>
-                                    <textarea id="schedule-memo-1" placeholder="메모를 입력하세요"></textarea>
-                                </div>
-                            </div>
-                            <div class="form-col form-col-3">
-                                <div class="form-group">
-                                    <label for="schedule-cost-1">예상 비용 (원)</label>
-                                    <input type="number" id="schedule-cost-1" placeholder="0">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="schedule-item">
-                        <div class="schedule-item-header">
-                            <h4>일정 #2</h4>
-                            <span class="remove-item"><i class="ri-delete-bin-line"></i></span>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-col form-col-3">
-                                <div class="form-group">
-                                    <label for="schedule-time-2">시간</label>
-                                    <input type="time" id="schedule-time-2">
-                                </div>
-                            </div>
-                            <div class="form-col form-col-9">
-                                <div class="form-group">
-                                    <label for="schedule-place-2">장소</label>
-                                    <input type="text" id="schedule-place-2" placeholder="장소를 입력하세요">
-                                </div>
-                            </div>
-                            <div class="form-col form-col-12">
-                                <div class="form-group">
-                                    <label for="schedule-activity-2">활동</label>
-                                    <input type="text" id="schedule-activity-2" placeholder="활동을 입력하세요">
-                                </div>
-                            </div>
-                            <div class="form-col form-col-9">
-                                <div class="form-group">
-                                    <label for="schedule-memo-2">메모</label>
-                                    <textarea id="schedule-memo-2" placeholder="메모를 입력하세요"></textarea>
-                                </div>
-                            </div>
-                            <div class="form-col form-col-3">
-                                <div class="form-group">
-                                    <label for="schedule-cost-2">예상 비용 (원)</label>
-                                    <input type="number" id="schedule-cost-2" placeholder="0">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="add-schedule-btn">
-                        <i class="ri-add-line"></i> 일정 추가하기
-                    </div>
-                </div>
-            </div>
-
-            <!-- 매칭 옵션 섹션 -->
-            <div class="section">
-                <h2 class="section-title">매칭 옵션</h2>
-                <div class="form-row">
-                    <div class="form-col form-col-12">
-                        <div class="form-group">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="matching-option"> 매칭 희망 여부
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-col form-col-4">
-                        <div class="form-group">
-                            <label for="matching-gender">선호 성별</label>
-                            <select id="matching-gender">
-                                <option value="">상관없음</option>
-                                <option value="male">남성</option>
-                                <option value="female">여성</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-col form-col-4">
-                        <div class="form-group">
-                            <label for="matching-age">선호 나이대</label>
-                            <select id="matching-age">
-                                <option value="">상관없음</option>
-                                <option value="20s">20대</option>
-                                <option value="30s">30대</option>
-                                <option value="40s">40대</option>
-                                <option value="50s">50대 이상</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-col form-col-4">
-                        <div class="form-group">
-                            <label for="matching-language">선호 언어</label>
-                            <select id="matching-language">
-                                <option value="korean">한국어</option>
-                                <option value="english">영어</option>
-                                <option value="japanese">일본어</option>
-                                <option value="chinese">중국어</option>
-                                <option value="other">기타</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-col form-col-12">
-                        <div class="form-group">
-                            <label for="matching-memo">매칭 관련 추가 요청사항</label>
-                            <textarea id="matching-memo" placeholder="매칭 관련 추가 요청사항을 입력하세요"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 추가 정보 섹션 -->
-            <div class="section">
-                <h2 class="section-title">추가 정보</h2>
-                <div class="form-row">
-                    <div class="form-col form-col-6">
-                        <div class="form-group">
-                            <label for="accommodation">숙소 정보</label>
-                            <textarea id="accommodation" placeholder="숙소 정보를 입력하세요"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-col form-col-6">
-                        <div class="form-group">
-                            <label for="transportation">교통 정보</label>
-                            <textarea id="transportation" placeholder="교통 정보를 입력하세요"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-col form-col-12">
-                        <div class="form-group">
-                            <label for="extra-memo">기타 메모</label>
-                            <textarea id="extra-memo" placeholder="기타 메모를 입력하세요"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 버튼 섹션 -->
-            <div class="btn-section">
-                <button class="btn btn-outline">취소</button>
-                <button class="btn btn-danger">삭제</button>
-                <button class="btn btn-secondary">임시저장</button>
-                <button class="btn btn-primary">저장</button>
-            </div>
+          </div>
         </div>
 
-        <!-- 푸터 -->
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-logo">트립매치</div>
-                <div class="footer-links">
-                    <a href="#">서비스 소개</a>
-                    <a href="#">이용약관</a>
-                    <a href="#">개인정보처리방침</a>
-                    <a href="#">고객센터</a>
+        <!-- 세부 일정 섹션 -->
+        <div class="section">
+          <h2 class="section-title">세부 일정</h2>
+          <div class="tabs">
+            <div class="tab active">Day 1</div>
+            <div class="tab">Day 2</div>
+            <div class="tab">Day 3</div>
+            <div class="tab"><i class="ri-add-line"></i></div>
+          </div>
+
+          <div class="tab-content active">
+            <div class="schedule-item">
+              <div class="schedule-item-header">
+                <h4>일정 #1</h4>
+                <span class="remove-item"
+                  ><i class="ri-delete-bin-line"></i
+                ></span>
+              </div>
+              <div class="form-row">
+                <div class="form-col form-col-3">
+                  <div class="form-group">
+                    <label for="schedule-time-1">시간</label>
+                    <input type="time" id="schedule-time-1" />
+                  </div>
                 </div>
+                <div class="form-col form-col-9">
+                  <div class="form-group">
+                    <label for="schedule-place-1">장소</label>
+                    <input
+                      type="text"
+                      id="schedule-place-1"
+                      placeholder="장소를 입력하세요"
+                    />
+                  </div>
+                </div>
+                <div class="form-col form-col-12">
+                  <div class="form-group">
+                    <label for="schedule-activity-1">활동</label>
+                    <input
+                      type="text"
+                      id="schedule-activity-1"
+                      placeholder="활동을 입력하세요"
+                    />
+                  </div>
+                </div>
+                <div class="form-col form-col-9">
+                  <div class="form-group">
+                    <label for="schedule-memo-1">메모</label>
+                    <textarea
+                      id="schedule-memo-1"
+                      placeholder="메모를 입력하세요"
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="form-col form-col-3">
+                  <div class="form-group">
+                    <label for="schedule-cost-1">예상 비용 (원)</label>
+                    <input type="number" id="schedule-cost-1" placeholder="0" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="footer-copyright">
-                © 2023 트립매치. All rights reserved.
+
+            <div class="schedule-item">
+              <div class="schedule-item-header">
+                <h4>일정 #2</h4>
+                <span class="remove-item"
+                  ><i class="ri-delete-bin-line"></i
+                ></span>
+              </div>
+              <div class="form-row">
+                <div class="form-col form-col-3">
+                  <div class="form-group">
+                    <label for="schedule-time-2">시간</label>
+                    <input type="time" id="schedule-time-2" />
+                  </div>
+                </div>
+                <div class="form-col form-col-9">
+                  <div class="form-group">
+                    <label for="schedule-place-2">장소</label>
+                    <input
+                      type="text"
+                      id="schedule-place-2"
+                      placeholder="장소를 입력하세요"
+                    />
+                  </div>
+                </div>
+                <div class="form-col form-col-12">
+                  <div class="form-group">
+                    <label for="schedule-activity-2">활동</label>
+                    <input
+                      type="text"
+                      id="schedule-activity-2"
+                      placeholder="활동을 입력하세요"
+                    />
+                  </div>
+                </div>
+                <div class="form-col form-col-9">
+                  <div class="form-group">
+                    <label for="schedule-memo-2">메모</label>
+                    <textarea
+                      id="schedule-memo-2"
+                      placeholder="메모를 입력하세요"
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="form-col form-col-3">
+                  <div class="form-group">
+                    <label for="schedule-cost-2">예상 비용 (원)</label>
+                    <input type="number" id="schedule-cost-2" placeholder="0" />
+                  </div>
+                </div>
+              </div>
             </div>
-        </footer>
+
+            <div class="add-schedule-btn">
+              <i class="ri-add-line"></i> 일정 추가하기
+            </div>
+          </div>
+        </div>
+
+        <!-- 매칭 옵션 섹션 -->
+        <div class="section">
+          <h2 class="section-title">매칭 옵션</h2>
+          <div class="form-row">
+            <div class="form-col form-col-12">
+              <div class="form-group">
+                <label class="checkbox-item">
+                  <input type="checkbox" id="matching-option" /> 매칭 희망 여부
+                </label>
+              </div>
+            </div>
+            <div class="form-col form-col-4">
+              <div class="form-group">
+                <label for="matching-gender">선호 성별</label>
+                <select id="matching-gender">
+                  <option value="">상관없음</option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-col form-col-4">
+              <div class="form-group">
+                <label for="matching-age">선호 나이대</label>
+                <select id="matching-age">
+                  <option value="">상관없음</option>
+                  <option value="20s">20대</option>
+                  <option value="30s">30대</option>
+                  <option value="40s">40대</option>
+                  <option value="50s">50대 이상</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-col form-col-4">
+              <div class="form-group">
+                <label for="matching-language">선호 언어</label>
+                <select id="matching-language">
+                  <option value="korean">한국어</option>
+                  <option value="english">영어</option>
+                  <option value="japanese">일본어</option>
+                  <option value="chinese">중국어</option>
+                  <option value="other">기타</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-col form-col-12">
+              <div class="form-group">
+                <label for="matching-memo">매칭 관련 추가 요청사항</label>
+                <textarea
+                  id="matching-memo"
+                  placeholder="매칭 관련 추가 요청사항을 입력하세요"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 추가 정보 섹션 -->
+        <div class="section">
+          <h2 class="section-title">추가 정보</h2>
+          <div class="form-row">
+            <div class="form-col form-col-6">
+              <div class="form-group">
+                <label for="accommodation">숙소 정보</label>
+                <textarea
+                  id="accommodation"
+                  placeholder="숙소 정보를 입력하세요"
+                ></textarea>
+              </div>
+            </div>
+            <div class="form-col form-col-6">
+              <div class="form-group">
+                <label for="transportation">교통 정보</label>
+                <textarea
+                  id="transportation"
+                  placeholder="교통 정보를 입력하세요"
+                ></textarea>
+              </div>
+            </div>
+            <div class="form-col form-col-12">
+              <div class="form-group">
+                <label for="extra-memo">기타 메모</label>
+                <textarea
+                  id="extra-memo"
+                  placeholder="기타 메모를 입력하세요"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 버튼 섹션 -->
+        <div class="btn-section">
+          <button class="btn btn-outline">취소</button>
+          <button class="btn btn-danger">삭제</button>
+          <button class="btn btn-secondary">임시저장</button>
+          <button class="btn btn-primary">저장</button>
+        </div>
+      </div>
+
+      <!-- 푸터 -->
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="footer-logo">트립매치</div>
+          <div class="footer-links">
+            <a href="#">서비스 소개</a>
+            <a href="#">이용약관</a>
+            <a href="#">개인정보처리방침</a>
+            <a href="#">고객센터</a>
+          </div>
+        </div>
+        <div class="footer-copyright">
+          © 2023 트립매치. All rights reserved.
+        </div>
+      </footer>
     </div>
-</body>
+  </body>
 </html>

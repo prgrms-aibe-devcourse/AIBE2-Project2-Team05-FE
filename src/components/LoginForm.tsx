@@ -80,6 +80,10 @@ const SocialLogin = () => (
 
 const StyledForm = styled(Form)`
   width: 100%;
+  min-height: 550px; /* 소셜 로그인 섹션 포함한 충분한 높이 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const FormContent = styled.div`

@@ -189,11 +189,16 @@ const FormSection = styled.div`
   justify-content: center;
   align-items: center;
   background-color: #ffffff;
+  min-height: calc(100vh - 140px); /* 네비게이션과 푸터 높이 제외 */
 `;
 
 const FormContainer = styled.div`
   width: 100%;
   max-width: 500px;
+  min-height: 650px; /* 충분한 높이 보장 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 상단 정렬로 변경 */
 `;
 
 const FormHeader = styled.div`
