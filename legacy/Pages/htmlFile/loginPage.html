@@ -1,0 +1,535 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>여행 매칭 서비스 - 로그인/회원가입</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Regular.ttf') format('truetype');
+            font-weight: normal;
+        }
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'MiSans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/MiSans-Bold.ttf') format('truetype');
+            font-weight: bold;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'MiSans', sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            width: 1920px;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 네비게이션 바 */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 8px;
+            font-size: 28px;
+        }
+
+        .nav-links a {
+            margin-left: 20px;
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #3498db;
+        }
+
+        /* 메인 콘텐츠 */
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+
+        /* 왼쪽 이미지 섹션 */
+        .image-section {
+            width: 50%;
+            background: linear-gradient(135deg, #3498db, #1abc9c);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .travel-illustration {
+            width: 100%;
+            height: 400px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .travel-icon {
+            font-size: 180px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .image-text {
+            text-align: center;
+            z-index: 2;
+        }
+
+        .image-text h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .image-text p {
+            font-size: 18px;
+            line-height: 1.6;
+            max-width: 80%;
+            margin: 0 auto;
+        }
+
+        /* 오른쪽 폼 섹션 */
+        .form-section {
+            width: 50%;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .form-header h1 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .form-header p {
+            color: #777;
+            font-size: 16px;
+        }
+
+        /* 탭 스타일 */
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #777;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #3498db;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #3498db;
+        }
+
+        /* 폼 스타일 */
+        .form-content {
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-check input {
+            margin-right: 10px;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        /* 소셜 로그인 */
+        .social-login {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .social-login p {
+            color: #777;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .social-login p::before,
+        .social-login p::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30%;
+            height: 1px;
+            background-color: #ddd;
+        }
+
+        .social-login p::before {
+            left: 0;
+        }
+
+        .social-login p::after {
+            right: 0;
+        }
+
+        .social-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .social-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .kakao {
+            background-color: #FEE500;
+            color: #3C1E1E;
+        }
+
+        .naver {
+            background-color: #03C75A;
+            color: white;
+        }
+
+        .google {
+            background-color: #ffffff;
+            color: #4285F4;
+            border: 1px solid #ddd;
+        }
+
+        /* 푸터 */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 40px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+
+        .footer-links {
+            margin-bottom: 10px;
+        }
+
+        .footer-links a {
+            color: #777;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 14px;
+        }
+
+        .footer-text {
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* 회원가입 폼 (기본적으로 숨김) */
+        #signup-form {
+            display: none;
+        }
+
+        /* 반응형 디자인을 위한 미디어 쿼리 */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .image-section, .form-section {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 네비게이션 바 -->
+        <nav class="navbar">
+            <a href="#" class="logo">
+                <i class="ri-earth-line"></i>
+                트래블메이트
+            </a>
+            <div class="nav-links">
+                <a href="#">홈</a>
+                <a href="#">여행 매칭</a>
+                <a href="#">여행지 정보</a>
+                <a href="#">고객센터</a>
+            </div>
+        </nav>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="main-content">
+            <!-- 왼쪽 이미지 섹션 -->
+            <div class="image-section">
+                <div class="image-overlay"></div>
+                <div class="travel-illustration">
+                    <i class="ri-plane-line travel-icon"></i>
+                </div>
+                <div class="image-text">
+                    <h2>새로운 여행의 시작</h2>
+                    <p>트래블메이트와 함께 나에게 딱 맞는 여행 친구를 찾고, 잊지 못할 추억을 만들어보세요. 전 세계 어디서든 당신의 여행을 더 특별하게 만들어 드립니다.</p>
+                </div>
+            </div>
+
+            <!-- 오른쪽 폼 섹션 -->
+            <div class="form-section">
+                <div class="form-container">
+                    <div class="form-header">
+                        <h1>트래블메이트에 오신 것을 환영합니다</h1>
+                        <p>계정에 로그인하거나 새 계정을 만들어보세요</p>
+                    </div>
+
+                    <!-- 탭 메뉴 -->
+                    <div class="tabs">
+                        <div class="tab active" onclick="showForm('login')">로그인</div>
+                        <div class="tab" onclick="showForm('signup')">회원가입</div>
+                    </div>
+
+                    <!-- 로그인 폼 -->
+                    <div id="login-form" class="form-content">
+                        <div class="form-group">
+                            <label for="login-email">이메일 또는 아이디</label>
+                            <input type="email" id="login-email" class="form-control" placeholder="이메일 또는 아이디를 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">비밀번호</label>
+                            <input type="password" id="login-password" class="form-control" placeholder="비밀번호를 입력하세요">
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" id="remember-me">
+                            <label for="remember-me">로그인 상태 유지</label>
+                        </div>
+                        <div class="forgot-password">
+                            <a href="#">비밀번호를 잊으셨나요?</a>
+                        </div>
+                        <button class="btn btn-primary">로그인</button>
+                    </div>
+
+                    <!-- 회원가입 폼 -->
+                    <div id="signup-form" class="form-content">
+                        <div class="form-group">
+                            <label for="signup-email">이메일</label>
+                            <input type="email" id="signup-email" class="form-control" placeholder="이메일을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-name">이름</label>
+                            <input type="text" id="signup-name" class="form-control" placeholder="이름을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-password">비밀번호</label>
+                            <input type="password" id="signup-password" class="form-control" placeholder="비밀번호를 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-confirm-password">비밀번호 확인</label>
+                            <input type="password" id="signup-confirm-password" class="form-control" placeholder="비밀번호를 다시 입력하세요">
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" id="agree-terms">
+                            <label for="agree-terms">이용약관 및 개인정보처리방침에 동의합니다</label>
+                        </div>
+                        <button class="btn btn-primary">회원가입</button>
+                    </div>
+
+                    <!-- 소셜 로그인 -->
+                    <div class="social-login">
+                        <p>소셜 계정으로 로그인</p>
+                        <div class="social-buttons">
+                            <div class="social-btn kakao">
+                                <i class="ri-chat-1-fill"></i>
+                            </div>
+                            <div class="social-btn naver">
+                                <i class="ri-chat-3-fill"></i>
+                            </div>
+                            <div class="social-btn google">
+                                <i class="ri-google-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="#">이용약관</a>
+                <a href="#">개인정보처리방침</a>
+                <a href="#">회사소개</a>
+                <a href="#">고객센터</a>
+            </div>
+            <div class="footer-text">
+                © 2023 트래블메이트. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function showForm(formType) {
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            const tabs = document.querySelectorAll('.tab');
+            
+            if (formType === 'login') {
+                loginForm.style.display = 'block';
+                signupForm.style.display = 'none';
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'block';
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
