@@ -24,7 +24,7 @@
     "yup": "^1.6.1"
   },
   "scripts": {
-    "start": "kill-port 3000 && react-scripts start",
+    "start": "npx kill-port 3000 && npx react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
