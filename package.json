@@ -24,7 +24,7 @@
     "yup": "^1.6.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "kill-port 3000 && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -54,6 +54,7 @@
     "@types/yup": "^0.29.14",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",
+    "kill-port": "^2.0.1",
     "prettier": "^3.6.2"
   }
 }
