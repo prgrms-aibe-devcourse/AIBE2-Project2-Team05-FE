@@ -1,0 +1,11 @@
+# Task ID: 26
+# Title: Implement Error Handling and 404 Page
+# Status: pending
+# Dependencies: 1
+# Priority: medium
+# Description: 예외 처리를 위한 오류 경계 및 404 페이지를 만듭니다.
+# Details:
+React Error Boundary를 구현하여 렌더링 오류를 캐치합니다. 경로 '*'에 커스텀 404 페이지를 생성합니다. API 오류를 위한 전역 오류 핸들러를 추가합니다. react-hot-toast v2.4+ 또는 react-toastify v9.1+를 사용하여 오류 피드백을 위한 토스트 알림을 구현합니다. 오프라인 감지 및 처리 기능을 생성합니다. 실패한 요청에 대한 재시도 메커니즘을 추가합니다. Sentry와 같은 서비스에 오류 로깅을 구현합니다. 컴포넌트 수준 오류에 대한 대체 UI를 생성합니다.
+
+# Test Strategy:
+시뮬레이션된 렌더링 오류로 Error Boundary를 테스트합니다. 잘못된 경로에 대해 404 페이지가 나타나는지 확인합니다. 다양한 API 오류로 전역 오류 핸들러를 테스트합니다. 오류에 대해 토스트 알림이 나타나는지 확인합니다. 오프라인 감지 및 처리를 테스트합니다. 실패한 요청에 대한 재시도 메커니즘이 작동하는지 확인합니다. 오류 로깅 기능을 테스트합니다. 컴포넌트 오류에 대해 대체 UI가 나타나는지 확인합니다.

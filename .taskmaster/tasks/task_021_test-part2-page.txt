@@ -1,0 +1,61 @@
+# Task ID: 21
+# Title: Implement Report Functionality
+# Status: pending
+# Dependencies: 11, 14
+# Priority: low
+# Description: 사용자, 피드 및 댓글에 대한 신고 시스템을 만듭니다.
+# Details:
+'/report/:type/:id' 경로에 신고 페이지를 생성합니다. 사유 선택 및 설명이 포함된 신고 양식을 구현합니다. 제출 전 확인 단계를 추가합니다. 신고 제출 후 성공/피드백을 생성합니다. 스팸 신고를 방지하기 위한 속도 제한을 구현합니다. 맥락을 위한 최근 신고된 항목 섹션을 추가합니다. 사용자 설정에 신고 기록을 생성합니다. 적절한 오류 처리가 포함된 React Query 뮤테이션을 사용하여 신고 제출을 구현합니다.
+
+# Test Strategy:
+다양한 입력으로 신고 양식을 테스트합니다. 사유 선택이 올바르게 작동하는지 확인합니다. 확인 단계 기능을 테스트합니다. 성공/오류 피드백이 올바르게 표시되는지 확인합니다. 속도 제한 기능을 테스트합니다. 최근 신고된 항목 섹션이 올바르게 업데이트되는지 확인합니다. 사용자 설정의 신고 기록을 테스트합니다.
+
+# Subtasks:
+## 1. 신고 페이지 UI 구현 [pending]
+### Dependencies: None
+### Description: '/report/:type/:id' 경로에 신고 페이지 UI 구현
+### Details:
+
+
+## 2. 신고 양식 구현 [pending]
+### Dependencies: None
+### Description: 사유 선택 및 설명이 포함된 신고 양식 구현
+### Details:
+
+
+## 3. 제출 전 확인 단계 추가 [pending]
+### Dependencies: None
+### Description: 사용자가 신고를 제출하기 전에 확인할 수 있는 단계 구현
+### Details:
+
+
+## 4. 신고 제출 후 피드백 구현 [pending]
+### Dependencies: None
+### Description: 신고 제출 후 성공/실패 피드백 메시지 구현
+### Details:
+
+
+## 5. 속도 제한 구현 [pending]
+### Dependencies: None
+### Description: 스팸 신고를 방지하기 위한 속도 제한 기능 구현
+### Details:
+
+
+## 6. 최근 신고된 항목 섹션 구현 [pending]
+### Dependencies: None
+### Description: 사용자가 최근에 신고한 항목을 볼 수 있는 섹션 구현
+### Details:
+
+
+## 7. 사용자 설정에 신고 기록 추가 [pending]
+### Dependencies: None
+### Description: 사용자 설정 페이지에 신고 기록 섹션 구현
+### Details:
+
+
+## 8. React Query 뮤테이션 구현 [pending]
+### Dependencies: None
+### Description: 신고 제출을 위한 React Query 뮤테이션 및 오류 처리 구현
+### Details:
+
+

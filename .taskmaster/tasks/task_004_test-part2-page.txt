@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Implement Home Page with Feed Preview
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: 피드 미리보기와 추천 사용자가 있는 메인 랜딩 페이지를 생성합니다.
+# Details:
+경로 '/'에서 홈페이지를 구현합니다. CSS Grid를 사용하여 피드 미리보기 카드의 그리드 레이아웃을 만듭니다. Intersection Observer API 또는 react-infinite-scroll-component v6.1+를 사용하여 피드 미리보기에 무한 스크롤을 구현합니다. 수평 스크롤이 가능한 추천 사용자 섹션을 추가합니다. react-loading-skeleton v3.3+를 사용하여 피드 및 사용자 추천 모두에 대한 스켈레톤 로딩 상태를 만듭니다. 모바일 사용자를 위한 당겨서 새로고침 기능을 구현합니다. 신규 사용자를 위한 환영 배너 또는 프로모션 콘텐츠를 추가합니다.
+
+# Test Strategy:
+다양한 데이터 크기로 무한 스크롤 기능을 테스트합니다. 데이터 가져오는 동안 스켈레톤 로딩이 나타나는지 확인합니다. 다양한 기기에서 추천 사용자 섹션 스크롤을 테스트합니다. 모바일 기기에서 당겨서 새로고침이 작동하는지 확인합니다. Lighthouse를 사용하여 성능을 테스트합니다.

@@ -1,0 +1,67 @@
+# Task ID: 16
+# Title: Implement Matching Recommendation System
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: 필터링 및 AI 기반 제안이 포함된 매칭 추천 페이지를 만듭니다.
+# Details:
+'/match/recommend' 경로에 매칭 추천 페이지를 생성합니다. 위치, 날짜 범위, 여행 스타일별 필터링을 구현합니다. AI 기반 추천 알고리즘 통합을 추가합니다. 핵심 정보가 포함된 매치 제안을 위한 사용자 카드 컴포넌트를 생성합니다. 빠른 매치 요청 버튼을 구현합니다. 추천을 위한 페이지네이션 또는 무한 스크롤을 추가합니다. 매치가 없을 때 표시할 빈 상태를 생성합니다. 잠재적 매치에 대한 저장/즐겨찾기 기능을 구현합니다. 캐싱 및 백그라운드 업데이트가 있는 데이터 가져오기를 위해 React Query를 사용합니다.
+
+# Test Strategy:
+다양한 기준으로 필터링 기능을 테스트합니다. AI 추천이 올바르게 표시되는지 확인합니다. 사용자 카드가 관련 정보를 표시하는지 테스트합니다. 빠른 매치 요청이 작동하는지 확인합니다. 페이지네이션/무한 스크롤을 테스트합니다. 매치가 없을 때 빈 상태가 나타나는지 확인합니다. 잠재적 매치에 대한 저장/즐겨찾기 기능을 테스트합니다.
+
+# Subtasks:
+## 1. 매칭 추천 페이지 기본 구조 구현 [pending]
+### Dependencies: None
+### Description: '/match/recommend' 경로에 기본 페이지 레이아웃 및 구조 생성
+### Details:
+
+
+## 2. 필터링 컴포넌트 개발 [pending]
+### Dependencies: None
+### Description: 위치, 날짜 범위, 여행 스타일별 필터링 옵션 구현
+### Details:
+
+
+## 3. AI 기반 추천 알고리즘 통합 [pending]
+### Dependencies: None
+### Description: 백엔드 API와 연결하여 AI 기반 매칭 추천 기능 구현
+### Details:
+
+
+## 4. 사용자 카드 컴포넌트 개발 [pending]
+### Dependencies: None
+### Description: 매치 제안을 위한 핵심 사용자 정보가 포함된 카드 컴포넌트 생성
+### Details:
+
+
+## 5. 빠른 매치 요청 기능 구현 [pending]
+### Dependencies: None
+### Description: 사용자 카드에서 바로 매치 요청을 보낼 수 있는 기능 개발
+### Details:
+
+
+## 6. 페이지네이션/무한 스크롤 구현 [pending]
+### Dependencies: None
+### Description: 많은 추천 결과를 효율적으로 표시하기 위한 페이지네이션 또는 무한 스크롤 기능 추가
+### Details:
+
+
+## 7. 빈 상태 UI 개발 [pending]
+### Dependencies: None
+### Description: 매치가 없을 때 표시할 사용자 친화적인 빈 상태 UI 생성
+### Details:
+
+
+## 8. 저장/즐겨찾기 기능 구현 [pending]
+### Dependencies: None
+### Description: 잠재적 매치를 저장하거나 즐겨찾기할 수 있는 기능 개발
+### Details:
+
+
+## 9. React Query 통합 [pending]
+### Dependencies: None
+### Description: 캐싱 및 백그라운드 업데이트가 있는 데이터 가져오기를 위한 React Query 설정
+### Details:
+
+

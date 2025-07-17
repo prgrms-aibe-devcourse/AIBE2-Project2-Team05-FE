@@ -1,0 +1,55 @@
+# Task ID: 15
+# Title: Implement My Page
+# Status: pending
+# Dependencies: 2, 14
+# Priority: high
+# Description: 사용자 자신의 콘텐츠 및 활동 관리가 포함된 마이 페이지를 만듭니다.
+# Details:
+'/mypage' 경로에 마이 페이지를 생성합니다. 내 피드, 리뷰, 여행 계획 및 매치를 위한 탭을 구현합니다. 계정 관리를 위한 설정 섹션을 추가합니다. 저장/북마크된 콘텐츠 섹션을 구현합니다. 알림 환경설정 관리를 추가합니다. 확인 과정이 포함된 계정 삭제 기능을 생성합니다. GDPR 준수를 위한 데이터 내보내기 옵션을 구현합니다. 비밀번호 변경 기능을 추가합니다. 백그라운드 업데이트가 있는 데이터 가져오기를 위해 React Query를 사용합니다.
+
+# Test Strategy:
+사용자 데이터로 마이 페이지 로딩을 테스트합니다. 탭이 콘텐츠를 올바르게 전환하는지 확인합니다. 설정 섹션 기능을 테스트합니다. 저장된 콘텐츠가 올바르게 표시되는지 확인합니다. 알림 환경설정 저장을 테스트합니다. 적절한 확인 과정이 포함된 계정 삭제 흐름이 작동하는지 확인합니다. 데이터 내보내기 기능을 테스트합니다. 비밀번호 변경이 올바르게 작동하는지 확인합니다.
+
+# Subtasks:
+## 1. 마이 페이지 기본 레이아웃 구현 [pending]
+### Dependencies: None
+### Description: '/mypage' 경로에 기본 페이지 레이아웃과 탐색 구조 설정
+### Details:
+
+
+## 2. 콘텐츠 탭 구현 [pending]
+### Dependencies: None
+### Description: 내 피드, 리뷰, 여행 계획 및 매치를 위한 탭 인터페이스 생성
+### Details:
+
+
+## 3. 설정 섹션 구현 [pending]
+### Dependencies: None
+### Description: 계정 관리, 알림 환경설정, 비밀번호 변경을 위한 설정 페이지 생성
+### Details:
+
+
+## 4. 저장된 콘텐츠 섹션 구현 [pending]
+### Dependencies: None
+### Description: 사용자가 저장하거나 북마크한 콘텐츠를 표시하는 섹션 생성
+### Details:
+
+
+## 5. 계정 삭제 기능 구현 [pending]
+### Dependencies: None
+### Description: 확인 과정이 포함된 계정 삭제 기능 개발
+### Details:
+
+
+## 6. 데이터 내보내기 기능 구현 [pending]
+### Dependencies: None
+### Description: GDPR 준수를 위한 사용자 데이터 내보내기 옵션 개발
+### Details:
+
+
+## 7. React Query 통합 [pending]
+### Dependencies: None
+### Description: 백그라운드 업데이트가 있는 데이터 가져오기를 위한 React Query 설정
+### Details:
+
+

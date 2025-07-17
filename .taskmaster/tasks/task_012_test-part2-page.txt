@@ -1,0 +1,55 @@
+# Task ID: 12
+# Title: Implement Like Functionality and Users List
+# Status: pending
+# Dependencies: 11
+# Priority: medium
+# Description: 좋아요 토글 기능 및 피드에 좋아요를 누른 사용자 목록을 볼 수 있는 페이지를 만듭니다.
+# Details:
+낙관적 UI 업데이트를 사용하여 좋아요 토글 기능을 구현합니다. '/feed/:feedId/likes'에서 좋아요 사용자 목록 페이지를 생성합니다. Intersection Observer API를 사용하여 좋아요 목록에 무한 스크롤을 구현합니다. 아바타, 이름 및 팔로우 버튼이 있는 사용자 카드 컴포넌트를 추가합니다. WebSocket 또는 폴링을 사용하여 실시간 좋아요 수 업데이트를 구현합니다. Framer Motion 또는 CSS 애니메이션을 사용하여 좋아요 버튼에 애니메이션을 추가합니다. 적절한 오류 처리 및 롤백 기능이 있는 좋아요/좋아요 취소 작업에 React Query 뮤테이션을 사용합니다.
+
+# Test Strategy:
+다양한 네트워크 상태에서 좋아요 토글 기능을 테스트합니다. 좋아요 목록이 올바르게 표시되는지 확인합니다. 좋아요 목록의 무한 스크롤을 테스트합니다. 사용자 카드가 올바른 정보를 표시하는지 확인합니다. 좋아요 수의 실시간 업데이트를 테스트합니다. 애니메이션이 올바르게 작동하는지 확인합니다. 좋아요/좋아요 취소 작업 실패 시 오류 처리를 테스트합니다.
+
+# Subtasks:
+## 1. 좋아요 토글 기능 구현 [pending]
+### Dependencies: None
+### Description: 낙관적 UI 업데이트를 사용하여 피드 항목에 대한 좋아요 토글 기능 구현
+### Details:
+
+
+## 2. 좋아요 사용자 목록 페이지 생성 [pending]
+### Dependencies: None
+### Description: '/feed/:feedId/likes' 경로에 좋아요를 누른 사용자 목록을 표시하는 페이지 구현
+### Details:
+
+
+## 3. 무한 스크롤 구현 [pending]
+### Dependencies: None
+### Description: Intersection Observer API를 사용하여 좋아요 목록에 무한 스크롤 기능 추가
+### Details:
+
+
+## 4. 사용자 카드 컴포넌트 개발 [pending]
+### Dependencies: None
+### Description: 아바타, 이름 및 팔로우 버튼이 포함된 재사용 가능한 사용자 카드 컴포넌트 생성
+### Details:
+
+
+## 5. 실시간 좋아요 수 업데이트 구현 [pending]
+### Dependencies: None
+### Description: WebSocket 또는 폴링을 사용하여 좋아요 수의 실시간 업데이트 기능 추가
+### Details:
+
+
+## 6. 좋아요 버튼 애니메이션 추가 [pending]
+### Dependencies: None
+### Description: Framer Motion 또는 CSS 애니메이션을 사용하여 좋아요 버튼에 시각적 피드백 제공
+### Details:
+
+
+## 7. React Query 뮤테이션 구현 [pending]
+### Dependencies: None
+### Description: 좋아요/좋아요 취소 작업에 대한 React Query 뮤테이션 설정 및 오류 처리 구현
+### Details:
+
+
