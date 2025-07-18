@@ -1,12 +1,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Modal = ({ imageUrl, onClose }) => (
+interface ModalProps {
+  imageUrl: string;
+  onClose: () => void;
+}
+
+const Modal = ({ imageUrl, onClose }: ModalProps) => (
   <ModalOverlay onClick={onClose}>
     <CloseButton onClick={onClose}>&times;</CloseButton>
-    <ModalContent onClick={(e) => e.stopPropagation()}>
+    <ModalContent onClick={(e: MouseEvent) => e.stopPropagation()}>
       <PostImage src={imageUrl} alt="modal content" />
       <PostDetailsContainer>
         <PostHeader>
@@ -63,7 +68,7 @@ const ProfilePage = () => {
     navigate('/mypage');
   };
 
-  const openModal = (imageUrl) => {
+  const openModal = (imageUrl: string) => {
     setSelectedImage(imageUrl);
     setModalOpen(true);
   };
@@ -153,7 +158,11 @@ const ProfilePage = () => {
   );
 };
 
-const PostGrid = ({ onImageClick }) => (
+interface PostGridProps {
+  onImageClick: (imageUrl: string) => void;
+}
+
+const PostGrid = ({ onImageClick }: PostGridProps) => (
   <PostsGridContainer>
     {Array.from({ length: 9 }).map((_, index) => {
       const imageUrl = `https://picsum.photos/300/300?random=${index}`;
