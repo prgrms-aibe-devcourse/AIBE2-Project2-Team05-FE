@@ -26,6 +26,8 @@ import HomePage from './pages/HomePage';
 import Layout from './components/layout/Layout';
 import SearchPage from './pages/SearchPage';
 import NotificationPage from './pages/NotificationPage';
+import PlanPage from './pages/PlanPage';
+import PlanWritePage from './pages/PlanWritePage';
 
 function App() {
   const location = useLocation();
@@ -69,6 +71,10 @@ function App() {
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/mypage" element={<MyPage />} />
+              {/* plan 관련 라우트를 Layout 안으로 이동 */}
+              <Route path="/plan" element={<PlanPage />} />
+              <Route path="/plan/write" element={<PlanWritePage />} />
+              <Route path="/plan/edit/:id" element={<PlanWritePage />} />
             </Route>
 
             {/* 404 Not Found */}

@@ -38,12 +38,14 @@ public class GooglePlacesService {
     public PlaceImageResponse getPlaceImage(PlaceImageRequest request) {
         log.info("장소 이미지 검색 시작: {}", request.getPlaceName());
         
-        // Google Places API 키가 설정되지 않은 경우 기본 응답 반환
+        // Google Places API 키가 설정되지 않은 경우 기본 이미지 URL 반환
         if (googlePlacesApiKey == null || googlePlacesApiKey.equals("your_google_places_api_key_here")) {
-            log.warn("Google Places API 키가 설정되지 않았습니다. 기본 응답을 반환합니다.");
-            return PlaceImageResponse.failure(
+            log.warn("Google Places API 키가 설정되지 않았습니다. 기본 이미지를 반환합니다.");
+            return PlaceImageResponse.success(
                 request.getPlaceName(), 
-                "Google Places API 키가 설정되지 않았습니다. 환경변수 GOOGLE_PLACES_API_KEY를 설정해주세요."
+                "https://via.placeholder.com/400x300?text=" + request.getPlaceName().replaceAll(" ", "+"),
+                "temp_place_id",
+                0.0
             );
         }
         

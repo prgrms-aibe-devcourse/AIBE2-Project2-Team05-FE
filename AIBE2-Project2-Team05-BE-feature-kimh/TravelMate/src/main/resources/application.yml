@@ -12,11 +12,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
 jwt:
   secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=
   expiration: 3600000 # 1시간
 
+# Google Places API 설정
 google:
   places:
     api:
-      key: ${GOOGLE_PLACES_API_KEY:your_google_places_api_key_here}
+      # 환경변수에서 읽고, 없으면 .env 파일에서 설정한 값 사용
+      key: ${GOOGLE_PLACES_API_KEY:AIzaSyCDdmyQ1ZMwjj7iorE7uUZzJHwp387zSOU}
