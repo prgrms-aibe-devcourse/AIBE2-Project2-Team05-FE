@@ -1,18 +1,36 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
-import * as S from './Layout.style';
+import styled from 'styled-components';
+import Sidebar from './Sidebar';
 
 const Layout = () => {
+  const location = useLocation();
+  const sidebarRoutes = ['/', '/match/recommend', '/chat', '/mypage'];
+  const showSidebar = sidebarRoutes.some((route) =>
+    location.pathname.startsWith(route),
+  );
+
   return (
-    <S.Wrapper>
-      <Header />
-      <S.Main>
+    <>
+      {showSidebar ? <Sidebar /> : <Header />}
+      <MainContent showSidebar={showSidebar}>
         <Outlet />
-      </S.Main>
-      <Footer />
-    </S.Wrapper>
+      </MainContent>
+      {!showSidebar && <Footer />}
+    </>
   );
 };
 
-export default Layout; 
+export default Layout;
+
+const MainContent = styled.main<{ showSidebar: boolean }>`
+  padding-top: ${(props) => (props.showSidebar ? '40px' : '80px')};
+  padding-left: ${(props) =>
+    props.showSidebar
+      ? '300px'
+      : '60px'}; /* Sidebar 240px + Content Padding 60px */
+  padding-right: 60px;
+  min-height: 100vh;
+  transition: all 0.3s ease;
+`;

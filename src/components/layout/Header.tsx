@@ -2,12 +2,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext'; // AuthContext 사용
 // import { RiMenuLine, RiCloseLine } from 'react-icons/ri'; // 아이콘 라이브러리 필요 시
 
 const Header = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth(); // AuthContext에서 user 정보와 logout 함수 가져오기
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -20,7 +22,7 @@ const Header = () => {
       </Logo>
       <NavLinks className={isMenuOpen ? 'open' : ''}>
         <li>
-          <Link to="/match" onClick={toggleMenu}>
+          <Link to="/match/recommend" onClick={toggleMenu}>
             여행 메이트 찾기
           </Link>
         </li>
@@ -36,7 +38,9 @@ const Header = () => {
         </li>
         <AuthButtonsMobile>
           <LoginButton onClick={() => navigate('/login')}>로그인</LoginButton>
-          <SignupButton onClick={() => navigate('/signup')}>회원가입</SignupButton>
+          <SignupButton onClick={() => navigate('/signup')}>
+            회원가입
+          </SignupButton>
         </AuthButtonsMobile>
         <ThemeToggleButtonMobile onClick={toggleTheme}>
           {theme === 'light' ? 'Dark' : 'Light'} Mode
@@ -47,8 +51,18 @@ const Header = () => {
           {theme === 'light' ? 'Dark' : 'Light'} Mode
         </ThemeToggleButton>
         <AuthButtons>
-          <LoginButton onClick={() => navigate('/login')}>로그인</LoginButton>
-          <SignupButton onClick={() => navigate('/signup')}>회원가입</SignupButton>
+          {user ? (
+            <LogoutButton onClick={logout}>로그아웃</LogoutButton>
+          ) : (
+            <>
+              <LoginButton onClick={() => navigate('/login')}>
+                로그인
+              </LoginButton>
+              <SignupButton onClick={() => navigate('/signup')}>
+                회원가입
+              </SignupButton>
+            </>
+          )}
         </AuthButtons>
       </DesktopActionButtons>
       <MenuIcon onClick={toggleMenu}>
@@ -114,7 +128,7 @@ const NavLinks = styled.ul`
     width: 100%;
     background-color: #fff;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    
+
     &.open {
       display: flex;
     }
@@ -146,7 +160,7 @@ const AuthButtons = styled.div`
 const AuthButtonsMobile = styled.div`
   display: none;
   padding: 20px;
-  
+
   @media (max-width: 1024px) {
     display: flex;
     justify-content: center;
@@ -183,6 +197,17 @@ const SignupButton = styled(AuthButton)`
   }
 `;
 
+const LogoutButton = styled(AuthButton)`
+  background: #e74c3c;
+  border: none;
+  color: white;
+  margin-right: 0;
+
+  &:hover {
+    background: #c0392b;
+  }
+`;
+
 const MenuIcon = styled.div`
   display: none;
   font-size: 28px;
@@ -191,7 +216,7 @@ const MenuIcon = styled.div`
   @media (max-width: 1024px) {
     display: block;
   }
-`; 
+`;
 
 const ActionButtons = styled.div`
   display: flex;
@@ -205,7 +230,7 @@ const ThemeToggleButton = styled.button`
   border-radius: 20px;
   cursor: pointer;
   margin-right: 20px;
-`; 
+`;
 
 const ThemeToggleButtonMobile = styled(ThemeToggleButton)`
   display: none;
@@ -221,4 +246,4 @@ const DesktopActionButtons = styled.div`
   @media (max-width: 1024px) {
     display: none;
   }
-`; 
+`;
