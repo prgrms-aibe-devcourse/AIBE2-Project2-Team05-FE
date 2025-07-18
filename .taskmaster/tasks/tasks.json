@@ -73,7 +73,7 @@
             "id": 6,
             "title": "보호된 라우트 구현",
             "description": "React Router의 라우트 가드를 사용하여 인증이 필요한 페이지 보호",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "인증되지 않은 사용자가 접근할 수 없는 보호된 라우트를 구현합니다. 인증되지 않은 사용자는 로그인 페이지로 리디렉션됩니다.",
             "testStrategy": "인증된 상태와 인증되지 않은 상태에서 보호된 라우트 접근을 테스트합니다."
@@ -1126,7 +1126,7 @@
     ],
     "metadata": {
       "created": "2025-07-17T03:16:56.152Z",
-      "updated": "2025-07-17T05:19:47.827Z",
+      "updated": "2025-07-17T07:34:30.306Z",
       "description": "Tasks for master context"
     }
   },

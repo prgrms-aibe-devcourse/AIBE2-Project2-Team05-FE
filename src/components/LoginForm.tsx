@@ -1,63 +1,82 @@
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-const LoginForm = () => (
-  <Formik
-    initialValues={{ email: '', password: '' }}
-    validationSchema={Yup.object({
-      email: Yup.string()
-        .email('올바른 이메일 형식이 아닙니다.')
-        .required('이메일을 입력해주세요.'),
-      password: Yup.string().required('비밀번호를 입력해주세요.'),
-    })}
-    onSubmit={(values, { setSubmitting }) => {
-      setTimeout(() => {
-        alert(JSON.stringify(values, null, 2));
-        setSubmitting(false);
-      }, 400);
-    }}
-  >
-    <StyledForm>
-      <FormContent>
-        <FormGroup>
-          <label htmlFor="email">이메일 또는 아이디</label>
-          <Field
-            name="email"
-            type="email"
-            as={FormControl}
-            placeholder="이메일 또는 아이디를 입력하세요"
-          />
-          <StyledErrorMessage name="email" component="div" />
-        </FormGroup>
+const LoginForm = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-        <FormGroup>
-          <label htmlFor="password">비밀번호</label>
-          <Field
-            name="password"
-            type="password"
-            as={FormControl}
-            placeholder="비밀번호를 입력하세요"
-          />
-          <StyledErrorMessage name="password" component="div" />
-        </FormGroup>
+  return (
+    <Formik
+      initialValues={{ email: '', password: '' }}
+      validationSchema={Yup.object({
+        email: Yup.string()
+          .email('올바른 이메일 형식이 아닙니다.')
+          .required('이메일을 입력해주세요.'),
+        password: Yup.string().required('비밀번호를 입력해주세요.'),
+      })}
+      onSubmit={(values, { setSubmitting }) => {
+        // 임시 로그인 처리 (실제로는 API 호출)
+        setTimeout(() => {
+          // 임시 사용자 데이터
+          const userData = {
+            id: '1',
+            email: values.email,
+            nickname: values.email.split('@')[0], // 이메일의 @ 앞부분을 닉네임으로 사용
+          };
 
-        <FormCheck>
-          <Field type="checkbox" name="rememberMe" id="remember-me" />
-          <label htmlFor="remember-me">로그인 상태 유지</label>
-        </FormCheck>
+          // AuthContext의 login 함수 호출
+          login(userData);
 
-        <ForgotPassword>
-          <Link to="/forgot-password">비밀번호를 잊으셨나요?</Link>
-        </ForgotPassword>
+          // 대시보드로 이동
+          navigate('/dashboard');
 
-        <SubmitButton type="submit">로그인</SubmitButton>
-      </FormContent>
-      <SocialLogin />
-    </StyledForm>
-  </Formik>
-);
+          setSubmitting(false);
+        }, 1000); // 1초 지연으로 로딩 상태 시뮬레이션
+      }}
+    >
+      <StyledForm>
+        <FormContent>
+          <FormGroup>
+            <label htmlFor="email">이메일 또는 아이디</label>
+            <Field
+              name="email"
+              type="email"
+              as={FormControl}
+              placeholder="이메일 또는 아이디를 입력하세요"
+            />
+            <StyledErrorMessage name="email" component="div" />
+          </FormGroup>
+
+          <FormGroup>
+            <label htmlFor="password">비밀번호</label>
+            <Field
+              name="password"
+              type="password"
+              as={FormControl}
+              placeholder="비밀번호를 입력하세요"
+            />
+            <StyledErrorMessage name="password" component="div" />
+          </FormGroup>
+
+          <FormCheck>
+            <Field type="checkbox" name="rememberMe" id="remember-me" />
+            <label htmlFor="remember-me">로그인 상태 유지</label>
+          </FormCheck>
+
+          <ForgotPassword>
+            <Link to="/forgot-password">비밀번호를 잊으셨나요?</Link>
+          </ForgotPassword>
+
+          <SubmitButton type="submit">로그인</SubmitButton>
+        </FormContent>
+        <SocialLogin />
+      </StyledForm>
+    </Formik>
+  );
+};
 
 export default LoginForm;
 
@@ -80,6 +99,10 @@ const SocialLogin = () => (
 
 const StyledForm = styled(Form)`
   width: 100%;
+  min-height: 550px; /* 소셜 로그인 섹션 포함한 충분한 높이 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const FormContent = styled.div`

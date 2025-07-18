@@ -14,6 +14,11 @@ import SignupPage from './pages/SignupPage';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from './components/common/ErrorFallback';
 import { Toaster } from 'react-hot-toast';
+import Dashboard from './pages/Dashboard';
+import MapTestPage from './pages/MapTestPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import Header from './components/Header'; // Header 컴포넌트 import
+import { AuthProvider } from './contexts/AuthContext'; // AuthProvider import
 
 function App() {
   const location = useLocation();

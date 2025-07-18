@@ -97,6 +97,10 @@ export default SignupForm;
 
 const StyledForm = styled(Form)`
   width: 100%;
+  min-height: 550px; /* 로그인 폼과 동일한 높이 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const FormGroup = styled.div`
