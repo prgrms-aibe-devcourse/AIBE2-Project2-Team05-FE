@@ -49,4 +49,30 @@ export interface PlaceSearchResult {
   place_url: string;
 }
 
+export interface KakaoPlacesService {
+  keywordSearch: (
+    keyword: string,
+    callback: (result: PlaceSearchResult[], status: any) => void,
+    options?: {
+      location?: any;
+      radius?: number;
+      bounds?: any;
+      rect?: any;
+      size?: number;
+      page?: number;
+      sort?: string;
+    },
+  ) => void;
+}
+
+export interface PlaceDetailResult {
+  place_name: string;
+  address_name: string;
+  road_address_name: string;
+  phone: string;
+  place_url: string;
+  category_name: string;
+  photos?: string[];
+}
+
 export {};

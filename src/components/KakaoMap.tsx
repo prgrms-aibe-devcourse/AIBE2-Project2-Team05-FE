@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { KakaoMapProps, MarkerData, PlaceSearchResult } from '../types/kakao';
+import { getPlaceImageFromGoogle } from '../services/googlePlacesApi';
 
 /**
  * KakaoMap 래퍼 컴포넌트
@@ -11,6 +12,7 @@ interface KakaoMapComponentProps extends KakaoMapProps {
   onMarkerAdd?: (marker: MarkerData) => void;
   onMarkerUpdate?: (marker: MarkerData) => void;
   onMarkerDelete?: (markerId: string) => void;
+  onMarkerClick?: (marker: MarkerData) => void;
   showSearch?: boolean;
 }
 
@@ -22,6 +24,7 @@ const KakaoMap: React.FC<KakaoMapComponentProps> = ({
   onMarkerAdd,
   onMarkerUpdate,
   onMarkerDelete,
+  onMarkerClick,
   showSearch = false,
   onCreate,
   onClick,
@@ -105,7 +108,12 @@ const KakaoMap: React.FC<KakaoMapComponentProps> = ({
         onMarkerUpdate?.(updatedMarker);
       });
 
-      // 마커 클릭 이벤트 (삭제용)
+      // 마커 클릭 이벤트
+      kakao.maps.event.addListener(marker, 'click', () => {
+        onMarkerClick?.(markerData);
+      });
+
+      // 마커 우클릭 이벤트 (삭제용)
       kakao.maps.event.addListener(marker, 'rightclick', () => {
         if (window.confirm('이 마커를 삭제하시겠습니까?')) {
           onMarkerDelete?.(markerData.id);

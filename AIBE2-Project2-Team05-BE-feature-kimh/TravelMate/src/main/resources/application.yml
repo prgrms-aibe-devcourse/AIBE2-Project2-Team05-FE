@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/travel_mate_db
+    username: root
+    password: rnjsalgml56!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+jwt:
+  secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=
+  expiration: 3600000 # 1시간
+
+google:
+  places:
+    api:
+      key: ${GOOGLE_PLACES_API_KEY:your_google_places_api_key_here}
