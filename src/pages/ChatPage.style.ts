@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
 export const ChatContainer = styled.div`
   display: flex;
@@ -185,11 +186,173 @@ export const ChatOptionBtn = styled.button`
 
 export const ChatMessages = styled.div`
   flex: 1;
-  padding: 20px;
+  padding: 30px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+`;
+
+export const DateDivider = styled.div`
+  text-align: center;
+  margin: 10px 0;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+    background-color: #e5e7eb;
+    z-index: 1;
+  }
+`;
+
+export const DateText = styled.span`
+  background-color: #f9fafb;
+  padding: 0 15px;
+  position: relative;
+  z-index: 2;
+  color: #9ca3af;
+  font-size: 14px;
+`;
+
+export const Message = styled.div`
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
+
+  &.received {
+    align-self: flex-start;
+  }
+
+  &.sent {
+    align-self: flex-end;
+  }
+`;
+
+export const MessageContent = styled.div`
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 15px;
+  position: relative;
+  margin-bottom: 5px;
+
+  &.received {
+    background-color: #ffffff;
+    border-top-left-radius: 4px;
+  }
+
+  &.sent {
+    background-color: #3b82f6;
+    color: white;
+    border-top-right-radius: 4px;
+  }
+`;
+
+export const MessageMeta = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+
+  .sent & {
+    justify-content: flex-end;
+  }
+`;
+
+export const ChatInputArea = styled.div`
+  position: relative; /* 첨부 메뉴를 위한 position-context */
+  padding: 15px 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+`;
+
+export const AttachmentBtn = styled.button`
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 22px;
+  margin-right: 10px;
+  cursor: pointer;
+  transition: color 0.2s;
+  &:hover {
+    color: #3b82f6;
+  }
+`;
+
+export const MessageInput = styled.input`
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 12px 20px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: #3b82f6;
+  }
+`;
+
+export const SendBtn = styled.button`
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #2563eb;
+  }
+`;
+
+export const AttachmentMenu = styled(motion.div)`
+  position: absolute;
+  bottom: 80px; /* 입력창 바로 위에 위치하도록 조정 */
+  left: 20px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+  border: 1px solid #f3f4f6;
+`;
+
+export const AttachmentMenuItem = styled.button`
+  background: none;
+  border: none;
+  padding: 12px 16px;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 180px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+
+  i {
+    font-size: 20px;
+    color: #6b7280;
+  }
 `; 
