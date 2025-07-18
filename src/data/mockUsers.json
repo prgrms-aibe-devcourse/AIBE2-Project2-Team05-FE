@@ -1,0 +1,390 @@
+[
+  {
+    "id": 1,
+    "name": "김민수",
+    "age": 25,
+    "location": "서울",
+    "profileImage": "https://i.pravatar.cc/100?u=1",
+    "destination": "제주도",
+    "duration": "3박 4일",
+    "budget": "₩850,000",
+    "travelStyle": ["힐링", "자연", "맛집탐방"],
+    "coordinates": { "lat": 33.3607, "lng": 126.5312 },
+    "maxMembers": 4,
+    "currentMembers": 2,
+    "gender": "남성",
+    "travelPlan": [
+      {
+        "day": 1,
+        "activities": [
+          {
+            "time": "13:00",
+            "title": "제주공항 도착",
+            "description": "렌트카 픽업 후 이동"
+          },
+          {
+            "time": "14:00",
+            "title": "점심: 흑돼지 전문점",
+            "description": "유명한 현지 맛집 방문"
+          },
+          {
+            "time": "16:00",
+            "title": "성산일출봉 등반",
+            "description": "가벼운 트래킹 코스"
+          },
+          {
+            "time": "19:00",
+            "title": "저녁: 해물라면",
+            "description": "해변가에서 일몰 감상"
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "activities": [
+          {
+            "time": "10:00",
+            "title": "우도 탐방",
+            "description": "전기 자전거 대여하여 섬 한바퀴"
+          },
+          {
+            "time": "12:30",
+            "title": "점심: 땅콩 아이스크림 & 해물짬뽕",
+            "description": "우도 명물 맛보기"
+          },
+          {
+            "time": "15:00",
+            "title": "섭지코지 산책",
+            "description": "아름다운 해안 절경 감상"
+          },
+          {
+            "time": "18:00",
+            "title": "저녁: 동문 야시장",
+            "description": "다양한 길거리 음식 체험"
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "activities": [
+          {
+            "time": "09:00",
+            "title": "한라산 등반 (영실코스)",
+            "description": "약 3-4시간 소요 예상"
+          },
+          {
+            "time": "13:00",
+            "title": "점심: 근처 백숙집",
+            "description": "등산 후 든든한 식사"
+          },
+          {
+            "time": "15:30",
+            "title": "이중섭 거리 구경",
+            "description": "예술 작품 감상 및 카페"
+          },
+          {
+            "time": "18:00",
+            "title": "저녁: 현지 맛집",
+            "description": "제주 특산물 요리"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "이지은",
+    "age": 27,
+    "location": "부산",
+    "profileImage": "https://i.pravatar.cc/100?u=2",
+    "destination": "부산",
+    "duration": "3박 4일",
+    "budget": "₩650,000",
+    "travelStyle": ["도시", "문화", "쇼핑"],
+    "coordinates": { "lat": 35.1796, "lng": 129.0756 },
+    "maxMembers": 3,
+    "currentMembers": 1,
+    "gender": "여성",
+    "travelPlan": [
+      {
+        "day": 1,
+        "activities": [
+          {
+            "time": "12:00",
+            "title": "부산역 도착",
+            "description": "숙소에 짐 맡기기"
+          },
+          {
+            "time": "13:00",
+            "title": "점심: 돼지국밥",
+            "description": "부산 대표 음식"
+          },
+          {
+            "time": "15:00",
+            "title": "광안리 해수욕장",
+            "description": "해변 산책 및 카페"
+          },
+          {
+            "time": "18:00",
+            "title": "저녁: 해변가 조개구이",
+            "description": "광안대교 야경 감상"
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "activities": [
+          {
+            "time": "10:00",
+            "title": "감천문화마을",
+            "description": "인생샷 스팟 탐방"
+          },
+          {
+            "time": "13:00",
+            "title": "점심: 씨앗호떡",
+            "description": "남포동 BIFF 거리"
+          },
+          {
+            "time": "16:00",
+            "title": "태종대",
+            "description": "다누비 열차 탑승"
+          },
+          {
+            "time": "19:00",
+            "title": "저녁: 서면",
+            "description": "젊음의 거리에서 자유시간"
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "activities": [
+          {
+            "time": "10:00",
+            "title": "해동용궁사",
+            "description": "바다 위의 사찰"
+          },
+          {
+            "time": "12:00",
+            "title": "점심: 근처 해물칼국수"
+          },
+          {
+            "time": "14:00",
+            "title": "부산역 출발"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "박지영",
+    "age": 28,
+    "location": "대구",
+    "profileImage": "https://i.pravatar.cc/100?u=3",
+    "destination": "경주",
+    "duration": "2박 3일",
+    "budget": "₩400,000",
+    "travelStyle": ["문화", "역사", "사진"],
+    "coordinates": { "lat": 35.8562, "lng": 129.2247 },
+    "maxMembers": 3,
+    "currentMembers": 1,
+    "gender": "여성",
+    "travelPlan": [
+      {
+        "day": 1,
+        "activities": [
+          {
+            "time": "10:00",
+            "title": "불국사 방문",
+            "description": "세계문화유산 탐방"
+          },
+          {
+            "time": "14:00",
+            "title": "석굴암",
+            "description": "불교 문화 체험"
+          },
+          {
+            "time": "17:00",
+            "title": "경주 한옥마을",
+            "description": "전통 숙박 체험"
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "activities": [
+          {
+            "time": "09:00",
+            "title": "첨성대",
+            "description": "고대 천문대 견학"
+          },
+          {
+            "time": "11:00",
+            "title": "안압지",
+            "description": "연못 정원 산책"
+          },
+          {
+            "time": "15:00",
+            "title": "경주 국립박물관",
+            "description": "신라 유물 관람"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "최민호",
+    "age": 30,
+    "location": "인천",
+    "profileImage": "https://i.pravatar.cc/100?u=4",
+    "destination": "강릉",
+    "duration": "2박 3일",
+    "budget": "₩600,000",
+    "travelStyle": ["바다", "카페", "힐링"],
+    "coordinates": { "lat": 37.7519, "lng": 128.8761 },
+    "maxMembers": 2,
+    "currentMembers": 1,
+    "gender": "남성",
+    "travelPlan": [
+      {
+        "day": 1,
+        "activities": [
+          {
+            "time": "11:00",
+            "title": "경포해변",
+            "description": "해변 산책"
+          },
+          {
+            "time": "14:00",
+            "title": "안목해변 카페거리",
+            "description": "바다뷰 카페 투어"
+          },
+          {
+            "time": "18:00",
+            "title": "정동진 해변",
+            "description": "일몰 감상"
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "activities": [
+          {
+            "time": "08:00",
+            "title": "정동진 일출",
+            "description": "해돋이 명소"
+          },
+          {
+            "time": "10:00",
+            "title": "하슬라아트월드",
+            "description": "조각공원 관람"
+          },
+          {
+            "time": "15:00",
+            "title": "주문진 해변",
+            "description": "드라마 촬영지"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "이수진",
+    "age": 26,
+    "location": "광주",
+    "profileImage": "https://i.pravatar.cc/100?u=5",
+    "destination": "제주도",
+    "duration": "4박 5일",
+    "budget": "₩1,200,000",
+    "travelStyle": ["액티비티", "모험", "자연"],
+    "coordinates": { "lat": 33.4996, "lng": 126.5312 },
+    "maxMembers": 4,
+    "currentMembers": 2,
+    "gender": "여성",
+    "travelPlan": [
+      {
+        "day": 1,
+        "activities": [
+          {
+            "time": "14:00",
+            "title": "제주공항 도착",
+            "description": "렌트카 픽업"
+          },
+          {
+            "time": "16:00",
+            "title": "용두암",
+            "description": "제주 대표 명소"
+          },
+          {
+            "time": "18:00",
+            "title": "제주 흑돼지 맛집",
+            "description": "현지 맛집 체험"
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "activities": [
+          {
+            "time": "09:00",
+            "title": "한라산 등반",
+            "description": "백록담 코스"
+          },
+          {
+            "time": "15:00",
+            "title": "성판악 휴게소",
+            "description": "등산 후 휴식"
+          },
+          {
+            "time": "18:00",
+            "title": "제주 전통시장",
+            "description": "야시장 탐방"
+          }
+        ]
+      },
+      {
+        "day": 3,
+        "activities": [
+          {
+            "time": "10:00",
+            "title": "스쿠버다이빙",
+            "description": "서귀포 바다 체험"
+          },
+          {
+            "time": "14:00",
+            "title": "천지연 폭포",
+            "description": "자연 경관 감상"
+          },
+          {
+            "time": "17:00",
+            "title": "정방폭포",
+            "description": "바다로 떨어지는 폭포"
+          }
+        ]
+      },
+      {
+        "day": 4,
+        "activities": [
+          {
+            "time": "09:00",
+            "title": "우도 패러글라이딩",
+            "description": "하늘에서 보는 제주"
+          },
+          {
+            "time": "13:00",
+            "title": "성산일출봉",
+            "description": "세계자연유산"
+          },
+          {
+            "time": "16:00",
+            "title": "섭지코지",
+            "description": "해안 절경"
+          }
+        ]
+      }
+    ]
+  }
+]
