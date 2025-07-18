@@ -1,150 +1,182 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
+// 아이콘 사용을 원할 경우: import { RiArrowLeftLine, RiShareForwardLine, ... } from 'react-icons/ri';
+
+// 상세 페이지에서 사용할 피드 아이템의 확장된 타입
+interface FeedDetailData {
+  id: number;
+  author: string;
+  travelStyle: string[];
+  title: string;
+  travelDate: string;
+  location: string;
+  content: string;
+  images: string[];
+  tags: string[];
+  likes: number;
+  commentsCount: number;
+  shares: number;
+  comments: { id: number; author: string; text: string; time: string }[];
+}
+
+const pageVariants = {
+  initial: { opacity: 0 },
+  in: { opacity: 1 },
+  out: { opacity: 0 },
+};
 
 const FeedPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const [feedItem, setFeedItem] = useState<FeedDetailData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      const numericId = id ? parseInt(id, 10) : NaN;
+      if (!isNaN(numericId)) {
+        // 더미 데이터 생성 (확장된 타입에 맞게)
+        const dummyItem: FeedDetailData = {
+          id: numericId,
+          author: `김여행`,
+          travelStyle: ['자유여행가', '사진작가'],
+          title: '제주도에서의 잊지 못할 3일간의 힐링 여행',
+          travelDate: '2023.06.15 - 2023.06.18',
+          location: '제주특별자치도 서귀포시',
+          content: '제주도에서의 3일간의 여행은 정말 잊을 수 없는 경험이었습니다...',
+          images: [`https://picsum.photos/800/500?random=${numericId}`],
+          tags: ['#제주도', '#힐링여행', '#성산일출봉', '#우도'],
+          likes: 128,
+          commentsCount: 24,
+          shares: 15,
+          comments: [
+            { id: 1, author: '이제주', text: '저도 지난달에 제주도 다녀왔는데...', time: '2시간 전' },
+            { id: 2, author: '박여행', text: '흑돼지 바비큐 어디서 드셨나요?', time: '1시간 전' },
+          ],
+        };
+        setFeedItem(dummyItem);
+      } else {
+        setFeedItem(null);
+      }
+      setIsLoading(false);
+    }, 500);
+  }, [id]);
+
+  if (isLoading) return <Loading>로딩 중...</Loading>;
+  if (!feedItem) return <NotFoundContainer>피드를 찾을 수 없습니다.</NotFoundContainer>;
+
   return (
-    <Container>
-      <Header>
-        <HeaderIcon className="ri-arrow-left-line"></HeaderIcon>
-        <HeaderTitle>트래블메이트</HeaderTitle>
-        <HeaderIcon className="ri-share-forward-line"></HeaderIcon>
-      </Header>
+    <motion.div initial="initial" animate="in" exit="out" variants={pageVariants}>
+      <Container>
+        <Header>
+          <IconWrapper as={Link} to="/">
+            {/* <RiArrowLeftLine /> */}
+            ←
+          </IconWrapper>
+          <HeaderTitle>트래블메이트</HeaderTitle>
+          <IconWrapper>
+            {/* <RiShareForwardLine /> */}
+            🔗
+          </IconWrapper>
+        </Header>
 
-      <Content>
-        <AuthorInfo>
-          <ProfileImage>
-            <i className="ri-user-line"></i>
-          </ProfileImage>
-          <AuthorDetails>
-            <AuthorName>김여행</AuthorName>
-            <TravelStyle>자유여행가</TravelStyle>
-            <TravelStyle>사진작가</TravelStyle>
-          </AuthorDetails>
-          <FollowButton>팔로우</FollowButton>
-        </AuthorInfo>
+        <Content>
+          <AuthorInfo>
+            <ProfileImage />
+            <AuthorDetails>
+              <AuthorName>{feedItem.author}</AuthorName>
+              <div>
+                {feedItem.travelStyle.map(style => (
+                  <TravelStyle key={style}>{style}</TravelStyle>
+                ))}
+              </div>
+            </AuthorDetails>
+            <FollowButton>팔로우</FollowButton>
+          </AuthorInfo>
 
-        <PostTitle>제주도에서의 잊지 못할 3일간의 힐링 여행</PostTitle>
+          <PostTitle>{feedItem.title}</PostTitle>
 
-        <TravelInfo>
-          <TravelDate>
-            <i className="ri-calendar-line"></i>
-            <span>2023.06.15 - 2023.06.18</span>
-          </TravelDate>
-          <TravelLocation>
-            <i className="ri-map-pin-line"></i>
-            <span>제주특별자치도 서귀포시</span>
-          </TravelLocation>
-        </TravelInfo>
+          <TravelInfo>
+            <InfoItem>
+              {/* <RiCalendarLine /> */}
+              📅
+              <span>{feedItem.travelDate}</span>
+            </InfoItem>
+            <InfoItem>
+              {/* <RiMapPinLine /> */}
+              📍
+              <span>{feedItem.location}</span>
+            </InfoItem>
+          </TravelInfo>
 
-        <ImageSlider>
-          <SliderPlaceholder>
-            <i
-              className="ri-image-line"
-              style={{ fontSize: '48px', marginBottom: '10px' }}
-            ></i>
-            <p>여행 사진 슬라이더</p>
-          </SliderPlaceholder>
-          <SliderIndicators>
-            <Indicator className="active"></Indicator>
-            <Indicator></Indicator>
-            <Indicator></Indicator>
-            <Indicator></Indicator>
-          </SliderIndicators>
-        </ImageSlider>
+          <ImageSlider>
+             <img src={feedItem.images[0]} alt={feedItem.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </ImageSlider>
 
-        <PostContent>
-          <p>
-            제주도에서의 3일간의 여행은 정말 잊을 수 없는 경험이었습니다. 첫째
-            날에는 성산일출봉에서 아름다운 일출을 감상하고, 우도로 향했습니다.
-            우도의 하얀 모래해변과 에메랄드빛 바다는 정말 환상적이었어요.
-          </p>
-          <br />
-          <p>
-            둘째 날에는 중문 관광단지의 여러 해변을 돌아다니며 시간을
-            보냈습니다. 특히 중문색달해변에서의 수영은 정말 상쾌했어요. 저녁에는
-            제주 흑돼지 바비큐를 즐기며 하루를 마무리했습니다.
-          </p>
-          <br />
-          <p>
-            마지막 날에는 한라산 등반에 도전했습니다. 비록 정상까지는 가지
-            못했지만, 중간 지점에서 바라본 제주의 전경은 정말 장관이었습니다.
-            다음에 제주도를 방문한다면 꼭 정상까지 올라가보고 싶네요.
-          </p>
-          <br />
-          <p>
-            제주도의 자연, 음식, 그리고 사람들의 따뜻함이 모두 기억에 남습니다.
-            여러분도 기회가 된다면 꼭 방문해보세요!
-          </p>
-        </PostContent>
+          <PostContent dangerouslySetInnerHTML={{ __html: feedItem.content.replace(/\n/g, '<br />') }} />
 
-        <Tags>
-          <Tag>#제주도</Tag>
-          <Tag>#힐링여행</Tag>
-          <Tag>#성산일출봉</Tag>
-          <Tag>#우도</Tag>
-          <Tag>#한라산</Tag>
-          <Tag>#여름휴가</Tag>
-        </Tags>
+          <Tags>
+            {feedItem.tags.map(tag => (
+              <Tag key={tag}>{tag}</Tag>
+            ))}
+          </Tags>
 
-        <InteractionButtons>
-          <InteractionBtn className="liked">
-            <i className="ri-heart-fill"></i>
-            <span>128</span>
-          </InteractionBtn>
-          <InteractionBtn>
-            <i className="ri-chat-3-line"></i>
-            <span>24</span>
-          </InteractionBtn>
-          <InteractionBtn>
-            <i className="ri-share-forward-line"></i>
-            <span>15</span>
-          </InteractionBtn>
-        </InteractionButtons>
+          <InteractionButtons>
+            <InteractionBtn className="liked">
+              {/* <RiHeartFill /> */}
+              ❤️
+              <span>{feedItem.likes}</span>
+            </InteractionBtn>
+            <InteractionBtn>
+              {/* <RiChat3Line /> */}
+              💬
+              <span>{feedItem.commentsCount}</span>
+            </InteractionBtn>
+            <InteractionBtn>
+              {/* <RiShareForwardLine /> */}
+              🔗
+              <span>{feedItem.shares}</span>
+            </InteractionBtn>
+          </InteractionButtons>
 
-        <CommentsSection>
-          <CommentsTitle>댓글 24개</CommentsTitle>
-
-          <Comment>
-            <CommentProfile>
-              <i className="ri-user-line"></i>
-            </CommentProfile>
-            <CommentContent>
-              <CommentAuthor>이제주</CommentAuthor>
-              <CommentText>
-                저도 지난달에 제주도 다녀왔는데, 정말 좋았어요! 성산일출봉
-                일출은 정말 장관이죠.
-              </CommentText>
-              <CommentTime>2시간 전</CommentTime>
-            </CommentContent>
-          </Comment>
-
-          <Comment>{/* ... other comments ... */}</Comment>
-
-          <CommentInput>
-            <input type="text" placeholder="댓글을 입력하세요..." />
-            <button>게시</button>
-          </CommentInput>
-        </CommentsSection>
-      </Content>
-    </Container>
+          <CommentsSection>
+            <CommentsTitle>댓글 {feedItem.commentsCount}개</CommentsTitle>
+            {feedItem.comments.map(comment => (
+              <Comment key={comment.id}>
+                <CommentProfile />
+                <CommentContent>
+                  <CommentAuthor>{comment.author}</CommentAuthor>
+                  <CommentText>{comment.text}</CommentText>
+                  <CommentTime>{comment.time}</CommentTime>
+                </CommentContent>
+              </Comment>
+            ))}
+            <CommentInput>
+              <input type="text" placeholder="댓글을 입력하세요..." />
+              <button>게시</button>
+            </CommentInput>
+          </CommentsSection>
+        </Content>
+      </Container>
+    </motion.div>
   );
 };
 
 export default FeedPage;
 
+// Styled Components
 const Container = styled.div`
-  width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
   background-color: #ffffff;
 `;
 
-const Header = styled.div`
+const Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px 30px;
-  background-color: #3366ff;
+  background-color: #3366FF;
   color: white;
   position: sticky;
   top: 0;
@@ -152,14 +184,15 @@ const Header = styled.div`
 `;
 
 const HeaderTitle = styled.div`
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
-  letter-spacing: -0.5px;
 `;
 
-const HeaderIcon = styled.i`
+const IconWrapper = styled.div`
   font-size: 24px;
   cursor: pointer;
+  color: white;
+  text-decoration: none;
 `;
 
 const Content = styled.div`
@@ -173,19 +206,11 @@ const AuthorInfo = styled.div`
 `;
 
 const ProfileImage = styled.div`
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background-color: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-right: 15px;
-  overflow: hidden;
-  i {
-    font-size: 30px;
-    color: #999;
-  }
 `;
 
 const AuthorDetails = styled.div`
@@ -202,7 +227,7 @@ const TravelStyle = styled.span`
   display: inline-block;
   padding: 4px 10px;
   background-color: #f0f5ff;
-  color: #3366ff;
+  color: #3366FF;
   border-radius: 15px;
   font-size: 14px;
   margin-right: 8px;
@@ -210,7 +235,7 @@ const TravelStyle = styled.span`
 
 const FollowButton = styled.button`
   padding: 8px 20px;
-  background-color: #3366ff;
+  background-color: #3366FF;
   color: white;
   border: none;
   border-radius: 20px;
@@ -228,28 +253,14 @@ const PostTitle = styled.h1`
 const TravelInfo = styled.div`
   display: flex;
   margin-bottom: 25px;
+  color: #666;
 `;
 
-const TravelDate = styled.div`
+const InfoItem = styled.div`
   display: flex;
   align-items: center;
   margin-right: 30px;
-  color: #666666;
-  i {
-    margin-right: 8px;
-    color: #3366ff;
-  }
-`;
-
-const TravelLocation = styled.div`
-  display: flex;
-  align-items: center;
-  margin-right: 30px;
-  color: #666666;
-  i {
-    margin-right: 8px;
-    color: #3366ff;
-  }
+  span { margin-left: 8px; }
 `;
 
 const ImageSlider = styled.div`
@@ -259,42 +270,12 @@ const ImageSlider = styled.div`
   overflow: hidden;
   height: 500px;
   background-color: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const SliderPlaceholder = styled.div`
-  color: #999;
-  font-size: 18px;
-  text-align: center;
-`;
-
-const SliderIndicators = styled.div`
-  position: absolute;
-  bottom: 20px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-`;
-
-const Indicator = styled.div`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.5);
-  &.active {
-    background-color: #3366ff;
-  }
 `;
 
 const PostContent = styled.div`
   margin-bottom: 30px;
-  line-height: 1.6;
+  line-height: 1.7;
   font-size: 16px;
-  color: #333333;
 `;
 
 const Tags = styled.div`
@@ -304,10 +285,10 @@ const Tags = styled.div`
   gap: 10px;
 `;
 
-const Tag = styled.div`
+const Tag = styled.span`
   padding: 8px 15px;
   background-color: #e6f0ff;
-  color: #3366ff;
+  color: #3366FF;
   border-radius: 20px;
   font-size: 14px;
 `;
@@ -326,17 +307,14 @@ const InteractionBtn = styled.div`
   margin-right: 30px;
   color: #666666;
   cursor: pointer;
-  i {
-    margin-right: 8px;
-    font-size: 22px;
-  }
-  &.liked {
-    color: #ff3366;
-  }
+  font-size: 16px;
+
+  span { margin-left: 8px; }
+  &.liked { color: #ff3366; }
 `;
 
 const CommentsSection = styled.div`
-  margin-bottom: 100px;
+  margin-bottom: 50px;
 `;
 
 const CommentsTitle = styled.h2`
@@ -350,19 +328,9 @@ const Comment = styled.div`
   margin-bottom: 20px;
 `;
 
-const CommentProfile = styled.div`
+const CommentProfile = styled(ProfileImage)`
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background-color: #e0e0e0;
-  margin-right: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  i {
-    font-size: 20px;
-    color: #999;
-  }
 `;
 
 const CommentContent = styled.div`
@@ -375,13 +343,13 @@ const CommentAuthor = styled.div`
 `;
 
 const CommentText = styled.div`
-  margin-bottom: 5px;
   line-height: 1.4;
+  margin-bottom: 5px;
 `;
 
 const CommentTime = styled.div`
   font-size: 12px;
-  color: #999999;
+  color: #999;
 `;
 
 const CommentInput = styled.div`
@@ -389,23 +357,37 @@ const CommentInput = styled.div`
   align-items: center;
   background-color: #f8f9fa;
   border-radius: 30px;
-  padding: 10px 20px;
-  margin-top: 30px;
+  padding: 5px 5px 5px 20px;
+  margin-top: 20px;
+
   input {
     flex: 1;
     border: none;
     background: transparent;
-    padding: 10px 0;
     outline: none;
     font-size: 16px;
   }
+
   button {
-    background-color: #3366ff;
+    background-color: #3366FF;
     color: white;
     border: none;
     border-radius: 20px;
-    padding: 8px 20px;
+    padding: 10px 20px;
     cursor: pointer;
     font-size: 16px;
   }
 `;
+
+const Loading = styled.div`
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+`;
+
+const NotFoundContainer = styled.div`
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+  color: #8e8e8e;
+`; 
