@@ -31,8 +31,8 @@ const MainContent = styled.main<{ showSidebar: boolean }>`
   padding-top: ${(props) => (props.showSidebar ? '40px' : '80px')};
   padding-left: ${(props) =>
     props.showSidebar
-      ? '300px'
-      : '60px'}; /* Sidebar 240px + Content Padding 60px */
+      ? '280px'
+      : '60px'}; /* Sidebar 240px + Content Padding 40px */
   padding-right: 60px;
   min-height: 100vh;
   transition: all 0.3s ease;

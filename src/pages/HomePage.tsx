@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import FeedList from '../components/feed/FeedList';
-import RecommendedUsers from '../components/feed/RecommendedUsers';
 import HeroSection from '../components/home/HeroSection';
-import FeaturesSection from '../components/home/FeaturesSection';
 import FeedIntroSection from '../components/home/FeedIntroSection';
 import * as S from './FeedPage.style'; // 스타일은 FeedPage의 것을 재사용합니다.
 
@@ -34,7 +32,7 @@ const HomePage = () => {
     setIsLoading(true);
 
     // API 호출을 시뮬레이션합니다.
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const newItems = Array.from({ length: 5 }).map((_, i) => {
       const id = (page - 1) * 5 + i + 1;
@@ -47,12 +45,12 @@ const HomePage = () => {
     });
 
     if (newItems.length > 0) {
-      setItems(prevItems => [...prevItems, ...newItems]);
-      setPage(prevPage => prevPage + 1);
+      setItems((prevItems) => [...prevItems, ...newItems]);
+      setPage((prevPage) => prevPage + 1);
     } else {
       setHasMore(false);
     }
-    
+
     if (items.length >= 45) {
       setHasMore(false);
     }
@@ -77,21 +75,19 @@ const HomePage = () => {
       transition={{ duration: 0.5 }}
     >
       <HeroSection />
-      <FeaturesSection />
       <FeedIntroSection />
 
-      <S.PageContainer>
-        <S.MainContent>
-          <S.FeedContainer>
-            <FeedList items={items} hasMore={hasMore && !isLoading} targetRef={targetRef} />
-          </S.FeedContainer>
-          <S.Sidebar>
-            <RecommendedUsers />
-          </S.Sidebar>
-        </S.MainContent>
-      </S.PageContainer>
+      <S.MainContent>
+        <S.FeedContainer>
+          <FeedList
+            items={items}
+            hasMore={hasMore && !isLoading}
+            targetRef={targetRef}
+          />
+        </S.FeedContainer>
+      </S.MainContent>
     </motion.div>
   );
 };
 
-export default HomePage; 
+export default HomePage;

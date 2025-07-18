@@ -61,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem('userRole');
     setIsAuthenticated(false);
     setUser(null);
+    window.location.href = '/login'; // 로그인 페이지로 리디렉션
   };
 
   return (
