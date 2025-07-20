@@ -23,6 +23,9 @@ const Sidebar = () => {
         <StyledNavLink to="/notifications">
           <AiOutlineHeart /> <span>알림</span>
         </StyledNavLink>
+        <StyledNavLink to="/likes">
+          <AiOutlineHeart /> <span>좋아요</span>
+        </StyledNavLink>
         <StyledNavLink to="/match/recommend">
           <FaRegCompass /> <span>여행 메이트 찾기</span>
         </StyledNavLink>

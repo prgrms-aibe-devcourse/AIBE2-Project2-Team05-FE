@@ -26,6 +26,7 @@ import HomePage from './pages/HomePage';
 import Layout from './components/layout/Layout';
 import SearchPage from './pages/SearchPage';
 import NotificationPage from './pages/NotificationPage';
+import LikePage from './pages/LikePage';
 
 function App() {
   const location = useLocation();
@@ -49,26 +50,23 @@ function App() {
             {/* 메인 레이아웃을 사용하는 경로 (인증 필요) */}
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
+                <Route path="/" element={<HomePage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/map-test" element={<MapTestPage />} />
+                <Route path="/feed" element={<FeedPage />} />
+                <Route path="/feed/:id" element={<FeedPage />} />
+                <Route path="/match" element={<MatchPage />} />
                 <Route
                   path="/match/recommend"
                   element={<MatchRecommendPage />}
                 />
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/mypage" element={<MyPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/notifications" element={<NotificationPage />} />
+                <Route path="/map-test" element={<MapTestPage />} />
+                <Route path="/likes" element={<LikePage />} />
               </Route>
-            </Route>
-
-            {/* 기본 레이아웃을 사용하는 경로 */}
-            <Route element={<Layout />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/notifications" element={<NotificationPage />} />
-              <Route path="/feed" element={<HomePage />} />
-              <Route path="/feed/:id" element={<FeedPage />} />
-              <Route path="/match" element={<MatchPage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/mypage" element={<MyPage />} />
             </Route>
 
             {/* 404 Not Found */}
