@@ -2,16 +2,22 @@ import React from 'react';
 import FeedItem from './FeedItem';
 import { LoadingIndicator } from '../../pages/FeedPage.style';
 
-// FeedList 컴포넌트가 받을 props 타입을 정의합니다.
+// FeedItem에서 사용하는 Feed 타입을 가져와서 사용하거나 여기에 직접 정의합니다.
+// 여기서는 간단하게 FeedItem에 정의된 타입을 가정하고 진행합니다.
+// 실제로는 타입을 한 곳에서 관리하는 것이 좋습니다.
+interface Feed {
+  id: number;
+  author: string;
+  avatar: string;
+  image: string;
+  likes: number;
+  caption: string;
+}
+
+// FeedList 컴포넌트가 받을 props 타입을 수정합니다.
 interface FeedListProps {
-  items: Array<{
-    id: number;
-    author: string;
-    content: string;
-    imageUrl: string;
-  }>;
+  items: Feed[]; // 타입을 Feed 배열로 변경
   hasMore: boolean;
-  // DOM 요소를 참조하기 위한 ref를 전달받습니다.
   targetRef: React.Ref<HTMLDivElement>;
 }
 
@@ -19,10 +25,8 @@ const FeedList = ({ items, hasMore, targetRef }: FeedListProps) => {
   return (
     <div>
       {items.map((item, index) => (
-        // 마지막 아이템에만 ref를 연결하지 않고, 별도의 div를 감지 대상으로 사용합니다.
-        <FeedItem key={`${item.id}-${index}`} item={item} />
+        <FeedItem key={`${item.id}-${index}`} feed={item} />
       ))}
-      {/* 이 div가 뷰포트에 들어오면 추가 데이터를 로드합니다. */}
       <div ref={targetRef}>
         {hasMore && <LoadingIndicator>로딩 중...</LoadingIndicator>}
       </div>

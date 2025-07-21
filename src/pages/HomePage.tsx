@@ -6,12 +6,14 @@ import HeroSection from '../components/home/HeroSection';
 import FeedIntroSection from '../components/home/FeedIntroSection';
 import * as S from './FeedPage.style'; // 스타일은 FeedPage의 것을 재사용합니다.
 
-// 피드 아이템의 데이터 타입을 정의합니다.
-interface FeedItemData {
+// FeedList가 기대하는 Feed 타입으로 수정합니다.
+interface Feed {
   id: number;
   author: string;
-  content: string;
-  imageUrl: string;
+  avatar: string;
+  image: string;
+  likes: number;
+  caption: string;
 }
 
 const pageVariants = {
@@ -21,7 +23,7 @@ const pageVariants = {
 };
 
 const HomePage = () => {
-  const [items, setItems] = useState<FeedItemData[]>([]);
+  const [items, setItems] = useState<Feed[]>([]); // 타입을 Feed[]로 변경
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,13 +36,16 @@ const HomePage = () => {
     // API 호출을 시뮬레이션합니다.
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
+    // Feed 타입에 맞게 데이터를 생성합니다.
     const newItems = Array.from({ length: 5 }).map((_, i) => {
       const id = (page - 1) * 5 + i + 1;
       return {
         id,
-        author: `Traveler_` + id,
-        content: `여행 ${id}일차: 아름다운 풍경과 함께하는 하루! #여행스타그램`,
-        imageUrl: `https://picsum.photos/600/400?random=${id}`,
+        author: `Traveler_${id}`,
+        avatar: `https://i.pravatar.cc/150?u=traveler${id}`,
+        image: `https://picsum.photos/600/400?random=${id}`,
+        likes: Math.floor(Math.random() * 100),
+        caption: `여행 ${id}일차: 아름다운 풍경과 함께하는 하루! #여행스타그램`,
       };
     });
 

@@ -16,6 +16,8 @@ import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import MapTestPage from './pages/MapTestPage';
 import FeedPage from './pages/FeedPage';
+import FeedListPage from './pages/FeedListPage'; // 새로 만든 목록 페이지
+import FeedDetailPage from './pages/FeedDetailPage'; // 방금 만든 상세 페이지
 import MatchPage from './pages/MatchPage';
 import MatchRecommendPage from './pages/MatchRecommendPage';
 import ChatPage from './pages/ChatPage';
@@ -54,8 +56,8 @@ function App() {
               <Route element={<MainLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/feed" element={<FeedPage />} />
-                <Route path="/feed/:id" element={<FeedPage />} />
+                <Route path="/feed" element={<FeedListPage />} />
+                <Route path="/feed/:id" element={<FeedDetailPage />} /> {/* 상세 페이지 라우트 추가 */}
                 <Route path="/match" element={<MatchPage />} />
                 <Route
                   path="/match/recommend"
