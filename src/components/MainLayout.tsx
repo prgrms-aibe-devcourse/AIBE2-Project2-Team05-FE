@@ -10,7 +10,16 @@ import styled from 'styled-components';
  */
 const MainLayout = () => {
   const location = useLocation();
-  const sidebarRoutes = ['/match/recommend', '/chat', '/mypage'];
+  const sidebarRoutes = [
+    '/',
+    '/match/recommend',
+    '/chat',
+    '/mypage',
+    '/search',
+    '/notifications',
+    '/profile',
+    '/likes',
+  ];
   const showSidebar = sidebarRoutes.some((route) =>
     location.pathname.startsWith(route),
   );
