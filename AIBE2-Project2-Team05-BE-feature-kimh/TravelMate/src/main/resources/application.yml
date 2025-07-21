@@ -8,6 +8,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+      # MySQL 8 버전을 사용하고 있다는 가정 하에 Dialect를 설정합니다.
+      dialect: org.hibernate.dialect.MySQLDialect
     show-sql: true
     properties:
       hibernate:
