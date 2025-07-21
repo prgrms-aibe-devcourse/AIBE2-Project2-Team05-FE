@@ -1,17 +1,42 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { useState, MouseEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Link를 추가로 import 합니다.
+import PlanPage from './PlanPage';
 
 interface ModalProps {
   imageUrl: string;
   onClose: () => void;
 }
 
+interface UserFeed {
+  id: number;
+  author: string;
+  avatar: string;
+  image: string;
+  likes: number;
+  caption: string;
+  type?: string;
+  planId?: string;
+  createdAt?: string;
+}
+
+interface UserProfile {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  postsCount: number;
+  followersCount: number;
+  followingCount: number;
+  isCurrentUser: boolean;
+}
+
 const Modal = ({ imageUrl, onClose }: ModalProps) => (
   <ModalOverlay onClick={onClose}>
     <CloseButton onClick={onClose}>&times;</CloseButton>
-    <ModalContent onClick={(e: MouseEvent) => e.stopPropagation()}>
+    <ModalContent onClick={(e: React.MouseEvent) => e.stopPropagation()}>
       <PostImage src={imageUrl} alt="modal content" />
       <PostDetailsContainer>
         <PostHeader>
@@ -22,20 +47,22 @@ const Modal = ({ imageUrl, onClose }: ModalProps) => (
           <i className="ri-more-line"></i>
         </PostHeader>
         <PostDetails>
-            <PostActions>
-                <div>
-                    <i className="ri-heart-line"></i>
-                    <i className="ri-chat-3-line"></i>
-                    <i className="ri-send-plane-line"></i>
-                </div>
-                <i className="ri-bookmark-line"></i>
-            </PostActions>
-            <Likes>좋아요 128개</Likes>
-            <Caption>
-                <strong>여행자123</strong> 제주도 여행 중! 오늘은 성산일출봉에서 아름다운 일출을 감상했어요. 다음에 제주도 여행 오시는 분들은 꼭 일출 보러 오세요! #제주도여행 #성산일출봉 #아침일출
-            </Caption>
-            <Comments>댓글 23개 모두 보기</Comments>
-            <Timestamp>3시간 전</Timestamp>
+          <PostActions>
+            <div>
+              <i className="ri-heart-line"></i>
+              <i className="ri-chat-3-line"></i>
+              <i className="ri-send-plane-line"></i>
+            </div>
+            <i className="ri-bookmark-line"></i>
+          </PostActions>
+          <Likes>좋아요 128개</Likes>
+          <Caption>
+            <strong>여행자123</strong> 제주도 여행 중! 오늘은 성산일출봉에서
+            아름다운 일출을 감상했어요. 다음에 제주도 여행 오시는 분들은 꼭 일출
+            보러 오세요! #제주도여행 #성산일출봉 #아침일출
+          </Caption>
+          <Comments>댓글 23개 모두 보기</Comments>
+          <Timestamp>3시간 전</Timestamp>
         </PostDetails>
         <CommentInputSection>
           <CommentInput type="text" placeholder="댓글 달기..." />
@@ -60,12 +87,136 @@ const pageVariants = {
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('posts');
-  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
+  const [selectedFeed, setSelectedFeed] = useState<UserFeed | null>(null);
+  const [travelPlanModalOpen, setTravelPlanModalOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userFeeds, setUserFeeds] = useState<UserFeed[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
+  const { userId } = useParams<{ userId: string }>();
+
+  // 사용자 프로필 및 피드 데이터 로드
+  useEffect(() => {
+    const loadUserData = () => {
+      try {
+        const currentUserId = 'current-user'; // 현재 로그인한 사용자 ID (실제론 AuthContext에서 가져올 것)
+        const targetUserId = userId || currentUserId;
+        const isCurrentUser = targetUserId === currentUserId;
+
+        // 저장된 프로필 정보 로드
+        let savedProfile = null;
+        if (isCurrentUser) {
+          const userProfileData = localStorage.getItem('userProfile');
+          if (userProfileData) {
+            savedProfile = JSON.parse(userProfileData);
+          }
+        }
+
+        // 사용자 프로필 데이터 (실제론 API에서 가져올 것)
+        const profile: UserProfile = {
+          id: targetUserId,
+          name:
+            isCurrentUser && savedProfile?.name
+              ? savedProfile.name
+              : isCurrentUser
+                ? '나'
+                : `User_${targetUserId}`,
+          username:
+            isCurrentUser && savedProfile?.nickname
+              ? savedProfile.nickname
+              : isCurrentUser
+                ? 'Traveler_Kim'
+                : `traveler_${targetUserId}`,
+          avatar:
+            isCurrentUser && savedProfile?.profileImage
+              ? savedProfile.profileImage
+              : '👤',
+          bio:
+            isCurrentUser && savedProfile?.bio
+              ? savedProfile.bio
+              : isCurrentUser
+                ? '사진과 여행을 사랑하는 개발자. ✈️'
+                : '여행을 좋아하는 사람입니다 ✈️',
+          postsCount: 0,
+          followersCount: isCurrentUser
+            ? 1200
+            : Math.floor(Math.random() * 1000),
+          followingCount: isCurrentUser ? 345 : Math.floor(Math.random() * 500),
+          isCurrentUser,
+        };
+
+        // 사용자 피드 데이터 로드
+        const feedKey = isCurrentUser ? 'myFeeds' : `userFeeds_${targetUserId}`;
+        const savedFeeds = localStorage.getItem(feedKey);
+        let feeds: UserFeed[] = [];
+
+        if (savedFeeds) {
+          feeds = JSON.parse(savedFeeds);
+        } else if (isCurrentUser) {
+          // 현재 사용자인데 피드가 없으면 빈 배열
+          feeds = [];
+        } else {
+          // 다른 사용자면 샘플 데이터
+          feeds = generateSampleFeeds(targetUserId);
+        }
+
+        profile.postsCount = feeds.length;
+        setUserProfile(profile);
+        setUserFeeds(feeds);
+        setLoading(false);
+      } catch (error) {
+        console.error('사용자 데이터 로드 중 오류:', error);
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [userId]);
+
+  // 샘플 피드 생성 함수
+  const generateSampleFeeds = (userId: string): UserFeed[] => {
+    return [
+      {
+        id: Date.now() + 1,
+        author: `User_${userId}`,
+        avatar: '👤',
+        image: 'https://picsum.photos/400/400?random=1',
+        likes: Math.floor(Math.random() * 200),
+        caption: `${userId === 'user2' ? '부산' : '제주도'} 여행 계획을 세웠어요! 🏖️`,
+        type: 'travel-plan',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: Date.now() + 2,
+        author: `User_${userId}`,
+        avatar: '👤',
+        image: 'https://picsum.photos/400/400?random=2',
+        likes: Math.floor(Math.random() * 150),
+        caption: '맛집 투어 예정! 😋',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  };
 
   const handleEditProfile = () => {
-    navigate('/mypage');
+    if (userProfile?.isCurrentUser) {
+      navigate('/mypage');
+    }
+  };
+
+  const handleFeedClick = (feed: UserFeed) => {
+    if (feed.type === 'travel-plan') {
+      setSelectedFeed(feed);
+      setTravelPlanModalOpen(true);
+    } else {
+      setSelectedImage(
+        feed.image || `https://picsum.photos/400/400?random=${feed.id}`,
+      );
+      setModalOpen(true);
+    }
   };
 
   const openModal = (imageUrl: string) => {
@@ -78,44 +229,140 @@ const ProfilePage = () => {
     setSelectedImage('');
   };
 
+  const closeTravelPlanModal = () => {
+    setTravelPlanModalOpen(false);
+    setSelectedFeed(null);
+  };
+
+  // 로딩 중
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '24px',
+          color: '#8e8e8e',
+        }}
+      >
+        <div>프로필을 불러오는 중...</div>
+      </div>
+    );
+  }
+
+  // 사용자를 찾을 수 없음
+  if (!userProfile) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '24px',
+          color: '#8e8e8e',
+        }}
+      >
+        <div>사용자를 찾을 수 없습니다.</div>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            marginTop: '20px',
+            padding: '10px 20px',
+            backgroundColor: '#0095f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            fontWeight: '600',
+            cursor: 'pointer',
+          }}
+        >
+          홈으로 돌아가기
+        </button>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial="initial"
       animate="in"
       exit="out"
       variants={pageVariants}
-      // --- 수정: 페이지 전환 애니메이션 속도를 0.2초로 변경 ---
       transition={{ duration: 0.2 }}
     >
       <ProfileHeader>
-        <ProfileAvatar />
+        <ProfileAvatar>{userProfile.avatar}</ProfileAvatar>
         <ProfileInfo>
-          <Username>Traveler_Kim</Username>
+          <Username>
+            {userProfile.username}
+            {userProfile.name &&
+              userProfile.name !== userProfile.username &&
+              userProfile.name !== '나' && (
+                <span
+                  style={{
+                    fontWeight: 'normal',
+                    color: '#666',
+                    marginLeft: '8px',
+                  }}
+                >
+                  ({userProfile.name})
+                </span>
+              )}
+          </Username>
           <Stats>
-            <span>게시물 <strong>12</strong></span>
-            <span>팔로워 <strong>1.2k</strong></span>
-            <span>팔로우 <strong>345</strong></span>
+            <span>
+              게시물 <strong>{userProfile.postsCount}</strong>
+            </span>
+            <span>
+              팔로워{' '}
+              <strong>{userProfile.followersCount.toLocaleString()}</strong>
+            </span>
+            <span>
+              팔로우 <strong>{userProfile.followingCount}</strong>
+            </span>
           </Stats>
-          <Bio>사진과 여행을 사랑하는 개발자. ✈️</Bio>
+          <Bio>{userProfile.bio}</Bio>
         </ProfileInfo>
-        {/* 버튼들을 감싸는 컨테이너를 추가합니다. */}
         <ProfileButtonContainer>
-          <EditProfileButton onClick={handleEditProfile}>프로필 수정</EditProfileButton>
-          {/* '/review' 경로로 이동하는 Link 컴포넌트를 버튼으로 감싸줍니다. */}
-          <Link to="/review">
-            <ReviewButton>리뷰페이지</ReviewButton>
-          </Link>
+          {userProfile.isCurrentUser ? (
+            <>
+              <EditProfileButton onClick={handleEditProfile}>
+                프로필 수정
+              </EditProfileButton>
+              <Link to="/review">
+                <ReviewButton>리뷰페이지</ReviewButton>
+              </Link>
+            </>
+          ) : (
+            <>
+              <FollowButton>팔로우</FollowButton>
+              <MessageButton>메시지</MessageButton>
+            </>
+          )}
         </ProfileButtonContainer>
       </ProfileHeader>
-      
+
       <Tabs>
-        <Tab onClick={() => setActiveTab('posts')} className={activeTab === 'posts' ? 'active' : ''}>
-          게시물
+        <Tab
+          onClick={() => setActiveTab('posts')}
+          className={activeTab === 'posts' ? 'active' : ''}
+        >
+          게시물 ({userProfile.postsCount})
         </Tab>
-        <Tab onClick={() => setActiveTab('saved')} className={activeTab === 'saved' ? 'active' : ''}>
+        <Tab
+          onClick={() => setActiveTab('saved')}
+          className={activeTab === 'saved' ? 'active' : ''}
+        >
           저장됨
         </Tab>
-        <Tab onClick={() => setActiveTab('tagged')} className={activeTab === 'tagged' ? 'active' : ''}>
+        <Tab
+          onClick={() => setActiveTab('tagged')}
+          className={activeTab === 'tagged' ? 'active' : ''}
+        >
           태그됨
         </Tab>
       </Tabs>
@@ -129,10 +376,48 @@ const ProfilePage = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              // --- 수정: 탭 전환 애니메이션 속도를 0.15초로 변경 ---
               transition={{ duration: 0.15 }}
             >
-              <PostGrid onImageClick={openModal} />
+              {userFeeds.length > 0 ? (
+                <PostGrid feeds={userFeeds} onFeedClick={handleFeedClick} />
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '50vh',
+                    color: '#8e8e8e',
+                    fontSize: '20px',
+                  }}
+                >
+                  <div style={{ fontSize: '60px', marginBottom: '10px' }}>
+                    📷
+                  </div>
+                  <div>아직 게시물이 없습니다</div>
+                  {userProfile.isCurrentUser && (
+                    <Link to="/plan/write">
+                      <button
+                        style={{
+                          borderColor: '#0095f6',
+                          color: '#0095f6',
+                          padding: '8px 16px',
+                          borderRadius: '5px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          backgroundColor: 'transparent',
+                          marginTop: '20px',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        첫 여행 계획 만들기
+                      </button>
+                    </Link>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
           {activeTab === 'saved' && (
@@ -142,10 +427,22 @@ const ProfilePage = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              // --- 수정: 탭 전환 애니메이션 속도를 0.15초로 변경 ---
               transition={{ duration: 0.15 }}
             >
-              <PostGrid onImageClick={openModal} />
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '50vh',
+                  color: '#8e8e8e',
+                  fontSize: '20px',
+                }}
+              >
+                <div style={{ fontSize: '60px', marginBottom: '10px' }}>🔖</div>
+                <div>저장된 게시물이 없습니다</div>
+              </div>
             </motion.div>
           )}
           {activeTab === 'tagged' && (
@@ -155,36 +452,248 @@ const ProfilePage = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              // --- 수정: 탭 전환 애니메이션 속도를 0.15초로 변경 ---
               transition={{ duration: 0.15 }}
             >
-              <PostGrid onImageClick={openModal} />
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '50vh',
+                  color: '#8e8e8e',
+                  fontSize: '20px',
+                }}
+              >
+                <div style={{ fontSize: '60px', marginBottom: '10px' }}>🏷️</div>
+                <div>태그된 게시물이 없습니다</div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </TabContent>
 
       {modalOpen && <Modal imageUrl={selectedImage} onClose={closeModal} />}
+      {travelPlanModalOpen && selectedFeed && (
+        <PlanPageModal feed={selectedFeed} onClose={closeTravelPlanModal} />
+      )}
     </motion.div>
   );
 };
 
 interface PostGridProps {
-  onImageClick: (imageUrl: string) => void;
+  feeds: UserFeed[];
+  onFeedClick: (feed: UserFeed) => void;
 }
 
-const PostGrid = ({ onImageClick }: PostGridProps) => (
+const PostGrid = ({ feeds, onFeedClick }: PostGridProps) => (
   <PostsGridContainer>
-    {Array.from({ length: 9 }).map((_, index) => {
-      const imageUrl = `https://picsum.photos/300/300?random=${index}`;
-      return (
-        <PostItem key={index} onClick={() => onImageClick(imageUrl)}>
-          <img src={imageUrl} alt={`post-${index}`} />
-        </PostItem>
-      );
-    })}
+    {feeds.map((feed) => (
+      <PostItem key={feed.id} onClick={() => onFeedClick(feed)}>
+        <img
+          src={feed.image || `https://picsum.photos/400/400?random=${feed.id}`}
+          alt={`post-${feed.id}`}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: '15px',
+            boxSizing: 'border-box',
+            color: 'white',
+            opacity: 0,
+            transition: 'opacity 0.3s ease',
+            borderRadius: '8px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '14px',
+              marginBottom: '5px',
+            }}
+          >
+            <span>❤️ {feed.likes}</span>
+            <span>💬 {Math.floor(Math.random() * 50)}</span>
+          </div>
+          {feed.type === 'travel-plan' && (
+            <span
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                color: '#000',
+                padding: '4px 8px',
+                borderRadius: '5px',
+                fontSize: '12px',
+                fontWeight: '600',
+                alignSelf: 'flex-start',
+              }}
+            >
+              ✈️ 여행계획
+            </span>
+          )}
+        </div>
+      </PostItem>
+    ))}
   </PostsGridContainer>
 );
+
+// 스크롤바를 숨기는 래퍼 컴포넌트
+const ScrollableContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: auto;
+
+  /* 스크롤바 숨기기 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+
+  /* Webkit 기반 브라우저 (Chrome, Safari) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+// 여행 계획 모달 컴포넌트 - PlanPage를 모달로 래핑
+interface PlanPageModalProps {
+  feed: UserFeed;
+  onClose: () => void;
+}
+
+const PlanPageModal: React.FC<PlanPageModalProps> = ({ feed, onClose }) => {
+  useEffect(() => {
+    // 모달이 열릴 때 해당 피드의 여행 계획 데이터를 localStorage에 설정
+    if (feed.planId) {
+      const savedPlan = localStorage.getItem(`plan_${feed.planId}`);
+      if (savedPlan) {
+        // 해당 계획을 현재 계획으로 설정 (PlanPage에서 읽어옴)
+        localStorage.setItem('currentTravelPlan', savedPlan);
+      } else {
+        // 기본 데이터 생성
+        const defaultPlan = {
+          id: feed.planId,
+          title: feed.caption?.split('\n')[1] || '여행 계획',
+          author: {
+            id: 'current-user',
+            name: feed.author,
+            profileImage: feed.avatar,
+          },
+          startDate: '2024-01-01',
+          endDate: '2024-01-03',
+          destination: '여행지',
+          budget: '예산 정보 없음',
+          people: '인원 정보 없음',
+          period: '2박 3일',
+          days: [
+            {
+              id: 'day1',
+              dayNumber: 1,
+              date: '2024-01-01',
+              events: [
+                {
+                  id: 'event1',
+                  time: '09:00',
+                  title: '여행 시작',
+                  location: '출발지',
+                  description: '즐거운 여행을 시작해요!',
+                  tags: ['여행'],
+                  price: '무료',
+                  category: 'transport',
+                },
+              ],
+            },
+          ],
+          likes: feed.likes,
+          likedUsers: [],
+          isLiked: false,
+        };
+        localStorage.setItem('currentTravelPlan', JSON.stringify(defaultPlan));
+      }
+    }
+
+    // ESC 키로 모달 닫기
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [feed, onClose]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backdropFilter: 'blur(3px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          width: '95vw',
+          maxWidth: '1200px',
+          height: '95vh',
+          overflow: 'auto',
+          position: 'relative',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 닫기 버튼 */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '30px',
+            background: 'rgba(255, 255, 255, 0.9)',
+            border: 'none',
+            fontSize: '28px',
+            cursor: 'pointer',
+            color: '#666',
+            zIndex: 10,
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          ×
+        </button>
+
+        {/* PlanPage 컴포넌트를 모달 내부에 렌더링 */}
+        <ScrollableContainer>
+          <PlanPage />
+        </ScrollableContainer>
+      </div>
+    </div>
+  );
+};
 
 export default ProfilePage;
 
@@ -201,6 +710,10 @@ const ProfileAvatar = styled.div`
   border-radius: 50%;
   background-color: #eee;
   margin-right: 60px;
+  font-size: 80px; /* 아바타 텍스트 크기 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ProfileInfo = styled.div`
@@ -216,12 +729,12 @@ const Username = styled.h2`
 const Stats = styled.div`
   display: flex;
   margin-bottom: 20px;
-  
+
   span {
     margin-right: 40px;
     font-size: 16px;
   }
-  
+
   strong {
     font-weight: 600;
   }
@@ -246,7 +759,7 @@ const EditProfileButton = styled.button`
 const ReviewButton = styled(EditProfileButton)`
   border-color: #3b82f6;
   color: #3b82f6;
-  
+
   &:hover {
     background-color: rgba(59, 130, 246, 0.1);
   }
@@ -258,6 +771,24 @@ const ProfileButtonContainer = styled.div`
   flex-direction: column; // 버튼을 세로로 정렬
   gap: 10px; // 버튼 사이의 간격
   align-self: flex-start; // 컨테이너를 상단에 정렬
+`;
+
+const FollowButton = styled(EditProfileButton)`
+  border-color: #0095f6;
+  color: #0095f6;
+
+  &:hover {
+    background-color: rgba(0, 149, 246, 0.1);
+  }
+`;
+
+const MessageButton = styled(EditProfileButton)`
+  border-color: #007bff;
+  color: #007bff;
+
+  &:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+  }
 `;
 
 const Tabs = styled.div`
@@ -294,7 +825,8 @@ const PostItem = styled.div`
   position: relative;
   width: 100%;
   padding-bottom: 100%; /* 1:1 Aspect Ratio */
-  
+  cursor: pointer;
+
   img {
     position: absolute;
     top: 0;
@@ -302,8 +834,49 @@ const PostItem = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 8px;
   }
-`; 
+
+  /* 호버 시 오버레이 표시 */
+  &:hover > div {
+    opacity: 1;
+  }
+`;
+
+const PostOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 15px;
+  box-sizing: border-box;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 8px;
+`;
+
+const OverlayStats = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 5px;
+`;
+
+const PostBadge = styled.span`
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  align-self: flex-start;
+`;
 
 const ModalOverlay = styled(motion.div)`
   position: fixed;
@@ -340,7 +913,7 @@ const PostImage = styled.img`
   width: 100%;
   height: 50%;
   object-fit: cover;
-  
+
   @media (min-width: 768px) {
     width: 60%;
     height: 100%;
@@ -374,7 +947,7 @@ const AuthorInfo = styled.div`
   display: flex;
   align-items: center;
   font-weight: 600;
-  
+
   span {
     margin-left: 12px;
   }
@@ -468,4 +1041,63 @@ const CloseButton = styled.span`
   color: #fff;
   cursor: pointer;
   z-index: 1010;
-`; 
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 24px;
+  color: #8e8e8e;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 24px;
+  color: #8e8e8e;
+
+  button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #0095f6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+`;
+
+const EmptyPostsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh; /* 화면 높이의 50% */
+  color: #8e8e8e;
+  font-size: 20px;
+
+  div:first-child {
+    font-size: 60px;
+    margin-bottom: 10px;
+  }
+`;
+
+const CreatePostButton = styled(EditProfileButton)`
+  border-color: #0095f6;
+  color: #0095f6;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: rgba(0, 149, 246, 0.1);
+  }
+`;

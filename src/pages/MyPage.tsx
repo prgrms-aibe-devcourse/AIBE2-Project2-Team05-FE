@@ -22,10 +22,53 @@ interface Feed {
   createdAt?: string;
 }
 
+interface UserProfile {
+  name: string;
+  nickname: string;
+  age: string;
+  gender: string;
+  bio: string;
+  username: string;
+  profileImage: string;
+  preferredDestinations: string[];
+  travelStyles: string[];
+}
+
 const MyPage = () => {
   const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'feeds'>('profile');
   const [myFeeds, setMyFeeds] = useState<Feed[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 프로필 데이터 상태
+  const [profileData, setProfileData] = useState<UserProfile>({
+    name: '',
+    nickname: '',
+    age: '',
+    gender: '남성',
+    bio: '',
+    username: 'Traveler_Kim',
+    profileImage: '👤',
+    preferredDestinations: ['유럽'],
+    travelStyles: ['계획적인 여행', '관광 중심'],
+  });
+
+  // 프로필 데이터 로드
+  useEffect(() => {
+    const loadProfile = () => {
+      try {
+        const savedProfile = localStorage.getItem('userProfile');
+        if (savedProfile) {
+          const parsed = JSON.parse(savedProfile);
+          setProfileData((prev) => ({ ...prev, ...parsed }));
+        }
+      } catch (error) {
+        console.error('프로필 로드 중 오류:', error);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   // 내 피드 목록 로드
   useEffect(() => {
@@ -44,6 +87,57 @@ const MyPage = () => {
       loadMyFeeds();
     }
   }, [activeTab]);
+
+  // 프로필 데이터 변경 핸들러
+  const handleInputChange = (field: keyof UserProfile, value: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // 선호 여행지 토글
+  const toggleDestination = (destination: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      preferredDestinations: prev.preferredDestinations.includes(destination)
+        ? prev.preferredDestinations.filter((d) => d !== destination)
+        : [...prev.preferredDestinations, destination],
+    }));
+  };
+
+  // 여행 스타일 토글
+  const toggleTravelStyle = (style: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      travelStyles: prev.travelStyles.includes(style)
+        ? prev.travelStyles.filter((s) => s !== style)
+        : [...prev.travelStyles, style],
+    }));
+  };
+
+  // 프로필 저장
+  const handleSaveProfile = async () => {
+    if (!profileData.nickname.trim()) {
+      alert('닉네임을 입력해주세요.');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // localStorage에 프로필 정보 저장
+      localStorage.setItem('userProfile', JSON.stringify(profileData));
+
+      // 성공 메시지
+      alert('프로필이 성공적으로 저장되었습니다! ✅');
+    } catch (error) {
+      console.error('프로필 저장 중 오류:', error);
+      alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // 피드 클릭 시 여행 계획 페이지로 이동
   const handleFeedClick = (feed: Feed) => {
@@ -105,6 +199,10 @@ const MyPage = () => {
                       type="text"
                       id="name"
                       placeholder="실명을 입력하세요"
+                      value={profileData.name}
+                      onChange={(e) =>
+                        handleInputChange('name', e.target.value)
+                      }
                     />
                   </FormGroup>
                   <FormGroup>
@@ -113,6 +211,10 @@ const MyPage = () => {
                       type="text"
                       id="nickname"
                       placeholder="사용할 닉네임을 입력하세요"
+                      value={profileData.nickname}
+                      onChange={(e) =>
+                        handleInputChange('nickname', e.target.value)
+                      }
                     />
                   </FormGroup>
                 </FormRow>
@@ -123,19 +225,39 @@ const MyPage = () => {
                       type="number"
                       id="age"
                       placeholder="만 나이를 입력하세요"
+                      value={profileData.age}
+                      onChange={(e) => handleInputChange('age', e.target.value)}
                     />
                   </FormGroup>
                   <FormGroup>
                     <FormLabel>성별</FormLabel>
                     <RadioGroup>
                       <label>
-                        <input type="radio" name="gender" defaultChecked /> 남성
+                        <input
+                          type="radio"
+                          name="gender"
+                          checked={profileData.gender === '남성'}
+                          onChange={() => handleInputChange('gender', '남성')}
+                        />{' '}
+                        남성
                       </label>
                       <label>
-                        <input type="radio" name="gender" /> 여성
+                        <input
+                          type="radio"
+                          name="gender"
+                          checked={profileData.gender === '여성'}
+                          onChange={() => handleInputChange('gender', '여성')}
+                        />{' '}
+                        여성
                       </label>
                       <label>
-                        <input type="radio" name="gender" /> 기타
+                        <input
+                          type="radio"
+                          name="gender"
+                          checked={profileData.gender === '기타'}
+                          onChange={() => handleInputChange('gender', '기타')}
+                        />{' '}
+                        기타
                       </label>
                     </RadioGroup>
                   </FormGroup>
@@ -148,27 +270,43 @@ const MyPage = () => {
               <FormGroup>
                 <FormLabel>선호 여행지</FormLabel>
                 <TagsContainer>
-                  <Tag className="selected">유럽</Tag>
-                  <Tag>동남아시아</Tag>
-                  <Tag>일본</Tag>
-                  <Tag>미국/캐나다</Tag>
+                  {['유럽', '동남아시아', '일본', '미국/캐나다'].map(
+                    (destination) => (
+                      <Tag
+                        key={destination}
+                        className={
+                          profileData.preferredDestinations.includes(
+                            destination,
+                          )
+                            ? 'selected'
+                            : ''
+                        }
+                        onClick={() => toggleDestination(destination)}
+                      >
+                        {destination}
+                      </Tag>
+                    ),
+                  )}
                 </TagsContainer>
               </FormGroup>
               <FormGroup>
                 <FormLabel>여행 스타일</FormLabel>
                 <CheckboxGroup>
-                  <label>
-                    <input type="checkbox" defaultChecked /> 계획적인 여행
-                  </label>
-                  <label>
-                    <input type="checkbox" /> 즉흥적인 여행
-                  </label>
-                  <label>
-                    <input type="checkbox" defaultChecked /> 관광 중심
-                  </label>
-                  <label>
-                    <input type="checkbox" /> 휴식 중심
-                  </label>
+                  {[
+                    '계획적인 여행',
+                    '즉흥적인 여행',
+                    '관광 중심',
+                    '휴식 중심',
+                  ].map((style) => (
+                    <label key={style}>
+                      <input
+                        type="checkbox"
+                        checked={profileData.travelStyles.includes(style)}
+                        onChange={() => toggleTravelStyle(style)}
+                      />{' '}
+                      {style}
+                    </label>
+                  ))}
                 </CheckboxGroup>
               </FormGroup>
             </PreferenceSection>
@@ -181,6 +319,8 @@ const MyPage = () => {
                   id="bio"
                   rows={4}
                   placeholder="여행 동반자에게 자신을 소개해보세요."
+                  value={profileData.bio}
+                  onChange={(e) => handleInputChange('bio', e.target.value)}
                 />
               </FormGroup>
             </Section>
@@ -192,7 +332,7 @@ const MyPage = () => {
                 <FormControl
                   type="text"
                   id="username"
-                  defaultValue="Traveler_Kim"
+                  value={profileData.username}
                   disabled
                 />
               </FormGroup>
@@ -226,7 +366,9 @@ const MyPage = () => {
 
             <ButtonSection>
               <BtnCancel>취소</BtnCancel>
-              <BtnSave>저장하기</BtnSave>
+              <BtnSave onClick={handleSaveProfile} disabled={isSaving}>
+                {isSaving ? '저장 중...' : '저장하기'}
+              </BtnSave>
             </ButtonSection>
 
             <WithdrawalSection>

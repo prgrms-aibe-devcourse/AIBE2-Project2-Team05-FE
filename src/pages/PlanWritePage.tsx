@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import PlaceSearchInput from '../components/PlaceSearchInput';
 import * as S from './PlanWritePage.style';
+import PlaceMap from '../components/PlaceMap';
+import openaiService from '../services/openaiApi';
 
 // 일정 항목 타입 정의
 interface ScheduleItem {
@@ -148,6 +150,25 @@ const PlanWritePage: React.FC = () => {
     }));
   };
 
+  // 원래 여행지 구글 API
+  const [initialPlace, setInitialPlace] = useState(null);
+
+  // 여행 스타일 값을 사용자 친화적인 라벨로 변환
+  const getStyleLabels = (styleValues: string[]): string[] => {
+    const styleMap: { [key: string]: string } = {
+      planned: '계획적',
+      spontaneous: '즉흥적',
+      tourism: '관광 중심',
+      relaxation: '휴식 중심',
+      food: '맛집 탐방',
+      nature: '자연 체험',
+      culture: '문화 체험',
+      shopping: '쇼핑',
+    };
+
+    return styleValues.map((value) => styleMap[value] || value);
+  };
+
   // 폼 저장 처리
   const handleSave = async () => {
     if (!validateForm()) return;
@@ -155,9 +176,30 @@ const PlanWritePage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      const planId = Date.now().toString();
+      const currentUserId = 'current-user'; // 실제론 AuthContext에서 가져올 것
+
+      // 저장된 프로필 정보 불러오기
+      let userProfile = null;
+      try {
+        const savedProfile = localStorage.getItem('userProfile');
+        if (savedProfile) {
+          userProfile = JSON.parse(savedProfile);
+        }
+      } catch (error) {
+        console.error('프로필 정보 로드 실패:', error);
+      }
+
+      // 작성자 정보 설정 (프로필 정보가 있으면 사용, 없으면 기본값)
+      const authorInfo = {
+        id: currentUserId,
+        name: userProfile?.nickname || userProfile?.name || '나',
+        profileImage: userProfile?.profileImage || '👤',
+      };
+
       // 현재 계획을 PlanPage에서 사용할 형식으로 변환
-      const planData = {
-        id: Date.now().toString(), // 임시 ID (백엔드 연동 시 제거)
+      const planData: any = {
+        id: planId,
         title: formData.title,
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -169,11 +211,10 @@ const PlanWritePage: React.FC = () => {
         likes: 0,
         likedUsers: [],
         isLiked: false,
-        author: {
-          id: 'current-user',
-          name: '나',
-          profileImage: '👤',
-        },
+        author: authorInfo,
+        // 여행 스타일 정보 추가 (라벨과 값 모두 저장)
+        styles: formData.styles,
+        styleLabels: getStyleLabels(formData.styles),
         // 매칭 정보
         matchingInfo: {
           preferredGender: formData.preferredGender,
@@ -185,39 +226,131 @@ const PlanWritePage: React.FC = () => {
         accommodation: formData.accommodation,
         transportation: formData.transportation,
         extraMemo: formData.extraMemo,
-        styles: formData.styles,
-        createdAt: new Date().toISOString(), // 생성 시간 추가
+        createdAt: new Date().toISOString(),
       };
 
-      // localStorage에 저장 (백엔드 연동 전 임시 저장소)
+      // OpenAI 서비스를 통해 해시태그와 근처 관광지 추천 받기
+      toast.loading('AI로 여행 계획을 분석하여 맞춤 추천을 생성하는 중...', {
+        id: 'ai-analysis',
+      });
+
+      try {
+        // OpenAI API로 해시태그와 근처 추천지 생성 (병렬 처리)
+        const [aiHashtags, nearbyRecommendations] = await Promise.all([
+          openaiService.generateHashtags({
+            title: formData.title,
+            destination: formData.destination,
+            days: Object.values(formData.schedules).map(
+              (daySchedule, index) => ({
+                events: daySchedule.map((item) => ({
+                  time: item.time,
+                  place: item.place,
+                  activity: item.activity,
+                  memo: item.memo,
+                })),
+              }),
+            ),
+            styles: getStyleLabels(formData.styles),
+          }),
+          openaiService.generateNearbyRecommendations(
+            formData.destination,
+            getStyleLabels(formData.styles),
+            {
+              days: Object.values(formData.schedules).map(
+                (daySchedule, index) => ({
+                  events: daySchedule.map((item) => ({
+                    time: item.time,
+                    place: item.place,
+                    activity: item.activity,
+                    memo: item.memo,
+                  })),
+                }),
+              ),
+            },
+          ),
+        ]);
+
+        // AI 추천 결과를 planData에 추가
+        planData.aiHashtags = aiHashtags;
+        planData.nearbyRecommendations = nearbyRecommendations;
+
+        toast.success(
+          'AI 분석 완료! 맞춤 해시태그와 근처 관광지를 추천받았습니다.',
+          { id: 'ai-analysis' },
+        );
+      } catch (error) {
+        console.error('AI 분석 중 오류:', error);
+        toast.dismiss('ai-analysis');
+        toast.error('AI 분석에 실패했지만 기본 추천을 제공합니다.');
+        // AI 분석 실패 시에도 기본 데이터로 저장 진행
+      }
+
+      // localStorage에 여행 계획 저장
       localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
 
-      // 피드 데이터로 변환하여 마이페이지 피드 목록에도 추가
-      const feedData = {
-        id: parseInt(planData.id),
-        author: planData.author.name,
-        avatar: '👤', // 기본 아바타
-        image: '', // 추후 첫 번째 장소 이미지나 썸네일로 교체 가능
+      // 1. 프로필 피드 데이터 생성
+      const profileFeedData = {
+        id: parseInt(planId),
+        author: authorInfo.name,
+        avatar: authorInfo.profileImage,
+        image: generateTravelImage(formData.destination), // 대표 이미지 생성
         likes: 0,
         caption: `${planData.destination} ${planData.period} 여행 계획을 세웠어요! 🏖️\n${planData.title}\n📅 ${planData.startDate} ~ ${planData.endDate}\n💰 예산: ${planData.budget}\n👥 인원: ${planData.people}`,
-        type: 'travel-plan', // 피드 타입 구분
-        planId: planData.id, // 계획 ID 참조
+        type: 'travel-plan',
+        planId: planData.id,
         createdAt: planData.createdAt,
       };
 
-      // 기존 피드 목록 가져오기
+      // 2. 메이트 찾기 데이터 생성
+      const mateData = {
+        id: parseInt(planId),
+        userId: currentUserId,
+        userName: authorInfo.name,
+        userAvatar: authorInfo.profileImage,
+        title: planData.title,
+        destination: planData.destination,
+        startDate: planData.startDate,
+        endDate: planData.endDate,
+        period: planData.period,
+        budget: planData.budget,
+        currentPeople: 1, // 작성자 본인
+        maxPeople: parseInt(String(formData.people)),
+        preferences: {
+          gender: formData.preferredGender,
+          age: formData.preferredAge,
+          language: formData.preferredLanguage,
+          memo: formData.matchingMemo,
+        },
+        styles: formData.styles,
+        accommodation: formData.accommodation,
+        transportation: formData.transportation,
+        image: generateTravelImage(formData.destination),
+        likes: 0,
+        views: 0,
+        status: 'recruiting', // recruiting, completed, cancelled
+        createdAt: planData.createdAt,
+        tags: generateTags(formData.destination, formData.styles),
+      };
+
+      // 3. 프로필 피드에 저장 (현재 사용자)
       const existingFeeds = JSON.parse(localStorage.getItem('myFeeds') || '[]');
-
-      // 새로운 피드를 맨 앞에 추가
-      const updatedFeeds = [feedData, ...existingFeeds];
-
-      // 피드 목록 저장
+      const updatedFeeds = [profileFeedData, ...existingFeeds];
       localStorage.setItem('myFeeds', JSON.stringify(updatedFeeds));
+
+      // 4. 메이트 찾기에 저장
+      const existingMatePosts = JSON.parse(
+        localStorage.getItem('matePosts') || '[]',
+      );
+      const updatedMatePosts = [mateData, ...existingMatePosts];
+      localStorage.setItem('matePosts', JSON.stringify(updatedMatePosts));
+
+      // 5. 개별 계획 저장 (다른 사용자가 참조할 수 있도록)
+      localStorage.setItem(`plan_${planId}`, JSON.stringify(planData));
 
       toast.success(
         isEditMode
           ? '여행 계획이 수정되었습니다!'
-          : '여행 계획이 작성되었습니다! 마이페이지에서 확인하세요 🎉',
+          : '여행 계획이 작성되었습니다! 🎉\n✅ 프로필에 추가됨\n✅ 메이트 찾기에 등록됨',
       );
 
       // 계획 보기 페이지로 이동
@@ -362,6 +495,49 @@ const PlanWritePage: React.FC = () => {
       return false;
     }
     return true;
+  };
+
+  // 여행지 기반 대표 이미지 생성
+  const generateTravelImage = (destination: string): string => {
+    const imageMap: { [key: string]: string } = {
+      제주도:
+        'https://images.unsplash.com/photo-1539650116574-75c0c6d3e81b?w=400',
+      부산: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
+      서울: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+      강릉: 'https://images.unsplash.com/photo-1578552913303-d9bc48a05eba?w=400',
+      여수: 'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=400',
+      경주: 'https://images.unsplash.com/photo-1578498720135-6b3ec66bd7e8?w=400',
+    };
+
+    // 목적지 키워드로 매칭, 없으면 랜덤 여행 이미지
+    for (const [keyword, imageUrl] of Object.entries(imageMap)) {
+      if (destination.includes(keyword)) {
+        return imageUrl;
+      }
+    }
+
+    // 기본 여행 이미지
+    return `https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=80`;
+  };
+
+  // 태그 생성 함수
+  const generateTags = (destination: string, styles: string[]): string[] => {
+    const tags = [`#${destination}`];
+
+    // 여행 스타일을 태그로 변환
+    styles.forEach((style) => {
+      if (style.includes('맛집')) tags.push('#맛집탐방');
+      if (style.includes('휴양')) tags.push('#휴양');
+      if (style.includes('액티비티')) tags.push('#액티비티');
+      if (style.includes('관광')) tags.push('#관광');
+      if (style.includes('쇼핑')) tags.push('#쇼핑');
+      if (style.includes('문화')) tags.push('#문화체험');
+    });
+
+    // 기본 태그들
+    tags.push('#여행메이트', '#함께여행');
+
+    return Array.from(new Set(tags)); // 중복 제거
   };
 
   return (

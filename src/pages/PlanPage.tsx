@@ -41,6 +41,14 @@ interface TravelPlan {
     name: string;
     profileImage: string;
   };
+  styleLabels?: string[]; // 여행 스타일 레이블
+  aiHashtags?: string[]; // AI 추천 해시태그
+  nearbyRecommendations?: Array<{
+    name: string;
+    description: string;
+    category: string;
+    distance: string;
+  }>; // AI 추천 근처 관광지
 }
 
 const PlanPage: React.FC = () => {
@@ -87,6 +95,65 @@ const PlanPage: React.FC = () => {
       name: '여행러버',
       profileImage: '👤',
     },
+    styleLabels: ['힐링', '휴양', '모던'],
+    aiHashtags: ['#제주도여행', '#힐링여행', '#모던여행'],
+    nearbyRecommendations: [
+      {
+        name: '제주 흑돼지 맛집',
+        description: '제주 특산품인 흑돼지를 맛볼 수 있는 현지 인기 맛집',
+        distance: '차량 15분',
+        category: '맛집',
+      },
+      {
+        name: '오설록 티 뮤지엄 카페',
+        description: '제주 녹차를 이용한 다양한 음료와 디저트를 즐길 수 있음',
+        distance: '차량 20분',
+        category: '맛집',
+      },
+      {
+        name: '제주 해물찜 맛집',
+        description: '신선한 제주 바다의 해산물로 만든 해물찜 전문점',
+        distance: '차량 10분',
+        category: '맛집',
+      },
+      {
+        name: '한라산 등반',
+        description: '제주도의 상징 한라산을 등반하며 자연을 만끽할 수 있음',
+        distance: '차량 40분',
+        category: '액티비티',
+      },
+      {
+        name: '바다 스쿠버다이빙',
+        description: '제주 맑은 바다에서 스쿠버다이빙을 체험할 수 있음',
+        distance: '차량 25분',
+        category: '액티비티',
+      },
+      {
+        name: '승마체험장',
+        description: '제주 초원에서 승마를 배우고 체험할 수 있는 곳',
+        distance: '차량 30분',
+        category: '액티비티',
+      },
+      {
+        name: '성산일출봉',
+        description: '일출 명소로 유명한 유네스코 세계자연유산',
+        distance: '차량 30분',
+        category: '관광명소',
+      },
+      {
+        name: '중문관광단지',
+        description: '다양한 관광 시설과 아름다운 해변이 있는 곳',
+        distance: '차량 25분',
+        category: '관광명소',
+      },
+      {
+        name: '비자림',
+        description:
+          '천년의 역사를 가진 비자나무 군락지로 산림욕을 즐길 수 있음',
+        distance: '차량 35분',
+        category: '관광명소',
+      },
+    ],
   });
 
   // 컴포넌트 마운트 시 여행 계획 로드
@@ -384,34 +451,100 @@ const PlanPage: React.FC = () => {
       name: '여행러버',
       profileImage: '/images/author.jpg',
     },
+    styleLabels: ['힐링', '휴양', '모던'],
+    aiHashtags: ['#제주도여행', '#힐링여행', '#모던여행'],
+    nearbyRecommendations: [
+      {
+        name: '제주 흑돼지 맛집',
+        description: '제주 특산품인 흑돼지를 맛볼 수 있는 현지 인기 맛집',
+        distance: '차량 15분',
+        category: '맛집',
+      },
+      {
+        name: '오설록 티 뮤지엄 카페',
+        description: '제주 녹차를 이용한 다양한 음료와 디저트를 즐길 수 있음',
+        distance: '차량 20분',
+        category: '맛집',
+      },
+      {
+        name: '제주 해물찜 맛집',
+        description: '신선한 제주 바다의 해산물로 만든 해물찜 전문점',
+        distance: '차량 10분',
+        category: '맛집',
+      },
+      {
+        name: '한라산 등반',
+        description: '제주도의 상징 한라산을 등반하며 자연을 만끽할 수 있음',
+        distance: '차량 40분',
+        category: '액티비티',
+      },
+      {
+        name: '바다 스쿠버다이빙',
+        description: '제주 맑은 바다에서 스쿠버다이빙을 체험할 수 있음',
+        distance: '차량 25분',
+        category: '액티비티',
+      },
+      {
+        name: '승마체험장',
+        description: '제주 초원에서 승마를 배우고 체험할 수 있는 곳',
+        distance: '차량 30분',
+        category: '액티비티',
+      },
+      {
+        name: '성산일출봉',
+        description: '일출 명소로 유명한 유네스코 세계자연유산',
+        distance: '차량 30분',
+        category: '관광명소',
+      },
+      {
+        name: '중문관광단지',
+        description: '다양한 관광 시설과 아름다운 해변이 있는 곳',
+        distance: '차량 25분',
+        category: '관광명소',
+      },
+      {
+        name: '비자림',
+        description:
+          '천년의 역사를 가진 비자나무 군락지로 산림욕을 즐길 수 있음',
+        distance: '차량 35분',
+        category: '관광명소',
+      },
+    ],
+  };
+
+  // 카테고리별 색상 함수
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case '맛집':
+        return { bg: '#fff3e0', text: '#f57c00' }; // 오렌지 계열
+      case '액티비티':
+        return { bg: '#e8f5e8', text: '#2d5d2d' }; // 초록 계열
+      case '관광명소':
+        return { bg: '#e0e6ff', text: '#3682F8' }; // 파랑 계열
+      // 기존 카테고리들 (하위 호환성)
+      case 'food':
+        return { bg: '#fff3e0', text: '#f57c00' };
+      case 'nature':
+      case 'beach':
+        return { bg: '#e8f5e8', text: '#2d5d2d' };
+      case 'culture':
+      case 'tourism':
+        return { bg: '#e0e6ff', text: '#3682F8' };
+      case 'wellness':
+        return { bg: '#f3e5f5', text: '#7b1fa2' }; // 보라 계열
+      case 'transportation':
+        return { bg: '#e3f2fd', text: '#1976d2' }; // 연파랑 계열
+      case 'accommodation':
+        return { bg: '#f1f8e9', text: '#689f38' }; // 연초록 계열
+      case 'entertainment':
+        return { bg: '#fce4ec', text: '#c2185b' }; // 핑크 계열
+      default:
+        return { bg: '#f5f5f5', text: '#666' }; // 회색 계열
+    }
   };
 
   return (
     <S.Container>
-      {/* 헤더 섹션 */}
-      <S.Header>
-        <S.HeaderContent>
-          <S.Logo>
-            <i className="ri-map-pin-line"></i>
-            트립 플래너
-          </S.Logo>
-          <S.NavMenu>
-            <S.NavItem>
-              <i className="ri-compass-3-line"></i>
-              탐색
-            </S.NavItem>
-            <S.NavItem>
-              <i className="ri-bookmark-line"></i>
-              저장됨
-            </S.NavItem>
-            <S.NavItem>
-              <i className="ri-user-line"></i>
-              프로필
-            </S.NavItem>
-          </S.NavMenu>
-        </S.HeaderContent>
-      </S.Header>
-
       {/* 메인 정보 섹션 */}
       <S.MainInfo>
         <S.TripTitle>{plan.title}</S.TripTitle>
@@ -437,6 +570,108 @@ const PlanPage: React.FC = () => {
             <S.CardValue>{plan.people}</S.CardValue>
           </S.SummaryCard>
         </S.SummaryCards>
+
+        {/* 여행 스타일 표시 */}
+        {plan.styleLabels && plan.styleLabels.length > 0 && (
+          <div style={{ marginTop: '20px' }}>
+            <h3
+              style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              🎨 여행 스타일
+            </h3>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              {plan.styleLabels.map((style: string, index: number) => (
+                <span
+                  key={index}
+                  style={{
+                    backgroundColor: '#f0f2ff',
+                    color: '#3682F8',
+                    padding: '6px 12px',
+                    borderRadius: '16px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: '1px solid #e0e6ff',
+                  }}
+                >
+                  {style}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI 추천 해시태그 */}
+        {plan.aiHashtags && plan.aiHashtags.length > 0 && (
+          <div style={{ marginTop: '20px' }}>
+            <h3
+              style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              🤖 AI 추천 해시태그
+            </h3>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              {plan.aiHashtags.map((hashtag: string, index: number) => (
+                <span
+                  key={index}
+                  style={{
+                    backgroundColor: '#e8f5e8',
+                    color: '#2d5d2d',
+                    padding: '6px 12px',
+                    borderRadius: '16px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: '1px solid #c3e6c3',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    // 해시태그 클릭 시 클립보드에 복사
+                    navigator.clipboard?.writeText(hashtag);
+                    alert('해시태그가 복사되었습니다! 📋');
+                  }}
+                >
+                  {hashtag}
+                </span>
+              ))}
+            </div>
+            <p
+              style={{
+                fontSize: '12px',
+                color: '#666',
+                marginTop: '8px',
+                fontStyle: 'italic',
+              }}
+            >
+              💡 해시태그를 클릭하면 복사됩니다
+            </p>
+          </div>
+        )}
       </S.MainInfo>
 
       {/* 타임라인 섹션 */}
@@ -489,6 +724,142 @@ const PlanPage: React.FC = () => {
           </S.DaySection>
         ))}
       </S.Timeline>
+
+      {/* AI 추천 근처 관광지 */}
+      {plan.nearbyRecommendations && plan.nearbyRecommendations.length > 0 && (
+        <div
+          style={{
+            margin: '30px 40px',
+            padding: '25px',
+            backgroundColor: '#fafbfc',
+            borderRadius: '12px',
+            border: '1px solid #e9ecef',
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#333',
+              marginBottom: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            🎯 AI 추천 근처 가볼만한 곳
+          </h3>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '15px',
+            }}
+          >
+            {plan.nearbyRecommendations.map((place: any, index: number) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: 'white',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  border: '1px solid #e0e0e0',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 4px 12px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 4px rgba(0,0,0,0.05)';
+                }}
+                onClick={() => {
+                  // 장소명으로 검색 (나중에 구글맵 연동 가능)
+                  window.open(
+                    `https://www.google.com/maps/search/${encodeURIComponent(place.name)}`,
+                    '_blank',
+                  );
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#333',
+                      margin: '0',
+                    }}
+                  >
+                    {place.name}
+                  </h4>
+                  <span
+                    style={{
+                      backgroundColor: getCategoryColor(place.category).bg,
+                      color: getCategoryColor(place.category).text,
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {place.category}
+                  </span>
+                </div>
+
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: '#666',
+                    lineHeight: '1.4',
+                    margin: '0 0 8px 0',
+                  }}
+                >
+                  {place.description}
+                </p>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '13px',
+                    color: '#888',
+                  }}
+                >
+                  <span>📍</span>
+                  <span>{place.distance}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p
+            style={{
+              fontSize: '12px',
+              color: '#666',
+              marginTop: '15px',
+              textAlign: 'center',
+              fontStyle: 'italic',
+            }}
+          >
+            💡 장소를 클릭하면 Google 지도에서 확인할 수 있습니다
+          </p>
+        </div>
+      )}
 
       {/* 작성자 정보 */}
       <div

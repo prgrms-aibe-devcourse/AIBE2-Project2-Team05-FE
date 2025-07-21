@@ -2,6 +2,40 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Environment Setup
+
+### OpenAI API Configuration
+
+This project uses OpenAI API for AI-powered features like hashtag recommendations and travel destination suggestions.
+
+#### 1. Get OpenAI API Key
+
+1. Visit [OpenAI Platform](https://platform.openai.com/account/api-keys)
+2. Create an account or sign in
+3. Generate a new API key
+4. Copy the API key (format: `sk-xxxxxxxxxx`)
+
+#### 2. Set Environment Variable
+
+Create a `.env` file in the project root directory and add your API key:
+
+```env
+REACT_APP_OPENAI_API_KEY=sk-your-actual-api-key-here
+```
+
+**Important:**
+
+- Replace `sk-your-actual-api-key-here` with your actual OpenAI API key
+- Never commit your `.env` file to version control
+- The `.env` file is already added to `.gitignore`
+
+#### 3. Features Enabled with API Key
+
+- 🏷️ **Smart Hashtag Generation**: AI analyzes your travel plan and generates 5 specific, trending hashtags
+- 📍 **Personalized Place Recommendations**: Get 9 curated recommendations (3 restaurants, 3 activities, 3 attractions) based on your destination and travel style
+
+**Note:** If no API key is provided, the app will work with default recommendations instead.
+
 ## Available Scripts
 
 In the project directory, you can run:
