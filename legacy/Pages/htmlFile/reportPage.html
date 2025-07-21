@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트래블메이트 - 신고하기</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Regular.otf') format('opentype');
+            font-weight: normal;
+        }
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Medium.otf') format('opentype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Bold.otf') format('opentype');
+            font-weight: bold;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'NotoSansHans', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333333;
+            width: 1080px;
+            margin: 0 auto;
+        }
+
+        .container {
+            width: 100%;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px 30px;
+            background-color: #3366FF;
+            color: white;
+            position: relative;
+            height: 80px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            position: absolute;
+            left: 30px;
+        }
+
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .info-box {
+            background-color: #f0f7ff;
+            border-left: 4px solid #3366FF;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #3366FF;
+            font-size: 18px;
+        }
+
+        .info-text {
+            color: #666666;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #333333;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .textarea-field {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            font-size: 16px;
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .radio-group {
+            margin-bottom: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .radio-input {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            accent-color: #3366FF;
+        }
+
+        .radio-label {
+            font-size: 16px;
+            color: #333333;
+        }
+
+        .file-upload {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .file-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #f0f0f0;
+            border: 1px dashed #cccccc;
+            border-radius: 8px;
+            padding: 15px 20px;
+            cursor: pointer;
+            color: #666666;
+            font-size: 16px;
+            width: fit-content;
+        }
+
+        .file-button:hover {
+            background-color: #e8e8e8;
+        }
+
+        .file-info {
+            font-size: 14px;
+            color: #999999;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 18px;
+            background-color: #3366FF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .submit-button:hover {
+            background-color: #2855cc;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #eeeeee;
+            margin: 30px 0;
+        }
+
+        .warning-text {
+            font-size: 14px;
+            color: #FF3333;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <button class="back-button">
+                <i class="ri-arrow-left-line"></i>
+            </button>
+            <h1 class="header-title">신고하기</h1>
+        </header>
+
+        <div class="content">
+            <div class="info-box">
+                <div class="info-title">신고 처리 안내</div>
+                <p class="info-text">
+                    제출된 신고는 트래블메이트 운영팀에서 검토 후 24-48시간 내에 처리됩니다. 
+                    허위 신고는 서비스 이용 제한의 사유가 될 수 있으니 신중하게 작성해 주세요.
+                    신고 처리 결과는 앱 내 알림을 통해 안내됩니다.
+                </p>
+            </div>
+
+            <form>
+                <div class="section">
+                    <h2 class="section-title">신고 대상</h2>
+                    <input type="text" class="input-field" placeholder="사용자명 또는 게시물 URL을 입력하세요" required>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section">
+                    <h2 class="section-title">신고 유형</h2>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="report-type" class="radio-input" value="inappropriate" required>
+                            <span class="radio-label">부적절한 콘텐츠</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="report-type" class="radio-input" value="spam">
+                            <span class="radio-label">스팸</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="report-type" class="radio-input" value="scam">
+                            <span class="radio-label">사기</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="report-type" class="radio-input" value="hate">
+                            <span class="radio-label">혐오 발언</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="report-type" class="radio-input" value="other">
+                            <span class="radio-label">기타</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section">
+                    <h2 class="section-title">상세 설명</h2>
+                    <textarea class="textarea-field" placeholder="신고 내용을 자세히 설명해주세요. 구체적인 정보가 많을수록 처리에 도움이 됩니다." required></textarea>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section">
+                    <h2 class="section-title">증거 자료</h2>
+                    <div class="file-upload">
+                        <label class="file-button">
+                            <i class="ri-upload-2-line"></i>
+                            파일 선택하기
+                            <input type="file" style="display: none;" multiple>
+                        </label>
+                        <p class="file-info">JPG, PNG, PDF 파일 (최대 5MB, 3개까지 첨부 가능)</p>
+                    </div>
+                </div>
+
+                <div class="warning-text">
+                    <i class="ri-error-warning-line"></i>
+                    허위 신고는 서비스 이용 제한의 사유가 될 수 있습니다.
+                </div>
+
+                <button type="submit" class="submit-button">신고 제출</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
