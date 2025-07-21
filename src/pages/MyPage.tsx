@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-// import { Link } from 'react-router-dom'; // Link 임포트 제거
+import { Link } from 'react-router-dom'; // Link를 import 합니다.
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -150,10 +150,14 @@ const MyPage = () => {
               />
             </FormGroup>
           </FormRow>
-          {/* <AccountButtonContainer> */}
+          {/* 버튼들을 묶어주는 컨테이너입니다. */}
+          <AccountButtonContainer>
             <LogoutButton onClick={logout}>로그아웃</LogoutButton>
-            {/* 리뷰 관리 버튼 링크 제거 */}
-          {/* </AccountButtonContainer> */}
+            {/* 신고 페이지로 이동하는 링크를 버튼 형태로 추가합니다. */}
+            <Link to="/report">
+              <ReportButton>신고하기</ReportButton>
+            </Link>
+          </AccountButtonContainer>
         </Section>
 
         <ButtonSection>
@@ -162,7 +166,7 @@ const MyPage = () => {
         </ButtonSection>
 
         <WithdrawalSection>
-          <BtnWithdrawal>회원 탈퇴</BtnWithdrawal>
+          <DestructiveButton>회원 탈퇴</DestructiveButton>
         </WithdrawalSection>
       </MainContent>
     </motion.div>
@@ -170,6 +174,8 @@ const MyPage = () => {
 };
 
 export default MyPage;
+
+// --- Styled Components ---
 
 const MainContent = styled.div`
   padding: 40px;
@@ -275,30 +281,6 @@ const FormControl = styled.input`
   font-size: 16px;
 `;
 
-const LogoutButton = styled.button`
-  width: auto;
-  padding: 10px 20px;
-  background: none;
-  border: 1px solid #e74c3c;
-  color: #e74c3c;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  margin-top: 10px; /* margin-top 다시 추가 */
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(231, 76, 60, 0.1);
-  }
-`;
-
-// 리뷰 버튼 관련 스타일 제거
-/*
-const ReviewButton = styled.button` ... `;
-const AccountButtonContainer = styled.div` ... `;
-*/
-
 const RadioGroup = styled.div`
   display: flex;
   gap: 20px;
@@ -374,6 +356,7 @@ const ButtonSection = styled.div`
   margin-top: 40px;
 `;
 
+// 1. 가장 기본이 되는 버튼 스타일을 먼저 정의합니다.
 const Btn = styled.button`
   padding: 12px 30px;
   border-radius: 8px;
@@ -383,6 +366,7 @@ const Btn = styled.button`
   border: none;
 `;
 
+// 2. Btn을 상속받는 버튼들을 정의합니다.
 const BtnCancel = styled(Btn)`
   background-color: #f1f1f1;
   color: #666;
@@ -393,20 +377,55 @@ const BtnSave = styled(Btn)`
   color: white;
 `;
 
+// '취소' 버튼 스타일을 기반으로 작은 액션 버튼 스타일을 새로 정의합니다.
+const ActionButton = styled(BtnCancel)`
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+// ActionButton을 기반으로 로그아웃 버튼 스타일을 정의합니다.
+const LogoutButton = styled(ActionButton)`
+  background-color: transparent;
+  border: 1px solid #adb5bd; // 차분한 회색 테두리
+  color: #495057; // 조금 더 진한 회색 글씨
+
+  &:hover {
+    background-color: #f1f3f5; // 마우스 올렸을 때의 배경색
+  }
+`;
+
+// ActionButton을 기반으로 신고하기 버튼 스타일을 정의합니다.
+const ReportButton = styled(ActionButton)`
+  background-color: transparent;
+  border: 1px solid #f39c12; // 주황색 테두리
+  color: #f39c12; // 주황색 글씨
+
+  &:hover {
+    background: rgba(243, 156, 18, 0.1); // 마우스 올렸을 때의 배경색
+  }
+`;
+
+// '회원탈퇴'와 같이 주의가 필요한 버튼 스타일을 정의합니다.
+const DestructiveButton = styled(ActionButton)`
+  background-color: #fee2e2; // 연한 빨강 배경
+  color: #ef4444; // 진한 빨강 글씨
+
+  &:hover {
+    background-color: #fecaca;
+  }
+`;
+
+// 나머지 컴포넌트들을 정의합니다.
+const AccountButtonContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 20px; // 입력 필드와의 간격 조정
+`;
+
 const WithdrawalSection = styled.div`
   margin-top: 30px;
   padding-top: 30px;
   border-top: 1px solid #eee;
   text-align: right;
-`;
-
-const BtnWithdrawal = styled(Btn)`
-  background-color: transparent;
-  color: #e74c3c;
-  border: 1px solid #e74c3c;
-
-  &:hover {
-    background-color: #e74c3c;
-    color: white;
-  }
 `;

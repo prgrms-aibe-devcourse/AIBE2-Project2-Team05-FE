@@ -84,7 +84,8 @@ const ProfilePage = () => {
       animate="in"
       exit="out"
       variants={pageVariants}
-      transition={{ duration: 0.5 }}
+      // --- 수정: 페이지 전환 애니메이션 속도를 0.2초로 변경 ---
+      transition={{ duration: 0.2 }}
     >
       <ProfileHeader>
         <ProfileAvatar />
@@ -128,7 +129,8 @@ const ProfilePage = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
+              // --- 수정: 탭 전환 애니메이션 속도를 0.15초로 변경 ---
+              transition={{ duration: 0.15 }}
             >
               <PostGrid onImageClick={openModal} />
             </motion.div>
@@ -140,7 +142,8 @@ const ProfilePage = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
+              // --- 수정: 탭 전환 애니메이션 속도를 0.15초로 변경 ---
+              transition={{ duration: 0.15 }}
             >
               <PostGrid onImageClick={openModal} />
             </motion.div>
@@ -152,7 +155,8 @@ const ProfilePage = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2 }}
+              // --- 수정: 탭 전환 애니메이션 속도를 0.15초로 변경 ---
+              transition={{ duration: 0.15 }}
             >
               <PostGrid onImageClick={openModal} />
             </motion.div>
