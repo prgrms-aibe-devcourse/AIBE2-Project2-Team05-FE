@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+// import { Link } from 'react-router-dom'; // Link 임포트 제거
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -149,7 +150,10 @@ const MyPage = () => {
               />
             </FormGroup>
           </FormRow>
-          <LogoutButton onClick={logout}>로그아웃</LogoutButton>
+          {/* <AccountButtonContainer> */}
+            <LogoutButton onClick={logout}>로그아웃</LogoutButton>
+            {/* 리뷰 관리 버튼 링크 제거 */}
+          {/* </AccountButtonContainer> */}
         </Section>
 
         <ButtonSection>
@@ -281,13 +285,19 @@ const LogoutButton = styled.button`
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  margin-top: 10px;
+  margin-top: 10px; /* margin-top 다시 추가 */
   transition: all 0.2s;
 
   &:hover {
     background: rgba(231, 76, 60, 0.1);
   }
 `;
+
+// 리뷰 버튼 관련 스타일 제거
+/*
+const ReviewButton = styled.button` ... `;
+const AccountButtonContainer = styled.div` ... `;
+*/
 
 const RadioGroup = styled.div`
   display: flex;

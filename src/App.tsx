@@ -27,6 +27,7 @@ import Layout from './components/layout/Layout';
 import SearchPage from './pages/SearchPage';
 import NotificationPage from './pages/NotificationPage';
 import LikePage from './pages/LikePage';
+import ReviewPage from './pages/ReviewPage';
 
 function App() {
   const location = useLocation();
@@ -61,9 +62,11 @@ function App() {
                 />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/mypage" element={<MyPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/notifications" element={<NotificationPage />} />
+                <Route path="/review" element={<ReviewPage />} />
                 <Route path="/map-test" element={<MapTestPage />} />
                 <Route path="/likes" element={<LikePage />} />
               </Route>

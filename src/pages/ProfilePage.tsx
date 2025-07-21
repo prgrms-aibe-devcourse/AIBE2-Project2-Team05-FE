@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { useState, MouseEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Link를 추가로 import 합니다.
 
 interface ModalProps {
   imageUrl: string;
@@ -97,7 +97,14 @@ const ProfilePage = () => {
           </Stats>
           <Bio>사진과 여행을 사랑하는 개발자. ✈️</Bio>
         </ProfileInfo>
-        <EditProfileButton onClick={handleEditProfile}>프로필 수정</EditProfileButton>
+        {/* 버튼들을 감싸는 컨테이너를 추가합니다. */}
+        <ProfileButtonContainer>
+          <EditProfileButton onClick={handleEditProfile}>프로필 수정</EditProfileButton>
+          {/* '/review' 경로로 이동하는 Link 컴포넌트를 버튼으로 감싸줍니다. */}
+          <Link to="/review">
+            <ReviewButton>리뷰페이지</ReviewButton>
+          </Link>
+        </ProfileButtonContainer>
       </ProfileHeader>
       
       <Tabs>
@@ -228,7 +235,26 @@ const EditProfileButton = styled.button`
   border-radius: 5px;
   font-weight: 600;
   cursor: pointer;
-`; 
+  white-space: nowrap; // 버튼 텍스트가 줄바꿈되지 않도록 설정
+`;
+
+// 리뷰 페이지 이동 버튼 스타일
+const ReviewButton = styled(EditProfileButton)`
+  border-color: #3b82f6;
+  color: #3b82f6;
+  
+  &:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+`;
+
+// 프로필 헤더의 버튼들을 묶는 컨테이너
+const ProfileButtonContainer = styled.div`
+  display: flex;
+  flex-direction: column; // 버튼을 세로로 정렬
+  gap: 10px; // 버튼 사이의 간격
+  align-self: flex-start; // 컨테이너를 상단에 정렬
+`;
 
 const Tabs = styled.div`
   display: flex;
