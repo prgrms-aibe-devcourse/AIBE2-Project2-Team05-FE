@@ -1,47 +1,44 @@
-import styled from 'styled-components';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import styled from 'styled-components';
 
 // 피드 아이템 데이터의 타입을 정의합니다.
-interface FeedItemProps {
-  item: {
-    id: number;
-    author: string;
-    content: string;
-    imageUrl: string;
-  };
+interface Feed {
+  id: number;
+  author: string;
+  avatar: string;
+  image: string;
+  likes: number;
+  caption: string;
 }
 
-const FeedItem = ({ item }: FeedItemProps) => {
+interface FeedItemProps {
+  feed: Feed;
+}
+
+const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
   return (
-    <CardWrapper to={`/feed/${item.id}`}>
-      <Card>
-        <CardHeader>
-          <AuthorAvatar />
-          <AuthorName>{item.author}</AuthorName>
-        </CardHeader>
-        <CardImage src={item.imageUrl} alt={`Feed from ${item.author}`} />
-        <CardContent>
-          <p>{item.content}</p>
-        </CardContent>
-        <CardActions>
-          <ActionButton>❤️ 좋아요</ActionButton>
-          <ActionButton>💬 댓글 달기</ActionButton>
-          <ActionButton>🔗 공유하기</ActionButton>
-        </CardActions>
-      </Card>
-    </CardWrapper>
+    // Link to를 상세 페이지로 수정합니다.
+    <Link to={`/feed/${feed.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <FeedCard>
+        <FeedHeader>
+          <Avatar src={feed.avatar} alt={feed.author} />
+          <Author>{feed.author}</Author>
+        </FeedHeader>
+        <FeedImage src={feed.image} alt="Feed" />
+        <FeedActions>
+          <span>❤️ {feed.likes}</span>
+          <span>💬</span>
+        </FeedActions>
+        <Caption>{feed.caption}</Caption>
+      </FeedCard>
+    </Link>
   );
 };
 
 export default FeedItem;
 
-const CardWrapper = styled(Link)`
-  text-decoration: none;
-  color: inherit;
-  display: block;
-`;
-
-const Card = styled.article`
+const FeedCard = styled.article`
   background-color: #fff;
   border: 1px solid #dbdbdb;
   border-radius: 8px;
@@ -53,13 +50,13 @@ const Card = styled.article`
   }
 `;
 
-const CardHeader = styled.div`
+const FeedHeader = styled.div`
   display: flex;
   align-items: center;
   padding: 14px 16px;
 `;
 
-const AuthorAvatar = styled.div`
+const Avatar = styled.img`
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -67,12 +64,12 @@ const AuthorAvatar = styled.div`
   margin-right: 12px;
 `;
 
-const AuthorName = styled.span`
+const Author = styled.span`
   font-weight: 600;
   font-size: 14px;
 `;
 
-const CardImage = styled.img`
+const FeedImage = styled.img`
   width: 100%;
   height: auto;
   object-fit: cover;
@@ -80,28 +77,13 @@ const CardImage = styled.img`
   border-bottom: 1px solid #dbdbdb;
 `;
 
-const CardContent = styled.div`
-  padding: 12px 16px;
-  font-size: 14px;
-`;
-
-const CardActions = styled.div`
+const FeedActions = styled.div`
   display: flex;
   padding: 8px 16px;
   border-top: 1px solid #efefef;
 `;
 
-const ActionButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
+const Caption = styled.p`
+  padding: 12px 16px;
   font-size: 14px;
-  font-weight: 600;
-  color: #8e8e8e;
-  margin-right: 16px;
-  padding: 0;
-  
-  &:hover {
-    color: #262626;
-  }
 `; 
