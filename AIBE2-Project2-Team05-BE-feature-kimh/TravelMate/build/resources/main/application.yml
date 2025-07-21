@@ -2,19 +2,18 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/travel_mate_db
     username: root
-    # 여기에 실제 MySQL 비밀번호를 입력해주세요.
-    password: your_actual_password
+    password: rnjsalgml56!
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
+      # MySQL 8 버전을 사용하고 있다는 가정 하에 Dialect를 설정합니다.
+      dialect: org.hibernate.dialect.MySQLDialect
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        # MySQL 8 버전에 맞는 Dialect를 명시적으로 설정합니다.
-        dialect: org.hibernate.dialect.MySQLDialect
 
 jwt:
   secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=

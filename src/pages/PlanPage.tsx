@@ -1,22 +1,202 @@
-import React, { useState } from 'react';
-import { TravelPlan } from '../types/plan';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import * as S from './PlanPage.style';
+import PlaceMap from '../components/PlaceMap';
 
-// 여행 계획 페이지 컴포넌트
+// 여행 계획 타입 정의
+interface TravelEvent {
+  id: string;
+  time: string;
+  title: string;
+  location: string;
+  description: string;
+  imageUrl?: string;
+  tags: string[];
+  price: string;
+  category: string;
+}
+
+interface TravelDay {
+  id: string;
+  dayNumber: number;
+  date: string;
+  events: TravelEvent[];
+}
+
+interface TravelPlan {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  destination: string;
+  budget: string;
+  people: string;
+  period: string;
+  days: TravelDay[];
+  likes: number;
+  likedUsers: string[];
+  isLiked: boolean;
+  author: {
+    id: string;
+    name: string;
+    profileImage: string;
+  };
+}
+
 const PlanPage: React.FC = () => {
-  // 좋아요 상태를 관리하는 state - 사용자가 좋아요를 눌렀는지 여부
+  const { id } = useParams();
+  const [plan, setPlan] = useState<TravelPlan | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
-  // 좋아요 수를 관리하는 state - 총 좋아요 수
-  const [likeCount, setLikeCount] = useState(42);
+  // 기본 mock 데이터
+  const createDefaultPlan = (): TravelPlan => ({
+    id: 'default',
+    title: '샘플 여행 계획',
+    startDate: '2024-03-15',
+    endDate: '2024-03-17',
+    destination: '제주도',
+    budget: '100만원',
+    people: '2명',
+    period: '3일',
+    days: [
+      {
+        id: 'day1',
+        dayNumber: 1,
+        date: '3월 15일 (금)',
+        events: [
+          {
+            id: 'event1',
+            time: '09:00',
+            title: '제주공항 도착',
+            location: '제주국제공항',
+            description: '렌터카 픽업 후 여행 시작',
+            tags: ['교통'],
+            price: '무료',
+            category: 'transportation',
+          },
+        ],
+      },
+    ],
+    likes: 128,
+    likedUsers: [],
+    isLiked: false,
+    author: {
+      id: 'sample',
+      name: '여행러버',
+      profileImage: '👤',
+    },
+  });
 
-  // 좋아요 버튼 클릭 핸들러
-  const handleLikeClick = () => {
+  // 컴포넌트 마운트 시 여행 계획 로드
+  useEffect(() => {
+    const loadTravelPlan = () => {
+      try {
+        // localStorage에서 저장된 계획 불러오기
+        const savedPlan = localStorage.getItem('currentTravelPlan');
+
+        if (savedPlan) {
+          const parsedPlan = JSON.parse(savedPlan);
+          setPlan(parsedPlan);
+          setIsLiked(parsedPlan.isLiked || false);
+          setLikeCount(parsedPlan.likes || 0);
+        } else {
+          // 저장된 계획이 없으면 기본 계획 사용
+          const defaultPlan = createDefaultPlan();
+          setPlan(defaultPlan);
+          setIsLiked(defaultPlan.isLiked);
+          setLikeCount(defaultPlan.likes);
+        }
+      } catch (error) {
+        console.error('여행 계획 로드 중 오류:', error);
+        // 오류 시 기본 계획 사용
+        const defaultPlan = createDefaultPlan();
+        setPlan(defaultPlan);
+        setIsLiked(defaultPlan.isLiked);
+        setLikeCount(defaultPlan.likes);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTravelPlan();
+  }, [id]);
+
+  // 로딩 중 표시
+  if (loading) {
+    return (
+      <S.Container>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '400px',
+            fontSize: '18px',
+            color: '#666',
+          }}
+        >
+          여행 계획을 불러오는 중...
+        </div>
+      </S.Container>
+    );
+  }
+
+  // 계획이 없을 때 표시
+  if (!plan) {
+    return (
+      <S.Container>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '400px',
+            fontSize: '18px',
+            color: '#666',
+          }}
+        >
+          <div>아직 작성된 여행 계획이 없습니다.</div>
+          <div style={{ marginTop: '20px' }}>
+            <button
+              onClick={() => (window.location.href = '/plan/write')}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#3682F8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+              }}
+            >
+              여행 계획 작성하기
+            </button>
+          </div>
+        </div>
+      </S.Container>
+    );
+  }
+
+  // 좋아요 토글 함수
+  const toggleLike = () => {
     setIsLiked(!isLiked);
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+
+    // localStorage 업데이트
+    if (plan) {
+      const updatedPlan = {
+        ...plan,
+        isLiked: !isLiked,
+        likes: isLiked ? likeCount - 1 : likeCount + 1,
+      };
+      localStorage.setItem('currentTravelPlan', JSON.stringify(updatedPlan));
+    }
   };
 
-  // 날짜 포맷팅 함수 - "2023-06-15" 형태를 "2023년 6월 15일 (목)" 형태로 변환
+  // 날짜 포맷팅 함수
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const options: Intl.DateTimeFormatOptions = {
@@ -28,18 +208,16 @@ const PlanPage: React.FC = () => {
     return date.toLocaleDateString('ko-KR', options);
   };
 
-  // 모킹 데이터 - 실제 서비스에서는 API에서 가져올 데이터
+  // Mock 데이터 (HTML에서 참고)
   const mockPlan: TravelPlan = {
     id: '1',
     title: '제주도 힐링 여행',
     startDate: '2023-06-15',
-    endDate: '2023-06-17',
-    summaryCards: [
-      { title: '여행 기간', value: '2박 3일' },
-      { title: '총 비용', value: '₩450,000' },
-      { title: '방문 장소', value: '12곳' },
-      { title: '이동 거리', value: '180km' },
-    ],
+    endDate: '2023-06-19',
+    destination: '제주도',
+    budget: '₩800,000',
+    people: '2명',
+    period: '5일 4박',
     days: [
       {
         id: 'day1',
@@ -48,10 +226,11 @@ const PlanPage: React.FC = () => {
         events: [
           {
             id: 'event1',
-            time: '09:00',
+            time: '09:30',
             title: '제주공항 도착',
             location: '제주국제공항',
-            description: '제주국제공항에 도착하여 렌터카를 픽업합니다.',
+            description:
+              '김포공항에서 출발한 비행기가 제주공항에 도착합니다. 렌트카를 수령하고 여행을 시작합니다.',
             tags: ['교통'],
             price: '무료',
             category: 'transport',
@@ -186,19 +365,19 @@ const PlanPage: React.FC = () => {
           {
             id: 'event12',
             time: '19:00',
-            title: '제주공항 출발',
-            location: '제주국제공항',
+            title: '제주 흑돼지 BBQ',
+            location: '서귀포시 중문동',
             description:
-              '즐거웠던 제주 여행을 마치고 공항으로 향합니다. 렌터카를 반납하고 항공편을 이용합니다.',
-            tags: ['교통'],
-            price: '무료',
-            category: 'transport',
+              '제주 특산품인 흑돼지를 맛볼 수 있는 유명 맛집에서 저녁 식사를 즐깁니다.',
+            tags: ['맛집', '로컬푸드'],
+            price: '₩60,000',
+            category: 'food',
           },
         ],
       },
     ],
     likes: likeCount,
-    likedUsers: ['/images/user1.jpg', '/images/user2.jpg', '/images/user3.jpg'],
+    likedUsers: ['J', 'K', 'S'],
     isLiked: isLiked,
     author: {
       id: 'author1',
@@ -207,101 +386,161 @@ const PlanPage: React.FC = () => {
     },
   };
 
-  // 이벤트 렌더링 함수
-  const renderEvent = (event: any) => (
-    <S.Event key={event.id}>
-      <S.EventTime>{event.time}</S.EventTime>
-      <S.EventTitle>{event.title}</S.EventTitle>
-      <S.EventLocation>
-        <i className="ri-map-pin-line"></i>
-        {event.location}
-      </S.EventLocation>
-      <S.EventDescription>{event.description}</S.EventDescription>
-
-      {/* 이벤트에 이미지가 있는 경우 디테일 박스 표시 */}
-      {event.imageUrl && (
-        <S.EventDetails>
-          <S.EventImage>
-            <img src={event.imageUrl} alt={event.title} />
-          </S.EventImage>
-          <S.EventDescription>{event.description}</S.EventDescription>
-        </S.EventDetails>
-      )}
-
-      {/* 태그들 표시 */}
-      <S.EventTags>
-        {event.tags.map((tag: string, index: number) => (
-          <S.Tag key={index}>{tag}</S.Tag>
-        ))}
-        <S.PriceTag>{event.price}</S.PriceTag>
-      </S.EventTags>
-    </S.Event>
-  );
-
   return (
-    <S.PlanPageContainer>
-      {/* 여행 정보 섹션 */}
-      <S.TripInfoSection>
-        <S.TripTitle>{mockPlan.title}</S.TripTitle>
+    <S.Container>
+      {/* 헤더 섹션 */}
+      <S.Header>
+        <S.HeaderContent>
+          <S.Logo>
+            <i className="ri-map-pin-line"></i>
+            트립 플래너
+          </S.Logo>
+          <S.NavMenu>
+            <S.NavItem>
+              <i className="ri-compass-3-line"></i>
+              탐색
+            </S.NavItem>
+            <S.NavItem>
+              <i className="ri-bookmark-line"></i>
+              저장됨
+            </S.NavItem>
+            <S.NavItem>
+              <i className="ri-user-line"></i>
+              프로필
+            </S.NavItem>
+          </S.NavMenu>
+        </S.HeaderContent>
+      </S.Header>
+
+      {/* 메인 정보 섹션 */}
+      <S.MainInfo>
+        <S.TripTitle>{plan.title}</S.TripTitle>
         <S.TripDate>
-          {formatDate(mockPlan.startDate)} ~ {formatDate(mockPlan.endDate)}
+          {plan.startDate} ~ {plan.endDate} • {plan.destination}
         </S.TripDate>
 
-        {/* 요약 카드들 */}
         <S.SummaryCards>
-          {mockPlan.summaryCards.map((card, index) => (
-            <S.SummaryCard key={index}>
-              <S.CardTitle>{card.title}</S.CardTitle>
-              <S.CardValue>{card.value}</S.CardValue>
-            </S.SummaryCard>
-          ))}
+          <S.SummaryCard>
+            <S.CardTitle>여행 기간</S.CardTitle>
+            <S.CardValue>{plan.period}</S.CardValue>
+          </S.SummaryCard>
+          <S.SummaryCard>
+            <S.CardTitle>여행지</S.CardTitle>
+            <S.CardValue>{plan.destination}</S.CardValue>
+          </S.SummaryCard>
+          <S.SummaryCard>
+            <S.CardTitle>예산</S.CardTitle>
+            <S.CardValue>{plan.budget}</S.CardValue>
+          </S.SummaryCard>
+          <S.SummaryCard>
+            <S.CardTitle>인원</S.CardTitle>
+            <S.CardValue>{plan.people}</S.CardValue>
+          </S.SummaryCard>
         </S.SummaryCards>
-      </S.TripInfoSection>
+      </S.MainInfo>
 
       {/* 타임라인 섹션 */}
-      <S.TimelineSection>
-        {mockPlan.days.map((day) => (
+      <S.Timeline>
+        {plan.days.map((day) => (
           <S.DaySection key={day.id}>
             <S.DayMarker>
               <S.DayCircle>{day.dayNumber}</S.DayCircle>
-              <S.DayTitle>
-                {day.dayNumber === 1
-                  ? '첫째 날'
-                  : day.dayNumber === 2
-                    ? '둘째 날'
-                    : '셋째 날'}
-              </S.DayTitle>
-              <S.DayDate>{formatDate(day.date)}</S.DayDate>
+              <div>
+                <S.DayTitle>
+                  {day.dayNumber === 1
+                    ? '첫째 날'
+                    : day.dayNumber === 2
+                      ? '둘째 날'
+                      : day.dayNumber === 3
+                        ? '셋째 날'
+                        : `${day.dayNumber}일째`}
+                </S.DayTitle>
+                <S.DayDate>{day.date}</S.DayDate>
+              </div>
             </S.DayMarker>
 
-            <S.TimelineEvents>{day.events.map(renderEvent)}</S.TimelineEvents>
+            <S.TimelineEvents>
+              {day.events.map((event) => (
+                <S.Event key={event.id}>
+                  <S.EventTime>{event.time}</S.EventTime>
+                  <S.EventTitle>{event.title}</S.EventTitle>
+                  <S.EventLocation>
+                    <i className="ri-map-pin-line"></i>
+                    {event.location}
+                  </S.EventLocation>
+
+                  <S.EventDescription>{event.description}</S.EventDescription>
+                  <S.EventTags>
+                    {event.tags.map((tag, index) => (
+                      <S.Tag key={index}>{tag}</S.Tag>
+                    ))}
+                    <S.PriceTag>{event.price}</S.PriceTag>
+                  </S.EventTags>
+
+                  {/* 장소가 있으면 카카오맵으로 위치 표시 */}
+                  {event.location && (
+                    <div style={{ marginTop: '15px' }}>
+                      <PlaceMap placeName={event.location} height="180px" />
+                    </div>
+                  )}
+                </S.Event>
+              ))}
+            </S.TimelineEvents>
           </S.DaySection>
         ))}
-      </S.TimelineSection>
+      </S.Timeline>
 
-      {/* 푸터 - 좋아요 기능 */}
-      <S.PlanFooter>
-        <S.LikesSection>
-          <S.LikeButton
-            onClick={handleLikeClick}
-            className={isLiked ? 'liked' : ''}
-          >
+      {/* 작성자 정보 */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '20px 40px',
+          backgroundColor: '#f8f9fa',
+          marginTop: '20px',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '24px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#e9ecef',
+          }}
+        >
+          {plan.author.profileImage}
+        </div>
+        <div>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            {plan.author.name}
+          </div>
+          <div style={{ fontSize: '14px', color: '#666' }}>
+            여행 계획 작성자
+          </div>
+        </div>
+      </div>
+
+      {/* 푸터 */}
+      <S.Footer>
+        <S.Likes>
+          <S.LikeButton onClick={toggleLike} $isLiked={isLiked}>
             <i className={isLiked ? 'ri-heart-fill' : 'ri-heart-line'}></i>
-            {likeCount}
+            <span>{likeCount}</span>
           </S.LikeButton>
-
-          <S.ProfileImages>
-            {mockPlan.likedUsers.slice(0, 3).map((userImage, index) => (
-              <S.ProfileImage key={index}>
-                <img src={userImage} alt={`User ${index + 1}`} />
-              </S.ProfileImage>
-            ))}
-          </S.ProfileImages>
-
-          <S.LikeText>{mockPlan.likedUsers.length}명이 좋아합니다</S.LikeText>
-        </S.LikesSection>
-      </S.PlanFooter>
-    </S.PlanPageContainer>
+          <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
+          <S.LikeText>좋아요 누른 사람을 보기</S.LikeText>
+        </S.Likes>
+        <S.ShareButton>
+          <i className="ri-share-line"></i>
+          공유하기
+        </S.ShareButton>
+      </S.Footer>
+    </S.Container>
   );
 };
 

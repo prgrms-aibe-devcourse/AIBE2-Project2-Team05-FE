@@ -146,7 +146,7 @@
         "id": 7,
         "title": "Implement KakaoMap Integration for Travel Planning",
         "description": "마커 및 위치 세부 정보가 포함된 여행 계획 생성을 위해 KakaoMap API를 통합합니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2
@@ -160,7 +160,7 @@
         "id": 8,
         "title": "Implement Travel Plan Creation Page",
         "description": "지도 통합, 양식 입력 및 제출 기능이 포함된 여행 계획 생성 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           7
         ],
@@ -173,7 +173,7 @@
         "id": 9,
         "title": "Implement Travel Plan View Page",
         "description": "타임라인 보기, 세부 정보 및 공유 옵션이 포함된 여행 계획 결과 페이지를 만듭니다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           7,
           8
@@ -1129,7 +1129,7 @@
     ],
     "metadata": {
       "created": "2025-07-17T03:16:56.152Z",
-      "updated": "2025-07-17T15:49:27.722Z",
+      "updated": "2025-07-21T05:56:04.672Z",
       "description": "Tasks for master context"
     }
   },

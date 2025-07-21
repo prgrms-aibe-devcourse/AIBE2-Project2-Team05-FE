@@ -1,47 +1,333 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import PlaceSearchInput from '../components/PlaceSearchInput';
 import * as S from './PlanWritePage.style';
 
-// 여행 계획 작성 페이지 컴포넌트
+// 일정 항목 타입 정의
+interface ScheduleItem {
+  id: string;
+  time: string;
+  place: string;
+  activity: string;
+  memo: string;
+  cost: number;
+}
+
+// 폼 데이터 타입 정의
+interface FormData {
+  title: string;
+  startDate: string;
+  endDate: string;
+  destination: string;
+  budget: number;
+  people: number;
+  styles: string[];
+  schedules: { [dayKey: string]: ScheduleItem[] };
+  matchingEnabled: boolean;
+  preferredGender: string;
+  preferredAge: string;
+  preferredLanguage: string;
+  matchingMemo: string;
+  accommodation: string;
+  transportation: string;
+  extraMemo: string;
+}
+
 const PlanWritePage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  // 기본 폼 데이터
-  const [formData, setFormData] = useState({
+  // 현재 활성 탭
+  const [activeTab, setActiveTab] = useState('day1');
+  const [days] = useState(['day1', 'day2', 'day3']); // 기본 3일
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 폼 데이터 상태
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     startDate: '',
     endDate: '',
     destination: '',
-    description: '',
-    maxParticipants: 4,
-    estimatedCost: 0,
+    budget: 0,
+    people: 1,
+    styles: [],
+    schedules: {
+      day1: [],
+      day2: [],
+      day3: [],
+    },
+    matchingEnabled: true, // 기본값을 true로 설정
+    preferredGender: '',
+    preferredAge: '',
+    preferredLanguage: 'korean',
+    matchingMemo: '',
+    accommodation: '',
+    transportation: '',
+    extraMemo: '',
   });
-
-  const [isLoading, setIsLoading] = useState(false);
 
   // 입력 핸들러
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+
+    if (type === 'checkbox') {
+      const checkbox = e.target as HTMLInputElement;
+      if (name === 'trip-style') {
+        setFormData((prev) => ({
+          ...prev,
+          styles: checkbox.checked
+            ? [...prev.styles, value]
+            : prev.styles.filter((style) => style !== value),
+        }));
+      } else if (name === 'matching-option') {
+        setFormData((prev) => ({
+          ...prev,
+          matchingEnabled: checkbox.checked,
+        }));
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === 'number' ? Number(value) : value,
+      }));
+    }
+  };
+
+  // 일정 추가
+  const addScheduleItem = (day: string) => {
+    const newItem: ScheduleItem = {
+      id: `${day}-${Date.now()}`,
+      time: '',
+      place: '',
+      activity: '',
+      memo: '',
+      cost: 0,
+    };
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      schedules: {
+        ...prev.schedules,
+        [day]: [...prev.schedules[day], newItem],
+      },
     }));
   };
 
-  // 저장 핸들러
-  const handleSubmit = async () => {
+  // 일정 삭제
+  const removeScheduleItem = (day: string, itemId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      schedules: {
+        ...prev.schedules,
+        [day]: prev.schedules[day].filter((item) => item.id !== itemId),
+      },
+    }));
+  };
+
+  // 일정 업데이트
+  const updateScheduleItem = (
+    day: string,
+    itemId: string,
+    field: keyof ScheduleItem,
+    value: any,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      schedules: {
+        ...prev.schedules,
+        [day]: prev.schedules[day].map((item) =>
+          item.id === itemId ? { ...item, [field]: value } : item,
+        ),
+      },
+    }));
+  };
+
+  // 폼 저장 처리
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+
+    try {
+      // 현재 계획을 PlanPage에서 사용할 형식으로 변환
+      const planData = {
+        id: Date.now().toString(), // 임시 ID (백엔드 연동 시 제거)
+        title: formData.title,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        destination: formData.destination,
+        budget: `${formData.budget}만원`,
+        people: `${formData.people}명`,
+        period: calculateDays(formData.startDate, formData.endDate),
+        days: convertSchedulesToDays(),
+        likes: 0,
+        likedUsers: [],
+        isLiked: false,
+        author: {
+          id: 'current-user',
+          name: '나',
+          profileImage: '👤',
+        },
+        // 매칭 정보
+        matchingInfo: {
+          preferredGender: formData.preferredGender,
+          preferredAge: formData.preferredAge,
+          preferredLanguage: formData.preferredLanguage,
+          matchingMemo: formData.matchingMemo,
+        },
+        // 추가 정보
+        accommodation: formData.accommodation,
+        transportation: formData.transportation,
+        extraMemo: formData.extraMemo,
+        styles: formData.styles,
+        createdAt: new Date().toISOString(), // 생성 시간 추가
+      };
+
+      // localStorage에 저장 (백엔드 연동 전 임시 저장소)
+      localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
+
+      // 피드 데이터로 변환하여 마이페이지 피드 목록에도 추가
+      const feedData = {
+        id: parseInt(planData.id),
+        author: planData.author.name,
+        avatar: '👤', // 기본 아바타
+        image: '', // 추후 첫 번째 장소 이미지나 썸네일로 교체 가능
+        likes: 0,
+        caption: `${planData.destination} ${planData.period} 여행 계획을 세웠어요! 🏖️\n${planData.title}\n📅 ${planData.startDate} ~ ${planData.endDate}\n💰 예산: ${planData.budget}\n👥 인원: ${planData.people}`,
+        type: 'travel-plan', // 피드 타입 구분
+        planId: planData.id, // 계획 ID 참조
+        createdAt: planData.createdAt,
+      };
+
+      // 기존 피드 목록 가져오기
+      const existingFeeds = JSON.parse(localStorage.getItem('myFeeds') || '[]');
+
+      // 새로운 피드를 맨 앞에 추가
+      const updatedFeeds = [feedData, ...existingFeeds];
+
+      // 피드 목록 저장
+      localStorage.setItem('myFeeds', JSON.stringify(updatedFeeds));
+
+      toast.success(
+        isEditMode
+          ? '여행 계획이 수정되었습니다!'
+          : '여행 계획이 작성되었습니다! 마이페이지에서 확인하세요 🎉',
+      );
+
+      // 계획 보기 페이지로 이동
+      navigate('/plan');
+    } catch (error) {
+      console.error('저장 중 오류 발생:', error);
+      toast.error('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 날짜 차이 계산 함수
+  const calculateDays = (start: string, end: string): string => {
+    if (!start || !end) return '';
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return `${diffDays}일`;
+  };
+
+  // 스케줄을 PlanPage 형식으로 변환
+  const convertSchedulesToDays = () => {
+    const planDays: any[] = [];
+    let dayIndex = 1;
+
+    days.forEach((dayKey) => {
+      const scheduleItems = formData.schedules[dayKey];
+      if (scheduleItems && scheduleItems.length > 0) {
+        const events = scheduleItems.map((item, index) => ({
+          id: `${dayKey}-${index}`,
+          time: item.time,
+          title: item.activity || item.place,
+          location: item.place,
+          description: item.memo,
+          imageUrl: '', // 이미지는 추후 추가 가능
+          tags: formData.styles.slice(0, 3), // 여행 스타일에서 일부 태그 사용
+          price: item.cost ? `${item.cost}만원` : '무료',
+          category: getEventCategory(item.activity),
+        }));
+
+        planDays.push({
+          id: dayKey,
+          dayNumber: dayIndex,
+          date: calculateDateForDay(dayIndex),
+          events: events,
+        });
+
+        dayIndex++;
+      }
+    });
+
+    return planDays;
+  };
+
+  // 활동에 따른 카테고리 분류
+  const getEventCategory = (activity: string): string => {
+    if (!activity) return 'general';
+
+    const activityLower = activity.toLowerCase();
     if (
-      !formData.title ||
-      !formData.startDate ||
-      !formData.endDate ||
-      !formData.destination
-    ) {
-      toast.error('필수 항목을 모두 입력해주세요.');
+      activityLower.includes('식사') ||
+      activityLower.includes('맛집') ||
+      activityLower.includes('음식')
+    )
+      return 'food';
+    if (
+      activityLower.includes('관광') ||
+      activityLower.includes('구경') ||
+      activityLower.includes('투어')
+    )
+      return 'tourism';
+    if (activityLower.includes('쇼핑') || activityLower.includes('구매'))
+      return 'shopping';
+    if (
+      activityLower.includes('휴식') ||
+      activityLower.includes('호텔') ||
+      activityLower.includes('카페')
+    )
+      return 'rest';
+
+    return 'activity';
+  };
+
+  // 각 날짜 계산
+  const calculateDateForDay = (dayNumber: number): string => {
+    if (!formData.startDate) return '';
+
+    const startDate = new Date(formData.startDate);
+    const targetDate = new Date(startDate);
+    targetDate.setDate(startDate.getDate() + dayNumber - 1);
+
+    return targetDate.toLocaleDateString('ko-KR', {
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+    });
+  };
+
+  // 취소 핸들러
+  const handleCancel = () => {
+    navigate('/plan');
+  };
+
+  // 삭제 핸들러 (수정 모드에서만)
+  const handleDelete = async () => {
+    if (!window.confirm('정말로 이 여행 계획을 삭제하시겠습니까?')) {
       return;
     }
 
@@ -49,146 +335,540 @@ const PlanWritePage: React.FC = () => {
     try {
       // TODO: 백엔드 API 호출
       await new Promise((resolve) => setTimeout(resolve, 1000)); // 임시 딜레이
-      toast.success(
-        isEditMode
-          ? '여행 계획이 수정되었습니다!'
-          : '여행 계획이 생성되었습니다!',
-      );
+      toast.success('여행 계획이 삭제되었습니다.');
       navigate('/plan');
     } catch (error) {
-      toast.error('저장에 실패했습니다.');
+      toast.error('삭제에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <S.PlanWriteContainer>
-      <S.PageHeader>
-        <S.PageTitle>
-          {isEditMode ? '여행 계획 수정' : '새 여행 계획 작성'}
-        </S.PageTitle>
-        <S.PageSubtitle>
-          {isEditMode
-            ? '기존 여행 계획을 수정하고 저장하세요'
-            : '새로운 여행 계획을 작성하고 공유하세요'}
-        </S.PageSubtitle>
-      </S.PageHeader>
+  // 탭 제목 반환
+  const getTabTitle = (day: string) => {
+    const dayNumber = day.replace('day', '');
+    return `Day ${dayNumber}`;
+  };
 
-      <S.FormContainer>
+  // 폼 유효성 검사
+  const validateForm = () => {
+    if (
+      !formData.title ||
+      !formData.startDate ||
+      !formData.endDate ||
+      !formData.destination
+    ) {
+      toast.error('필수 항목을 모두 입력해주세요.');
+      return false;
+    }
+    return true;
+  };
+
+  return (
+    <S.Container>
+      {/* 메인 콘텐츠 */}
+      <S.MainContent>
+        <S.PageTitle>
+          <i className="ri-edit-box-line"></i>
+          {isEditMode ? '여행 계획 수정' : '여행 계획 작성'}
+        </S.PageTitle>
+
         {/* 기본 정보 섹션 */}
         <S.Section>
-          <S.SectionTitle>기본 정보</S.SectionTitle>
-
-          <S.FormGroup>
-            <S.Label htmlFor="title">여행 제목 *</S.Label>
-            <S.Input
-              id="title"
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="여행 제목을 입력하세요"
-            />
-          </S.FormGroup>
-
+          <S.SectionTitle>📋 기본 정보</S.SectionTitle>
           <S.FormRow>
-            <S.FormGroup>
-              <S.Label htmlFor="startDate">출발일 *</S.Label>
-              <S.Input
-                id="startDate"
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-              />
-            </S.FormGroup>
-
-            <S.FormGroup>
-              <S.Label htmlFor="endDate">종료일 *</S.Label>
-              <S.Input
-                id="endDate"
-                type="date"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleInputChange}
-              />
-            </S.FormGroup>
+            <S.FormCol $span={12}>
+              <S.FormGroup>
+                <S.Label htmlFor="title">
+                  <S.LabelIcon>✈️</S.LabelIcon>
+                  여행 제목
+                </S.Label>
+                <S.Input
+                  id="title"
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="여행 제목을 입력하세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={6}>
+              <S.FormGroup>
+                <S.Label htmlFor="startDate">
+                  <S.LabelIcon>📅</S.LabelIcon>
+                  여행 시작일
+                </S.Label>
+                <S.Input
+                  id="startDate"
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={6}>
+              <S.FormGroup>
+                <S.Label htmlFor="endDate">
+                  <S.LabelIcon>🏁</S.LabelIcon>
+                  여행 종료일
+                </S.Label>
+                <S.Input
+                  id="endDate"
+                  type="date"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={6}>
+              <S.FormGroup>
+                <S.Label htmlFor="destination">
+                  <S.LabelIcon>📍</S.LabelIcon>
+                  여행지
+                </S.Label>
+                <S.Input
+                  id="destination"
+                  type="text"
+                  name="destination"
+                  value={formData.destination}
+                  onChange={handleInputChange}
+                  placeholder="여행지를 입력하세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={3}>
+              <S.FormGroup>
+                <S.Label htmlFor="budget">
+                  <S.LabelIcon>💰</S.LabelIcon>
+                  예산 (만원)
+                </S.Label>
+                <S.Input
+                  id="budget"
+                  type="number"
+                  name="budget"
+                  value={formData.budget}
+                  onChange={handleInputChange}
+                  onFocus={(e) => {
+                    // 값이 0일 때 포커스 시 빈 문자열로 변경
+                    if (formData.budget === 0) {
+                      setFormData((prev) => ({ ...prev, budget: '' as any }));
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // 빈 값일 때 블러 시 0으로 변경
+                    if (e.target.value === '' || e.target.value === '0') {
+                      setFormData((prev) => ({ ...prev, budget: 0 }));
+                    }
+                  }}
+                  placeholder="0"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={3}>
+              <S.FormGroup>
+                <S.Label htmlFor="people">
+                  <S.LabelIcon>👥</S.LabelIcon>
+                  인원 수
+                </S.Label>
+                <S.Input
+                  id="people"
+                  type="number"
+                  name="people"
+                  value={formData.people}
+                  onChange={handleInputChange}
+                  min="1"
+                  placeholder="1"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={12}>
+              <S.FormGroup>
+                <S.Label>
+                  <S.LabelIcon>🎨</S.LabelIcon>
+                  여행 스타일
+                </S.Label>
+                <S.CheckboxGroup>
+                  {[
+                    { value: 'planned', label: '계획적', icon: '📋' },
+                    { value: 'spontaneous', label: '즉흥적', icon: '🎲' },
+                    { value: 'tourism', label: '관광 중심', icon: '🏛️' },
+                    { value: 'relaxation', label: '휴식 중심', icon: '🧘‍♀️' },
+                    { value: 'food', label: '맛집 탐방', icon: '🍴' },
+                    { value: 'nature', label: '자연 체험', icon: '🌿' },
+                    { value: 'culture', label: '문화 체험', icon: '🎭' },
+                    { value: 'shopping', label: '쇼핑', icon: '🛍️' },
+                  ].map((style) => (
+                    <S.CheckboxItem key={style.value}>
+                      <S.StyledCheckbox
+                        type="checkbox"
+                        name="trip-style"
+                        value={style.value}
+                        checked={formData.styles.includes(style.value)}
+                        onChange={handleInputChange}
+                      />
+                      <S.CheckboxLabel
+                        $checked={formData.styles.includes(style.value)}
+                      >
+                        <S.CheckboxIcon className="checkbox-icon">
+                          {style.icon}
+                        </S.CheckboxIcon>
+                        {style.label}
+                      </S.CheckboxLabel>
+                    </S.CheckboxItem>
+                  ))}
+                </S.CheckboxGroup>
+              </S.FormGroup>
+            </S.FormCol>
           </S.FormRow>
+        </S.Section>
 
-          <S.FormGroup>
-            <S.Label htmlFor="destination">목적지 *</S.Label>
-            <S.Input
-              id="destination"
-              type="text"
-              name="destination"
-              value={formData.destination}
-              onChange={handleInputChange}
-              placeholder="목적지를 입력하세요"
-            />
-          </S.FormGroup>
+        {/* 세부 일정 섹션 */}
+        <S.Section>
+          <S.SectionTitle>📝 세부 일정</S.SectionTitle>
+          <S.Tabs>
+            {days.map((day) => (
+              <S.Tab
+                key={day}
+                $active={activeTab === day}
+                onClick={() => setActiveTab(day)}
+              >
+                {getTabTitle(day)}
+              </S.Tab>
+            ))}
+            <S.Tab>
+              <i className="ri-add-line"></i>
+            </S.Tab>
+          </S.Tabs>
 
+          {days.map((day) => (
+            <S.TabContent key={day} $active={activeTab === day}>
+              {formData.schedules[day].map((item) => (
+                <S.ScheduleItem key={item.id}>
+                  <S.ScheduleItemHeader>
+                    <h4>일정 #{formData.schedules[day].indexOf(item) + 1}</h4>
+                    <S.RemoveItem
+                      onClick={() => removeScheduleItem(day, item.id)}
+                    >
+                      <i className="ri-delete-bin-line"></i>
+                    </S.RemoveItem>
+                  </S.ScheduleItemHeader>
+                  <S.FormRow>
+                    <S.FormCol $span={3}>
+                      <S.FormGroup>
+                        <S.Label>
+                          <S.LabelIcon>⏰</S.LabelIcon>
+                          시간
+                        </S.Label>
+                        <S.Input
+                          type="time"
+                          value={item.time}
+                          onChange={(e) =>
+                            updateScheduleItem(
+                              day,
+                              item.id,
+                              'time',
+                              e.target.value,
+                            )
+                          }
+                        />
+                      </S.FormGroup>
+                    </S.FormCol>
+                    <S.FormCol $span={9}>
+                      <S.FormGroup>
+                        <S.Label>
+                          <S.LabelIcon>📍</S.LabelIcon>
+                          장소
+                        </S.Label>
+                        <PlaceSearchInput
+                          value={item.place}
+                          onChange={(placeName, placeInfo) => {
+                            updateScheduleItem(
+                              day,
+                              item.id,
+                              'place',
+                              placeName,
+                            );
+                            // 장소 정보가 있으면 추가 데이터도 저장할 수 있음
+                            if (placeInfo) {
+                              // 나중에 장소 상세 정보 저장 기능 추가 가능
+                              console.log('선택된 장소 정보:', placeInfo);
+                            }
+                          }}
+                          placeholder="장소를 검색하세요"
+                          onPlaceSelect={(place) => {
+                            // 장소 선택 시 추가 작업 수행 가능
+                            console.log('장소 선택됨:', place);
+                          }}
+                        />
+                      </S.FormGroup>
+                    </S.FormCol>
+                    <S.FormCol $span={12}>
+                      <S.FormGroup>
+                        <S.Label>
+                          <S.LabelIcon>🎯</S.LabelIcon>
+                          활동
+                        </S.Label>
+                        <S.Input
+                          type="text"
+                          value={item.activity}
+                          onChange={(e) =>
+                            updateScheduleItem(
+                              day,
+                              item.id,
+                              'activity',
+                              e.target.value,
+                            )
+                          }
+                          placeholder="활동을 입력하세요"
+                        />
+                      </S.FormGroup>
+                    </S.FormCol>
+                    <S.FormCol $span={9}>
+                      <S.FormGroup>
+                        <S.Label>
+                          <S.LabelIcon>📝</S.LabelIcon>
+                          메모
+                        </S.Label>
+                        <S.Textarea
+                          value={item.memo}
+                          onChange={(e) =>
+                            updateScheduleItem(
+                              day,
+                              item.id,
+                              'memo',
+                              e.target.value,
+                            )
+                          }
+                          placeholder="메모를 입력하세요"
+                        />
+                      </S.FormGroup>
+                    </S.FormCol>
+                    <S.FormCol $span={3}>
+                      <S.FormGroup>
+                        <S.Label>
+                          <S.LabelIcon>💰</S.LabelIcon>
+                          비용 (만원)
+                        </S.Label>
+                        <S.Input
+                          type="number"
+                          value={item.cost}
+                          onChange={(e) =>
+                            updateScheduleItem(
+                              day,
+                              item.id,
+                              'cost',
+                              parseInt(e.target.value) || 0,
+                            )
+                          }
+                          onFocus={(e) => {
+                            // 값이 0일 때 포커스 시 빈 문자열로 변경
+                            if (item.cost === 0) {
+                              updateScheduleItem(
+                                day,
+                                item.id,
+                                'cost',
+                                '' as any,
+                              );
+                            }
+                          }}
+                          onBlur={(e) => {
+                            // 빈 값일 때 블러 시 0으로 변경
+                            if (
+                              e.target.value === '' ||
+                              e.target.value === '0'
+                            ) {
+                              updateScheduleItem(day, item.id, 'cost', 0);
+                            }
+                          }}
+                          placeholder="0"
+                        />
+                      </S.FormGroup>
+                    </S.FormCol>
+                  </S.FormRow>
+                </S.ScheduleItem>
+              ))}
+
+              <S.AddScheduleBtn onClick={() => addScheduleItem(day)}>
+                <i className="ri-add-line"></i> 일정 추가하기
+              </S.AddScheduleBtn>
+            </S.TabContent>
+          ))}
+        </S.Section>
+
+        {/* 매칭 옵션 섹션 */}
+        <S.Section>
+          <S.SectionTitle>🤝 매칭 옵션</S.SectionTitle>
           <S.FormRow>
-            <S.FormGroup>
-              <S.Label htmlFor="maxParticipants">최대 참여 인원</S.Label>
-              <S.Input
-                id="maxParticipants"
-                type="number"
-                name="maxParticipants"
-                value={formData.maxParticipants}
-                onChange={handleInputChange}
-                min="1"
-                max="10"
-              />
-            </S.FormGroup>
-
-            <S.FormGroup>
-              <S.Label htmlFor="estimatedCost">예상 비용 (1인당)</S.Label>
-              <S.Input
-                id="estimatedCost"
-                type="number"
-                name="estimatedCost"
-                value={formData.estimatedCost}
-                onChange={handleInputChange}
-                placeholder="원"
-              />
-            </S.FormGroup>
+            <S.FormCol $span={4}>
+              <S.FormGroup>
+                <S.Label htmlFor="preferredGender">
+                  <S.LabelIcon>👫</S.LabelIcon>
+                  선호 성별
+                </S.Label>
+                <S.Select
+                  id="preferredGender"
+                  name="preferredGender"
+                  value={formData.preferredGender}
+                  onChange={handleInputChange}
+                >
+                  <option value="">🚫 상관없음</option>
+                  <option value="male">👨 남성</option>
+                  <option value="female">👩 여성</option>
+                </S.Select>
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={4}>
+              <S.FormGroup>
+                <S.Label htmlFor="preferredAge">
+                  <S.LabelIcon>🎂</S.LabelIcon>
+                  선호 나이대
+                </S.Label>
+                <S.Select
+                  id="preferredAge"
+                  name="preferredAge"
+                  value={formData.preferredAge}
+                  onChange={handleInputChange}
+                >
+                  <option value="">🚫 상관없음</option>
+                  <option value="20s">🌱 20대</option>
+                  <option value="30s">🌳 30대</option>
+                  <option value="40s">🌲 40대</option>
+                  <option value="50s">🌰 50대 이상</option>
+                </S.Select>
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={4}>
+              <S.FormGroup>
+                <S.Label htmlFor="preferredLanguage">
+                  <S.LabelIcon>🗣️</S.LabelIcon>
+                  선호 언어
+                </S.Label>
+                <S.Select
+                  id="preferredLanguage"
+                  name="preferredLanguage"
+                  value={formData.preferredLanguage}
+                  onChange={handleInputChange}
+                >
+                  <option value="korean">🇰🇷 한국어</option>
+                  <option value="english">🇺🇸 영어</option>
+                  <option value="japanese">🇯🇵 일본어</option>
+                  <option value="chinese">🇨🇳 중국어</option>
+                  <option value="other">🌍 기타</option>
+                </S.Select>
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={12}>
+              <S.FormGroup>
+                <S.Label htmlFor="matchingMemo">
+                  <S.LabelIcon>💬</S.LabelIcon>
+                  매칭 관련 추가 요청사항
+                </S.Label>
+                <S.Textarea
+                  id="matchingMemo"
+                  name="matchingMemo"
+                  value={formData.matchingMemo}
+                  onChange={handleInputChange}
+                  placeholder="매칭 관련 추가 요청사항을 입력하세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
           </S.FormRow>
+        </S.Section>
 
-          <S.FormGroup>
-            <S.Label htmlFor="description">여행 설명</S.Label>
-            <S.Textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="이번 여행에 대해 간단히 설명해주세요..."
-              rows={4}
-            />
-          </S.FormGroup>
+        {/* 추가 정보 섹션 */}
+        <S.Section>
+          <S.SectionTitle>📄 추가 정보</S.SectionTitle>
+          <S.FormRow>
+            <S.FormCol $span={6}>
+              <S.FormGroup>
+                <S.Label htmlFor="accommodation">
+                  <S.LabelIcon>🏨</S.LabelIcon>
+                  숙소 정보
+                </S.Label>
+                <S.Textarea
+                  id="accommodation"
+                  name="accommodation"
+                  value={formData.accommodation}
+                  onChange={handleInputChange}
+                  placeholder="숙소 정보를 입력하세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={6}>
+              <S.FormGroup>
+                <S.Label htmlFor="transportation">
+                  <S.LabelIcon>🚗</S.LabelIcon>
+                  교통수단
+                </S.Label>
+                <S.Textarea
+                  id="transportation"
+                  name="transportation"
+                  value={formData.transportation}
+                  onChange={handleInputChange}
+                  placeholder="교통수단 정보를 입력하세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+            <S.FormCol $span={12}>
+              <S.FormGroup>
+                <S.Label htmlFor="extraMemo">
+                  <S.LabelIcon>📝</S.LabelIcon>
+                  기타 메모
+                </S.Label>
+                <S.Textarea
+                  id="extraMemo"
+                  name="extraMemo"
+                  value={formData.extraMemo}
+                  onChange={handleInputChange}
+                  placeholder="기타 메모를 입력하세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
+          </S.FormRow>
         </S.Section>
 
         {/* 버튼 섹션 */}
-        <S.ButtonSection>
-          <S.Button
-            type="button"
-            variant="secondary"
-            onClick={() => navigate('/plan')}
-          >
+        <S.BtnSection>
+          <S.Btn $variant="outline" onClick={handleCancel}>
             취소
-          </S.Button>
-
-          <S.Button
-            type="button"
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={isLoading}
-          >
+          </S.Btn>
+          {isEditMode && (
+            <S.Btn
+              $variant="danger"
+              onClick={handleDelete}
+              disabled={isLoading}
+            >
+              삭제
+            </S.Btn>
+          )}
+          <S.Btn $variant="secondary" disabled={isLoading}>
+            임시저장
+          </S.Btn>
+          <S.Btn $variant="primary" onClick={handleSave} disabled={isLoading}>
             {isLoading ? '저장 중...' : '저장'}
-          </S.Button>
-        </S.ButtonSection>
-      </S.FormContainer>
-    </S.PlanWriteContainer>
+          </S.Btn>
+        </S.BtnSection>
+      </S.MainContent>
+
+      {/* 푸터 */}
+      <S.Footer>
+        <S.FooterContent>
+          <S.FooterLogo>트립매치</S.FooterLogo>
+          <S.FooterLinks>
+            <a href="#">서비스 소개</a>
+            <a href="#">이용약관</a>
+            <a href="#">개인정보처리방침</a>
+            <a href="#">고객센터</a>
+          </S.FooterLinks>
+        </S.FooterContent>
+        <S.FooterCopyright>
+          © 2023 트립매치. All rights reserved.
+        </S.FooterCopyright>
+      </S.Footer>
+    </S.Container>
   );
 };
 

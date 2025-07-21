@@ -8,7 +8,7 @@ import {
   AiOutlineMessage,
   AiOutlineUser,
 } from 'react-icons/ai';
-import { FaRegCompass } from 'react-icons/fa';
+import { FaRegCompass, FaRegCalendarPlus } from 'react-icons/fa';
 
 const Sidebar = () => {
   return (
@@ -19,6 +19,9 @@ const Sidebar = () => {
       <Nav>
         <StyledNavLink to="/search">
           <AiOutlineSearch /> <span>검색</span>
+        </StyledNavLink>
+        <StyledNavLink to="/plan/write">
+          <FaRegCalendarPlus /> <span>여행 플랜 만들기</span>
         </StyledNavLink>
         <StyledNavLink to="/notifications">
           <AiOutlineHeart /> <span>알림</span>

@@ -15,7 +15,6 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import MapTestPage from './pages/MapTestPage';
-import FeedPage from './pages/FeedPage';
 import FeedListPage from './pages/FeedListPage'; // 새로 만든 목록 페이지
 import FeedDetailPage from './pages/FeedDetailPage'; // 방금 만든 상세 페이지
 import MatchPage from './pages/MatchPage';
@@ -31,6 +30,8 @@ import NotificationPage from './pages/NotificationPage';
 import ReviewPage from './pages/ReviewPage';
 import ReportManagementPage from './pages/ReportManagementPage';
 import LikePage from './pages/LikePage';
+import PlanPage from './pages/PlanPage';
+import PlanWritePage from './pages/PlanWritePage';
 
 function App() {
   const location = useLocation();
@@ -57,7 +58,8 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/feed" element={<FeedListPage />} />
-                <Route path="/feed/:id" element={<FeedDetailPage />} /> {/* 상세 페이지 라우트 추가 */}
+                <Route path="/feed/:id" element={<FeedDetailPage />} />{' '}
+                {/* 상세 페이지 라우트 추가 */}
                 <Route path="/match" element={<MatchPage />} />
                 <Route
                   path="/match/recommend"
@@ -73,6 +75,9 @@ function App() {
                 <Route path="/report" element={<ReportManagementPage />} />
                 <Route path="/map-test" element={<MapTestPage />} />
                 <Route path="/likes" element={<LikePage />} />
+                <Route path="/plan" element={<PlanPage />} />
+                <Route path="/plan/write" element={<PlanWritePage />} />
+                <Route path="/plan/edit/:id" element={<PlanWritePage />} />
               </Route>
             </Route>
 

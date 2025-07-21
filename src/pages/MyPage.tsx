@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom'; // Link를 import 합니다.
+import { Link } from 'react-router-dom';
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -9,8 +10,52 @@ const pageVariants = {
   out: { opacity: 0 },
 };
 
+interface Feed {
+  id: number;
+  author: string;
+  avatar: string;
+  image: string;
+  likes: number;
+  caption: string;
+  type?: string;
+  planId?: string;
+  createdAt?: string;
+}
+
 const MyPage = () => {
   const { logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<'profile' | 'feeds'>('profile');
+  const [myFeeds, setMyFeeds] = useState<Feed[]>([]);
+
+  // 내 피드 목록 로드
+  useEffect(() => {
+    const loadMyFeeds = () => {
+      try {
+        const savedFeeds = localStorage.getItem('myFeeds');
+        if (savedFeeds) {
+          setMyFeeds(JSON.parse(savedFeeds));
+        }
+      } catch (error) {
+        console.error('피드 로드 중 오류:', error);
+      }
+    };
+
+    if (activeTab === 'feeds') {
+      loadMyFeeds();
+    }
+  }, [activeTab]);
+
+  // 피드 클릭 시 여행 계획 페이지로 이동
+  const handleFeedClick = (feed: Feed) => {
+    if (feed.type === 'travel-plan' && feed.planId) {
+      // 해당 계획을 currentTravelPlan으로 설정
+      const planData = localStorage.getItem(`plan_${feed.planId}`);
+      if (planData) {
+        localStorage.setItem('currentTravelPlan', planData);
+      }
+      window.location.href = '/plan';
+    }
+  };
 
   return (
     <motion.div
@@ -21,153 +66,225 @@ const MyPage = () => {
       transition={{ duration: 0.5 }}
     >
       <MainContent>
-        <PageTitle>프로필 작성/수정</PageTitle>
+        <PageTitle>마이페이지</PageTitle>
 
-        <ProfileSection>
-          <ProfilePhoto>
-            <PhotoUpload>
-              <span>📷</span>
-              <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
-            </PhotoUpload>
-            <UploadButton>사진 업로드</UploadButton>
-          </ProfilePhoto>
+        {/* 탭 메뉴 */}
+        <TabContainer>
+          <TabButton
+            $active={activeTab === 'profile'}
+            onClick={() => setActiveTab('profile')}
+          >
+            📝 프로필 설정
+          </TabButton>
+          <TabButton
+            $active={activeTab === 'feeds'}
+            onClick={() => setActiveTab('feeds')}
+          >
+            📋 내 피드 ({myFeeds.length})
+          </TabButton>
+        </TabContainer>
 
-          <BasicInfo>
-            <SectionTitle>기본 정보</SectionTitle>
-            <FormRow>
+        {/* 프로필 설정 탭 */}
+        {activeTab === 'profile' && (
+          <>
+            <ProfileSection>
+              <ProfilePhoto>
+                <PhotoUpload>
+                  <span>📷</span>
+                  <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
+                </PhotoUpload>
+                <UploadButton>사진 업로드</UploadButton>
+              </ProfilePhoto>
+
+              <BasicInfo>
+                <SectionTitle>기본 정보</SectionTitle>
+                <FormRow>
+                  <FormGroup>
+                    <FormLabel htmlFor="name">이름</FormLabel>
+                    <FormControl
+                      type="text"
+                      id="name"
+                      placeholder="실명을 입력하세요"
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <FormLabel htmlFor="nickname">닉네임</FormLabel>
+                    <FormControl
+                      type="text"
+                      id="nickname"
+                      placeholder="사용할 닉네임을 입력하세요"
+                    />
+                  </FormGroup>
+                </FormRow>
+                <FormRow>
+                  <FormGroup>
+                    <FormLabel htmlFor="age">나이</FormLabel>
+                    <FormControl
+                      type="number"
+                      id="age"
+                      placeholder="만 나이를 입력하세요"
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <FormLabel>성별</FormLabel>
+                    <RadioGroup>
+                      <label>
+                        <input type="radio" name="gender" defaultChecked /> 남성
+                      </label>
+                      <label>
+                        <input type="radio" name="gender" /> 여성
+                      </label>
+                      <label>
+                        <input type="radio" name="gender" /> 기타
+                      </label>
+                    </RadioGroup>
+                  </FormGroup>
+                </FormRow>
+              </BasicInfo>
+            </ProfileSection>
+
+            <PreferenceSection>
+              <SectionTitle>여행 선호도</SectionTitle>
               <FormGroup>
-                <FormLabel htmlFor="name">이름</FormLabel>
+                <FormLabel>선호 여행지</FormLabel>
+                <TagsContainer>
+                  <Tag className="selected">유럽</Tag>
+                  <Tag>동남아시아</Tag>
+                  <Tag>일본</Tag>
+                  <Tag>미국/캐나다</Tag>
+                </TagsContainer>
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>여행 스타일</FormLabel>
+                <CheckboxGroup>
+                  <label>
+                    <input type="checkbox" defaultChecked /> 계획적인 여행
+                  </label>
+                  <label>
+                    <input type="checkbox" /> 즉흥적인 여행
+                  </label>
+                  <label>
+                    <input type="checkbox" defaultChecked /> 관광 중심
+                  </label>
+                  <label>
+                    <input type="checkbox" /> 휴식 중심
+                  </label>
+                </CheckboxGroup>
+              </FormGroup>
+            </PreferenceSection>
+
+            <Section>
+              <SectionTitle>자기소개</SectionTitle>
+              <FormGroup>
+                <FormLabel htmlFor="bio">나에 대한 소개</FormLabel>
+                <TextareaControl
+                  id="bio"
+                  rows={4}
+                  placeholder="여행 동반자에게 자신을 소개해보세요."
+                />
+              </FormGroup>
+            </Section>
+
+            <Section>
+              <SectionTitle>계정 설정</SectionTitle>
+              <FormGroup>
+                <FormLabel htmlFor="username">아이디 (변경 불가)</FormLabel>
                 <FormControl
                   type="text"
-                  id="name"
-                  placeholder="실명을 입력하세요"
+                  id="username"
+                  defaultValue="Traveler_Kim"
+                  disabled
                 />
               </FormGroup>
-              <FormGroup>
-                <FormLabel htmlFor="nickname">닉네임</FormLabel>
-                <FormControl
-                  type="text"
-                  id="nickname"
-                  placeholder="사용할 닉네임을 입력하세요"
-                />
-              </FormGroup>
-            </FormRow>
-            <FormRow>
-              <FormGroup>
-                <FormLabel htmlFor="age">나이</FormLabel>
-                <FormControl
-                  type="number"
-                  id="age"
-                  placeholder="만 나이를 입력하세요"
-                />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>성별</FormLabel>
-                <RadioGroup>
-                  <label>
-                    <input type="radio" name="gender" defaultChecked /> 남성
-                  </label>
-                  <label>
-                    <input type="radio" name="gender" /> 여성
-                  </label>
-                  <label>
-                    <input type="radio" name="gender" /> 기타
-                  </label>
-                </RadioGroup>
-              </FormGroup>
-            </FormRow>
-          </BasicInfo>
-        </ProfileSection>
+              <FormRow>
+                <FormGroup>
+                  <FormLabel htmlFor="new-password">새 비밀번호</FormLabel>
+                  <FormControl
+                    type="password"
+                    id="new-password"
+                    placeholder="새 비밀번호"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel htmlFor="confirm-password">
+                    새 비밀번호 확인
+                  </FormLabel>
+                  <FormControl
+                    type="password"
+                    id="confirm-password"
+                    placeholder="새 비밀번호 확인"
+                  />
+                </FormGroup>
+              </FormRow>
+              <AccountButtonContainer>
+                <LogoutButton onClick={logout}>로그아웃</LogoutButton>
+                <Link to="/report">
+                  <ReportButton>신고하기</ReportButton>
+                </Link>
+              </AccountButtonContainer>
+            </Section>
 
-        <PreferenceSection>
-          <SectionTitle>여행 선호도</SectionTitle>
-          <FormGroup>
-            <FormLabel>선호 여행지</FormLabel>
-            <TagsContainer>
-              <Tag className="selected">유럽</Tag>
-              <Tag>동남아시아</Tag>
-              <Tag>일본</Tag>
-              <Tag>미국/캐나다</Tag>
-            </TagsContainer>
-          </FormGroup>
-          <FormGroup>
-            <FormLabel>여행 스타일</FormLabel>
-            <CheckboxGroup>
-              <label>
-                <input type="checkbox" defaultChecked /> 계획적인 여행
-              </label>
-              <label>
-                <input type="checkbox" /> 즉흥적인 여행
-              </label>
-              <label>
-                <input type="checkbox" defaultChecked /> 관광 중심
-              </label>
-              <label>
-                <input type="checkbox" /> 휴식 중심
-              </label>
-            </CheckboxGroup>
-          </FormGroup>
-        </PreferenceSection>
+            <ButtonSection>
+              <BtnCancel>취소</BtnCancel>
+              <BtnSave>저장하기</BtnSave>
+            </ButtonSection>
 
-        <Section>
-          <SectionTitle>자기소개</SectionTitle>
-          <FormGroup>
-            <FormLabel htmlFor="bio">나에 대한 소개</FormLabel>
-            <TextareaControl
-              id="bio"
-              rows={4}
-              placeholder="여행 동반자에게 자신을 소개해보세요."
-            />
-          </FormGroup>
-        </Section>
+            <WithdrawalSection>
+              <DestructiveButton>회원 탈퇴</DestructiveButton>
+            </WithdrawalSection>
+          </>
+        )}
 
-        <Section>
-          <SectionTitle>계정 설정</SectionTitle>
-          <FormGroup>
-            <FormLabel htmlFor="username">아이디 (변경 불가)</FormLabel>
-            <FormControl
-              type="text"
-              id="username"
-              defaultValue="Traveler_Kim"
-              disabled
-            />
-          </FormGroup>
-          <FormRow>
-            <FormGroup>
-              <FormLabel htmlFor="new-password">새 비밀번호</FormLabel>
-              <FormControl
-                type="password"
-                id="new-password"
-                placeholder="새 비밀번호"
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel htmlFor="confirm-password">새 비밀번호 확인</FormLabel>
-              <FormControl
-                type="password"
-                id="confirm-password"
-                placeholder="새 비밀번호 확인"
-              />
-            </FormGroup>
-          </FormRow>
-          {/* 버튼들을 묶어주는 컨테이너입니다. */}
-          <AccountButtonContainer>
-            <LogoutButton onClick={logout}>로그아웃</LogoutButton>
-            {/* 신고 페이지로 이동하는 링크를 버튼 형태로 추가합니다. */}
-            <Link to="/report">
-              <ReportButton>신고하기</ReportButton>
-            </Link>
-          </AccountButtonContainer>
-        </Section>
+        {/* 내 피드 탭 */}
+        {activeTab === 'feeds' && (
+          <FeedsSection>
+            {myFeeds.length > 0 ? (
+              <FeedGrid>
+                {myFeeds.map((feed) => (
+                  <FeedCard key={feed.id} onClick={() => handleFeedClick(feed)}>
+                    <FeedHeader>
+                      <FeedAuthor>
+                        <span>{feed.avatar}</span>
+                        <span>{feed.author}</span>
+                      </FeedAuthor>
+                      <FeedDate>
+                        {feed.createdAt
+                          ? new Date(feed.createdAt).toLocaleDateString('ko-KR')
+                          : '방금 전'}
+                      </FeedDate>
+                    </FeedHeader>
 
-        <ButtonSection>
-          <BtnCancel>취소</BtnCancel>
-          <BtnSave>저장하기</BtnSave>
-        </ButtonSection>
+                    {feed.type === 'travel-plan' && (
+                      <FeedBadge>✈️ 여행 계획</FeedBadge>
+                    )}
 
-        <WithdrawalSection>
-          <DestructiveButton>회원 탈퇴</DestructiveButton>
-        </WithdrawalSection>
+                    <FeedContent>
+                      <FeedCaption>{feed.caption}</FeedCaption>
+                    </FeedContent>
+
+                    <FeedFooter>
+                      <FeedLikeSection>❤️ {feed.likes}</FeedLikeSection>
+                      <FeedActionSection>
+                        <FeedActionBtn>📱 공유</FeedActionBtn>
+                        <FeedActionBtn>📝 수정</FeedActionBtn>
+                      </FeedActionSection>
+                    </FeedFooter>
+                  </FeedCard>
+                ))}
+              </FeedGrid>
+            ) : (
+              <EmptyMessage>
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>✈️</div>
+                <div>아직 작성한 여행 계획이 없습니다.</div>
+                <div style={{ marginTop: '20px' }}>
+                  <Link to="/plan/write">
+                    <CreateBtn>첫 여행 계획 만들기</CreateBtn>
+                  </Link>
+                </div>
+              </EmptyMessage>
+            )}
+          </FeedsSection>
+        )}
       </MainContent>
     </motion.div>
   );
@@ -428,4 +545,144 @@ const WithdrawalSection = styled.div`
   padding-top: 30px;
   border-top: 1px solid #eee;
   text-align: right;
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  background-color: ${(props) => (props.$active ? '#3498db' : '#f1f1f1')};
+  color: ${(props) => (props.$active ? 'white' : '#555')};
+  font-size: 18px;
+  font-weight: ${(props) => (props.$active ? 'bold' : '500')};
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #e0f2fe;
+    color: #3498db;
+  }
+`;
+
+const FeedsSection = styled(Section)`
+  background-color: #f8f9fa;
+  padding: 30px;
+  border-radius: 12px;
+`;
+
+const FeedGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+`;
+
+const FeedCard = styled.div`
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+`;
+
+const FeedHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+`;
+
+const FeedAuthor = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  span:first-child {
+    font-size: 24px;
+    color: #3498db;
+  }
+
+  span:last-child {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+  }
+`;
+
+const FeedDate = styled.span`
+  font-size: 14px;
+  color: #888;
+`;
+
+const FeedBadge = styled.span`
+  background-color: #e0f2fe;
+  color: #3498db;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 10px;
+`;
+
+const FeedContent = styled.div`
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+`;
+
+const FeedCaption = styled.p`
+  font-size: 16px;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 15px;
+`;
+
+const FeedFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  background-color: #f9f9f9;
+`;
+
+const FeedLikeSection = styled.span`
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+`;
+
+const FeedActionSection = styled.div`
+  display: flex;
+  gap: 15px;
+`;
+
+const FeedActionBtn = styled(ActionButton)`
+  padding: 8px 12px;
+  font-size: 13px;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 50px 0;
+  color: #888;
+  font-size: 18px;
+`;
+
+const CreateBtn = styled(BtnSave)`
+  padding: 12px 30px;
+  font-size: 16px;
 `;
