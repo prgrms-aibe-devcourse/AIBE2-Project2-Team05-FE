@@ -449,9 +449,9 @@ const PlanPage: React.FC = () => {
     author: {
       id: 'author1',
       name: '여행러버',
-      profileImage: '/images/author.jpg',
+      profileImage: '/api/placeholder/40/40',
     },
-    styleLabels: ['힐링', '휴양', '모던'],
+    styleLabels: ['힐링', '휴양', '모던'], // 여행 스타일은 유지
     aiHashtags: ['#제주도여행', '#힐링여행', '#모던여행'],
     nearbyRecommendations: [
       {

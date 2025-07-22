@@ -5,7 +5,13 @@ import PlaceSearchInput from '../components/PlaceSearchInput';
 import * as S from './PlanWritePage.style';
 import PlaceMap from '../components/PlaceMap';
 import openaiService from '../services/openaiApi';
+import {
+  openaiTagService,
+  EventTagAnalysis,
+  TagResponse,
+} from '../services/openaiTagService';
 import { getRepresentativePlaceImage } from '../services/backendPlacesApi';
+import { Feed } from '../types/feed'; // Feed 타입 import 추가
 
 // 일정 항목 타입 정의
 interface ScheduleItem {
@@ -279,6 +285,54 @@ const PlanWritePage: React.FC = () => {
           'AI 분석 완료! 맞춤 해시태그와 근처 관광지를 추천받았습니다.',
           { id: 'ai-analysis' },
         );
+
+        // OpenAI로 이벤트별 스마트 태그 생성
+        toast.loading('AI가 목적지별 맞춤 태그를 분석하는 중...', {
+          id: 'tag-generation',
+        });
+
+        try {
+          // 모든 이벤트 정보를 수집
+          const allEvents: EventTagAnalysis[] = [];
+          planData.days.forEach((day: any) => {
+            day.events.forEach((event: any) => {
+              allEvents.push({
+                title: event.title,
+                location: event.location,
+                description: event.description,
+              });
+            });
+          });
+
+          // OpenAI로 배치 태그 생성
+          const tagResponses =
+            await openaiTagService.generateBatchTags(allEvents);
+
+          // 생성된 태그를 계획에 적용
+          let eventIndex = 0;
+          planData.days.forEach((day: any) => {
+            day.events.forEach((event: any) => {
+              if (eventIndex < tagResponses.length) {
+                const tagResponse = tagResponses[eventIndex];
+                event.tags = tagResponse.tags;
+                event.category = tagResponse.category; // 카테고리도 업데이트
+                eventIndex++;
+              }
+            });
+          });
+
+          toast.success(
+            'AI 태그 생성 완료! 각 목적지별 맞춤 태그가 추가되었습니다! 🏷️',
+            {
+              id: 'tag-generation',
+            },
+          );
+        } catch (error) {
+          console.error('태그 생성 실패:', error);
+          toast.dismiss('tag-generation');
+          toast.error('태그 생성에 실패했지만 기본 태그로 진행합니다.');
+          // 태그 생성 실패 시 기본 태그 적용 (선택적)
+        }
       } catch (error) {
         console.error('AI 분석 중 오류:', error);
         toast.dismiss('ai-analysis');
@@ -328,7 +382,7 @@ const PlanWritePage: React.FC = () => {
       localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
 
       // 1. 프로필 피드 데이터 생성
-      const profileFeedData = {
+      const profileFeedData: Feed = {
         id: parseInt(planId),
         author: authorInfo.name,
         avatar: authorInfo.profileImage,
@@ -338,6 +392,9 @@ const PlanWritePage: React.FC = () => {
         type: 'travel-plan',
         planId: planData.id,
         createdAt: planData.createdAt,
+        status: 'recruiting', // 기본 상태: 모집중
+        maxParticipants: formData.people, // 최대 참여자 수
+        participants: [], // 빈 참여자 배열로 시작
       };
 
       // 2. 메이트 찾기 데이터 생성
@@ -429,7 +486,7 @@ const PlanWritePage: React.FC = () => {
           location: item.place,
           description: item.memo,
           imageUrl: '', // 이미지는 추후 추가 가능
-          tags: formData.styles.slice(0, 3), // 여행 스타일에서 일부 태그 사용
+          tags: [], // OpenAI가 나중에 생성할 예정
           price: item.cost ? `${item.cost}만원` : '무료',
           category: getEventCategory(item.activity),
         }));

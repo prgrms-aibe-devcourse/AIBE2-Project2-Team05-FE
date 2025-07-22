@@ -5,22 +5,34 @@ import styled from 'styled-components';
 import toast from 'react-hot-toast';
 import PlanPage from './PlanPage';
 import { getRepresentativePlaceImage } from '../services/backendPlacesApi';
+import {
+  Feed,
+  FeedStatus,
+  ReviewFormData,
+  FEED_STATUS_LABELS,
+} from '../types/feed';
+import FeedStatusChanger from '../components/feed/FeedStatusChanger';
+import ReviewWriteModal from '../components/feed/ReviewWriteModal';
+import ReviewCompletedIndicator from '../components/feed/ReviewCompletedIndicator';
+import FeedStatusBadge from '../components/feed/FeedStatusBadge';
+import {
+  changeFeedStatus,
+  createReview,
+  getNextAvailableStatuses,
+} from '../services/feedStatusService';
+import {
+  getReviewButtonState,
+  getPermissionMessage,
+  checkReviewPermission,
+} from '../services/reviewPermissionService';
 
 interface ModalProps {
   imageUrl: string;
   onClose: () => void;
 }
 
-interface UserFeed {
-  id: number;
-  author: string;
-  avatar: string;
-  image: string;
-  likes: number;
-  caption: string;
-  type?: string;
+interface UserFeed extends Feed {
   planId?: string;
-  createdAt?: string;
 }
 
 interface UserProfile {
@@ -96,6 +108,11 @@ const ProfilePage = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userFeeds, setUserFeeds] = useState<UserFeed[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 후기 작성 모달 관련 상태
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedFeedForReview, setSelectedFeedForReview] =
+    useState<UserFeed | null>(null);
 
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
@@ -402,6 +419,70 @@ const ProfilePage = () => {
     }
   };
 
+  // 피드 상태 변경 핸들러
+  const handleFeedStatusChange = (updatedFeed: UserFeed) => {
+    const updatedFeeds = userFeeds.map((feed) =>
+      feed.id === updatedFeed.id ? updatedFeed : feed,
+    );
+    setUserFeeds(updatedFeeds);
+
+    // localStorage도 업데이트
+    const currentUserId = 'current-user';
+    const targetUserId = userId || currentUserId;
+    const feedKey = userProfile?.isCurrentUser
+      ? 'myFeeds'
+      : `userFeeds_${targetUserId}`;
+    localStorage.setItem(feedKey, JSON.stringify(updatedFeeds));
+
+    toast.success('피드 상태가 변경되었습니다.', {
+      position: 'top-center',
+      duration: 2000,
+    });
+  };
+
+  // 후기 모달 열기
+  const openReviewModal = (feed: UserFeed) => {
+    setSelectedFeedForReview(feed);
+    setReviewModalOpen(true);
+  };
+
+  // 후기 모달 닫기
+  const closeReviewModal = () => {
+    setReviewModalOpen(false);
+    setSelectedFeedForReview(null);
+  };
+
+  // 후기 작성 핸들러
+  const handleReviewSubmit = async (reviewData: ReviewFormData) => {
+    if (!selectedFeedForReview) return;
+
+    try {
+      const updatedFeed = await createReview(
+        reviewData,
+        selectedFeedForReview.id,
+      );
+      if (updatedFeed) {
+        handleFeedStatusChange(updatedFeed as UserFeed);
+        closeReviewModal();
+        toast.success('후기가 성공적으로 작성되었습니다!', {
+          position: 'top-center',
+          duration: 3000,
+        });
+
+        // 후기 작성 완료 후 새로고침
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000); // 토스트 메시지 표시 후 새로고침
+      }
+    } catch (error) {
+      console.error('후기 작성 실패:', error);
+      toast.error('후기 작성 중 오류가 발생했습니다.', {
+        position: 'top-center',
+        duration: 3000,
+      });
+    }
+  };
+
   // 로딩 중
   if (loading) {
     return (
@@ -553,6 +634,8 @@ const ProfilePage = () => {
                   currentUserId={userProfile.id}
                   isCurrentUser={userProfile.isCurrentUser}
                   onDeleteFeed={handleDeleteFeed}
+                  onFeedStatusChange={handleFeedStatusChange}
+                  onReviewModalOpen={openReviewModal}
                 />
               ) : (
                 <div
@@ -649,7 +732,22 @@ const ProfilePage = () => {
 
       {modalOpen && <Modal imageUrl={selectedImage} onClose={closeModal} />}
       {travelPlanModalOpen && selectedFeed && (
-        <PlanPageModal feed={selectedFeed} onClose={closeTravelPlanModal} />
+        <PlanPageModal
+          feed={selectedFeed}
+          onClose={closeTravelPlanModal}
+          onFeedStatusChange={handleFeedStatusChange}
+          onReviewModalOpen={openReviewModal}
+        />
+      )}
+
+      {/* 후기 작성 모달 */}
+      {reviewModalOpen && selectedFeedForReview && (
+        <ReviewWriteModal
+          feed={selectedFeedForReview}
+          isOpen={reviewModalOpen}
+          onClose={closeReviewModal}
+          onSubmit={handleReviewSubmit}
+        />
       )}
     </motion.div>
   );
@@ -661,15 +759,19 @@ interface PostGridProps {
   currentUserId: string;
   isCurrentUser: boolean;
   onDeleteFeed: (feedId: number, feedType?: string) => void;
+  onFeedStatusChange?: (updatedFeed: UserFeed) => void;
+  onReviewModalOpen?: (feed: UserFeed) => void;
 }
 
-const PostGrid = ({
+const PostGrid: React.FC<PostGridProps> = ({
   feeds,
   onFeedClick,
   currentUserId,
   isCurrentUser,
   onDeleteFeed,
-}: PostGridProps) => (
+  onFeedStatusChange,
+  onReviewModalOpen,
+}) => (
   <PostsGridContainer>
     {feeds.map((feed) => (
       <PostItem key={feed.id}>
@@ -680,11 +782,61 @@ const PostGrid = ({
           style={{ cursor: 'pointer' }}
         />
 
+        {/* 상태 관리 및 후기 관리 섹션 - 본인의 게시물에만 표시 */}
+        {isCurrentUser && (
+          <FeedManagementOverlay>
+            {/* 피드 상태 변경 */}
+            <FeedStatusChanger
+              feed={feed}
+              userId={currentUserId}
+              onStatusChange={onFeedStatusChange}
+              onError={(error) => toast.error(error)}
+            />
+
+            {/* 후기 작성 버튼 (권한 기반 표시) */}
+            {(() => {
+              const buttonState = getReviewButtonState(feed, currentUserId);
+
+              if (!buttonState.show) return null;
+
+              return (
+                <FeedReviewButton
+                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.stopPropagation();
+                    if (buttonState.enabled && onReviewModalOpen) {
+                      onReviewModalOpen(feed);
+                    } else {
+                      const permissionResult = checkReviewPermission(
+                        feed,
+                        currentUserId,
+                      );
+                      toast.error(getPermissionMessage(permissionResult));
+                    }
+                  }}
+                  disabled={!buttonState.enabled}
+                  title={buttonState.tooltip}
+                >
+                  {buttonState.text}
+                </FeedReviewButton>
+              );
+            })()}
+
+            {/* 후기 완료 표시 */}
+            {feed.review && (
+              <ReviewCompletedIndicator
+                feed={feed}
+                variant="badge"
+                showRating={true}
+              />
+            )}
+          </FeedManagementOverlay>
+        )}
+
         {/* 삭제 버튼 - 본인의 게시물에만 표시 */}
         {isCurrentUser && (
           <DeleteButton
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation(); // 이벤트 버블링 방지
+              e.stopPropagation();
               onDeleteFeed(feed.id, feed.type);
             }}
             title="게시물 삭제"
@@ -746,21 +898,73 @@ const PostGrid = ({
   </PostsGridContainer>
 );
 
+// NextStatusButton 컴포넌트: 순차적 상태 변경을 위한 버튼 (새로고침 포함)
+interface NextStatusButtonProps {
+  feed: Feed;
+  onStatusChange?: (updatedFeed: Feed) => void;
+}
+
+const NextStatusButtonWithRefresh: React.FC<NextStatusButtonProps> = ({
+  feed,
+  onStatusChange,
+}) => {
+  const [isChanging, setIsChanging] = useState(false);
+  const currentStatus = feed.status || 'recruiting';
+  const nextStatuses = getNextAvailableStatuses(currentStatus);
+
+  // 다음 상태가 없으면 버튼 숨김
+  if (nextStatuses.length === 0) {
+    return null;
+  }
+
+  const nextStatus = nextStatuses[0]; // 첫 번째(다음) 상태
+  const nextStatusLabel = FEED_STATUS_LABELS[nextStatus];
+
+  const handleStatusChange = async () => {
+    setIsChanging(true);
+    try {
+      const updatedFeed = await changeFeedStatus(feed.id, nextStatus);
+      if (updatedFeed && onStatusChange) {
+        onStatusChange(updatedFeed);
+      }
+      toast.success(`상태가 '${nextStatusLabel}'으로 변경되었습니다.`);
+
+      // 상태 변경 후 새로고침
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 토스트 메시지 표시 후 새로고침
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      toast.error('상태 변경에 실패했습니다.');
+      setIsChanging(false); // 실패 시에만 로딩 해제
+    }
+  };
+
+  return (
+    <NextStatusBtn onClick={handleStatusChange} disabled={isChanging}>
+      {isChanging ? '변경 중...' : `→ ${nextStatusLabel}`}
+    </NextStatusBtn>
+  );
+};
+
 // 스크롤바를 숨기는 래퍼 컴포넌트
-const ScrollableContainer = styled.div`
+const ScrollableContainer = styled.div<{
+  $hasStatusBar: boolean;
+  $hasActionBar: boolean;
+}>`
   width: 100%;
   height: 100%;
   border-radius: 12px;
   overflow: auto;
+  padding-top: ${({ $hasStatusBar }) => ($hasStatusBar ? '80px' : '0')};
+  padding-bottom: ${({ $hasActionBar }) => ($hasActionBar ? '80px' : '0')};
 
   /* 스크롤바 숨기기 */
   scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 
-  /* Webkit 기반 브라우저 (Chrome, Safari) */
   &::-webkit-scrollbar {
-    display: none;
+    display: none; /* Chrome, Safari, Opera */
   }
 `;
 
@@ -768,57 +972,132 @@ const ScrollableContainer = styled.div`
 interface PlanPageModalProps {
   feed: UserFeed;
   onClose: () => void;
+  onFeedStatusChange?: (updatedFeed: UserFeed) => void;
+  onReviewModalOpen?: (feed: UserFeed) => void;
 }
 
-const PlanPageModal: React.FC<PlanPageModalProps> = ({ feed, onClose }) => {
+// 모달 관리 바 스타일
+const ModalManagementBar = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #dbdbdb;
+  border-radius: 12px 12px 0 0;
+  z-index: 20;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+`;
+
+// 모달 내 후기 작성 버튼 스타일
+const ModalReviewButton = styled.button`
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #218838;
+  }
+
+  &:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+// 순차적 상태 변경을 위한 NextStatusButton 스타일
+const NextStatusBtn = styled.button`
+  background: #3682f8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+const PlanPageModal: React.FC<PlanPageModalProps> = ({
+  feed,
+  onClose,
+  onFeedStatusChange,
+  onReviewModalOpen,
+}) => {
+  // ProfilePage는 항상 현재 사용자의 프로필 페이지이므로 관리 권한 있음
+  const isCurrentUser = true; // ProfilePage에서는 항상 본인의 피드만 보여지므로 true
+
+  const currentUserId = 'current-user'; // AuthContext에서 가져올 실제 사용자 ID
+
   useEffect(() => {
-    // 모달이 열릴 때 해당 피드의 여행 계획 데이터를 localStorage에 설정
+    // PlanPage에서 사용할 데이터를 localStorage에 저장
     if (feed.planId) {
-      const savedPlan = localStorage.getItem(`plan_${feed.planId}`);
-      if (savedPlan) {
-        // 해당 계획을 현재 계획으로 설정 (PlanPage에서 읽어옴)
-        localStorage.setItem('currentTravelPlan', savedPlan);
-      } else {
-        // 기본 데이터 생성
+      const existingPlan = localStorage.getItem(`plan_${feed.planId}`);
+
+      if (!existingPlan) {
+        // 기본 여행 계획 데이터 구조 생성
         const defaultPlan = {
           id: feed.planId,
-          title: feed.caption?.split('\n')[1] || '여행 계획',
-          author: {
-            id: 'current-user',
-            name: feed.author,
-            profileImage: feed.avatar,
-          },
-          startDate: '2024-01-01',
-          endDate: '2024-01-03',
-          destination: '여행지',
-          budget: '예산 정보 없음',
-          people: '인원 정보 없음',
-          period: '2박 3일',
-          days: [
-            {
-              id: 'day1',
-              dayNumber: 1,
-              date: '2024-01-01',
-              events: [
-                {
-                  id: 'event1',
-                  time: '09:00',
-                  title: '여행 시작',
-                  location: '출발지',
-                  description: '즐거운 여행을 시작해요!',
-                  tags: ['여행'],
-                  price: '무료',
-                  category: 'transport',
-                },
-              ],
-            },
-          ],
-          likes: feed.likes,
-          likedUsers: [],
+          title: feed.caption?.split('\n')[0] || '여행 계획',
+          destination: '서울',
+          startDate: '2024-08-01',
+          endDate: '2024-08-05',
+          budget: '50만원',
+          people: '2명',
+          places: [],
+          notes: '',
+          createdAt: feed.createdAt || new Date().toISOString(),
           isLiked: false,
         };
-        localStorage.setItem('currentTravelPlan', JSON.stringify(defaultPlan));
+        localStorage.setItem(
+          `plan_${feed.planId}`,
+          JSON.stringify(defaultPlan),
+        );
+      } else {
+        // currentTravelPlan으로도 저장 (PlanPage가 참조하도록)
+        localStorage.setItem('currentTravelPlan', existingPlan);
       }
+    } else {
+      // planId가 없는 경우 기본 계획 생성
+      const defaultPlan = {
+        id: 'default',
+        title: feed.caption?.split('\n')[0] || '여행 계획',
+        destination: '서울',
+        startDate: '2024-08-01',
+        endDate: '2024-08-05',
+        budget: '50만원',
+        people: '2명',
+        places: [],
+        notes: '',
+        createdAt: feed.createdAt || new Date().toISOString(),
+        isLiked: false,
+      };
+      localStorage.setItem('currentTravelPlan', JSON.stringify(defaultPlan));
     }
 
     // ESC 키로 모달 닫기
@@ -862,6 +1141,16 @@ const PlanPageModal: React.FC<PlanPageModalProps> = ({ feed, onClose }) => {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* 상단: 상태 표시 바 */}
+        {isCurrentUser && (
+          <ModalStatusBar>
+            {/* 현재 상태 표시만 */}
+            <FeedStatusBadge status={feed.status || 'recruiting'} />
+
+            {/* 후기 완료 표시 제거 - 모달창 닫기 버튼과 겹침 */}
+          </ModalStatusBar>
+        )}
+
         {/* 닫기 버튼 */}
         <button
           onClick={onClose}
@@ -874,7 +1163,7 @@ const PlanPageModal: React.FC<PlanPageModalProps> = ({ feed, onClose }) => {
             fontSize: '28px',
             cursor: 'pointer',
             color: '#666',
-            zIndex: 10,
+            zIndex: 30, // 관리 바보다 위에 표시
             width: '40px',
             height: '40px',
             borderRadius: '50%',
@@ -888,9 +1177,175 @@ const PlanPageModal: React.FC<PlanPageModalProps> = ({ feed, onClose }) => {
         </button>
 
         {/* PlanPage 컴포넌트를 모달 내부에 렌더링 */}
-        <ScrollableContainer>
+        <ScrollableContainer
+          $hasStatusBar={isCurrentUser}
+          $hasActionBar={isCurrentUser}
+        >
           <PlanPage />
+
+          {/* 후기 섹션 - 후기가 있을 때만 표시 */}
+          {feed.review && (
+            <ReviewSection>
+              <ReviewHeader>
+                <ReviewTitle>✍️ 여행 후기</ReviewTitle>
+                <ReviewRating>
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <Star key={i} $filled={i < (feed.review?.rating || 0)}>
+                      ⭐
+                    </Star>
+                  ))}
+                  <RatingText>({feed.review?.rating || 0}/5)</RatingText>
+                </ReviewRating>
+              </ReviewHeader>
+
+              <ReviewContent>
+                <ReviewSubTitle>{feed.review.title}</ReviewSubTitle>
+                <ReviewText>{feed.review.content}</ReviewText>
+
+                {/* 후기 이미지들 */}
+                {feed.review.images && feed.review.images.length > 0 && (
+                  <ReviewImages>
+                    {feed.review.images.map((image, index) => (
+                      <ReviewImage
+                        key={index}
+                        src={image}
+                        alt={`후기 사진 ${index + 1}`}
+                      />
+                    ))}
+                  </ReviewImages>
+                )}
+
+                {/* 하이라이트 */}
+                {feed.review.highlights &&
+                  feed.review.highlights.length > 0 && (
+                    <ReviewHighlights>
+                      <HighlightTitle>🌟 하이라이트</HighlightTitle>
+                      <HighlightList>
+                        {feed.review.highlights.map((highlight, index) => (
+                          <HighlightItem key={index}>{highlight}</HighlightItem>
+                        ))}
+                      </HighlightList>
+                    </ReviewHighlights>
+                  )}
+
+                {/* 추천사항 */}
+                {feed.review.recommendations &&
+                  feed.review.recommendations.length > 0 && (
+                    <ReviewRecommendations>
+                      <RecommendationTitle>💡 추천사항</RecommendationTitle>
+                      <RecommendationList>
+                        {feed.review.recommendations.map(
+                          (recommendation, index) => (
+                            <RecommendationItem key={index}>
+                              {recommendation}
+                            </RecommendationItem>
+                          ),
+                        )}
+                      </RecommendationList>
+                    </ReviewRecommendations>
+                  )}
+
+                {/* 지출 내역 */}
+                {feed.review.expenses && feed.review.expenses.total > 0 && (
+                  <ExpenseSection>
+                    <ExpenseTitle>💰 지출 내역</ExpenseTitle>
+                    <ExpenseGrid>
+                      {feed.review.expenses.accommodation > 0 && (
+                        <ExpenseItem>
+                          <ExpenseLabel>숙박</ExpenseLabel>
+                          <ExpenseAmount>
+                            {feed.review.expenses.accommodation.toLocaleString()}
+                            원
+                          </ExpenseAmount>
+                        </ExpenseItem>
+                      )}
+                      {feed.review.expenses.food > 0 && (
+                        <ExpenseItem>
+                          <ExpenseLabel>음식</ExpenseLabel>
+                          <ExpenseAmount>
+                            {feed.review.expenses.food.toLocaleString()}원
+                          </ExpenseAmount>
+                        </ExpenseItem>
+                      )}
+                      {feed.review.expenses.transportation > 0 && (
+                        <ExpenseItem>
+                          <ExpenseLabel>교통</ExpenseLabel>
+                          <ExpenseAmount>
+                            {feed.review.expenses.transportation.toLocaleString()}
+                            원
+                          </ExpenseAmount>
+                        </ExpenseItem>
+                      )}
+                      {feed.review.expenses.activities > 0 && (
+                        <ExpenseItem>
+                          <ExpenseLabel>액티비티</ExpenseLabel>
+                          <ExpenseAmount>
+                            {feed.review.expenses.activities.toLocaleString()}원
+                          </ExpenseAmount>
+                        </ExpenseItem>
+                      )}
+                      {feed.review.expenses.shopping > 0 && (
+                        <ExpenseItem>
+                          <ExpenseLabel>쇼핑</ExpenseLabel>
+                          <ExpenseAmount>
+                            {feed.review.expenses.shopping.toLocaleString()}원
+                          </ExpenseAmount>
+                        </ExpenseItem>
+                      )}
+                      {feed.review.expenses.etc > 0 && (
+                        <ExpenseItem>
+                          <ExpenseLabel>기타</ExpenseLabel>
+                          <ExpenseAmount>
+                            {feed.review.expenses.etc.toLocaleString()}원
+                          </ExpenseAmount>
+                        </ExpenseItem>
+                      )}
+                    </ExpenseGrid>
+                    <ExpenseTotal>
+                      총 지출: {feed.review.expenses.total.toLocaleString()}원
+                    </ExpenseTotal>
+                  </ExpenseSection>
+                )}
+
+                <ReviewFooter>
+                  <ReviewDate>
+                    {new Date(feed.review.createdAt).toLocaleDateString(
+                      'ko-KR',
+                      {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      },
+                    )}{' '}
+                    작성
+                  </ReviewDate>
+                </ReviewFooter>
+              </ReviewContent>
+            </ReviewSection>
+          )}
         </ScrollableContainer>
+
+        {/* 하단: 액션 바 */}
+        {isCurrentUser && (
+          <ModalActionBar>
+            {/* 후기 작성 버튼 (여행중 상태일 때만 표시) */}
+            {feed.status === 'traveling' && !feed.review && (
+              <ModalReviewButton
+                onClick={() => onReviewModalOpen?.(feed)}
+                disabled={!getReviewButtonState(feed, currentUserId).enabled}
+                title={getReviewButtonState(feed, currentUserId).tooltip}
+              >
+                {getReviewButtonState(feed, currentUserId).text}
+              </ModalReviewButton>
+            )}
+
+            {/* 상태 변경 버튼 */}
+            <NextStatusButtonWithRefresh
+              feed={feed}
+              onStatusChange={onFeedStatusChange}
+            />
+          </ModalActionBar>
+        )}
       </div>
     </div>
   );
@@ -1334,4 +1789,264 @@ const DeleteButton = styled.button`
   ${PostItem}:hover & {
     opacity: 1;
   }
+`;
+
+const FeedManagementOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 15px;
+  box-sizing: border-box;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 8px;
+  pointer-events: none; /* 클릭 이벤트를 자식 요소에 전달하지 않도록 설정 */
+  z-index: 5; /* 호버 오버레이보다 앞에 표시 */
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+const FeedReviewButton = styled.button`
+  background: #3682f8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 8px;
+  pointer-events: auto; /* 버튼은 클릭 가능하도록 설정 */
+
+  &:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  &:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+const ModalStatusBar = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #dbdbdb;
+  border-radius: 12px 12px 0 0;
+  z-index: 20;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+`;
+
+const ModalActionBar = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 15px; /* 버튼들 사이 간격 */
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #dbdbdb;
+  border-radius: 0 0 12px 12px;
+  z-index: 20;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+`;
+
+const ReviewSection = styled.div`
+  background-color: #f8f8f8;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+`;
+
+const ReviewHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+`;
+
+const ReviewTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+`;
+
+const ReviewRating = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+`;
+
+const Star = styled.span<{ $filled: boolean }>`
+  font-size: 18px;
+  color: ${({ $filled }) => ($filled ? '#ffd700' : '#e0e0e0')};
+  margin-right: 5px;
+`;
+
+const RatingText = styled.span`
+  margin-left: 5px;
+`;
+
+const ReviewContent = styled.div`
+  font-size: 15px;
+  line-height: 1.6;
+  color: #444;
+  margin-bottom: 15px;
+`;
+
+const ReviewSubTitle = styled.h4`
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  margin-top: 0;
+  margin-bottom: 8px;
+`;
+
+const ReviewText = styled.p`
+  font-size: 15px;
+  line-height: 1.6;
+  color: #555;
+  margin-bottom: 15px;
+`;
+
+const ReviewImages = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+`;
+
+const ReviewImage = styled.img`
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+`;
+
+const ReviewHighlights = styled.div`
+  margin-bottom: 15px;
+`;
+
+const HighlightTitle = styled.h4`
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  margin-top: 0;
+  margin-bottom: 8px;
+`;
+
+const HighlightList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const HighlightItem = styled.li`
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+`;
+
+const ReviewRecommendations = styled.div`
+  margin-bottom: 15px;
+`;
+
+const RecommendationTitle = styled.h4`
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  margin-top: 0;
+  margin-bottom: 8px;
+`;
+
+const RecommendationList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const RecommendationItem = styled.li`
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+`;
+
+const ExpenseSection = styled.div`
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px dashed #dbdbdb;
+`;
+
+const ExpenseTitle = styled.h4`
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  margin-top: 0;
+  margin-bottom: 8px;
+`;
+
+const ExpenseGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+`;
+
+const ExpenseItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #555;
+`;
+
+const ExpenseLabel = styled.span`
+  font-weight: 500;
+`;
+
+const ExpenseAmount = styled.span`
+  font-weight: 600;
+  color: #007bff;
+`;
+
+const ExpenseTotal = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #007bff;
+  text-align: right;
+  margin-top: 10px;
+`;
+
+const ReviewFooter = styled.div`
+  text-align: right;
+  font-size: 13px;
+  color: #888;
+  margin-top: 15px;
+`;
+
+const ReviewDate = styled.span`
+  font-weight: 500;
 `;
