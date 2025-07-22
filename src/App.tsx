@@ -33,6 +33,8 @@ import LikePage from './pages/LikePage';
 import PlanPage from './pages/PlanPage';
 import PlanWritePage from './pages/PlanWritePage';
 import AdminLoginPage from './pages/AdminLoginPage';
+import UserManagementPage from './pages/UserManagementPage';
+import FeedManagementPage from './pages/FeedManagementPage';
 
 function App() {
   const location = useLocation();
@@ -49,19 +51,25 @@ function App() {
         <Toaster position="top-center" reverseOrder={false} />
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            {/* 인증이 필요 없는 경로 */}
+            {/* --- 인증이 필요 없는 공용 경로 --- */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
 
-            {/* 메인 레이아웃을 사용하는 경로 (인증 필요) */}
+            {/* --- 관리자 전용 경로 (인증 필요) --- */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin/users" element={<UserManagementPage />} />
+              <Route path="/admin/feeds" element={<FeedManagementPage />} />
+              <Route path="/admin/reports" element={<ReportManagementPage />} />
+            </Route>
+
+            {/* --- 일반 사용자용 경로 (인증 필요 & 메인 레이아웃 사용) --- */}
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/feed" element={<FeedListPage />} />
-                <Route path="/feed/:id" element={<FeedDetailPage />} />{' '}
-                {/* 상세 페이지 라우트 추가 */}
+                <Route path="/feed/:id" element={<FeedDetailPage />} />
                 <Route path="/match" element={<MatchPage />} />
                 <Route
                   path="/match/recommend"
@@ -83,7 +91,7 @@ function App() {
               </Route>
             </Route>
 
-            {/* 404 Not Found */}
+            {/* --- 404 Not Found --- */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AnimatePresence>
