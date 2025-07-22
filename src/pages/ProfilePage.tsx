@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import toast from 'react-hot-toast';
 import PlanPage from './PlanPage';
+import { getRepresentativePlaceImage } from '../services/backendPlacesApi';
 
 interface ModalProps {
   imageUrl: string;
@@ -176,6 +178,96 @@ const ProfilePage = () => {
     loadUserData();
   }, [userId]);
 
+  // 여행 계획 피드의 썸네일 이미지를 Google Places에서 가져오는 함수
+  useEffect(() => {
+    const updateTravelPlanImages = async () => {
+      if (!userFeeds.length) return;
+
+      const updatedFeeds = await Promise.all(
+        userFeeds.map(async (feed) => {
+          // 여행 계획 피드가 아니거나 이미 Google Places 이미지가 있으면 그대로 반환
+          if (
+            feed.type !== 'travel-plan' ||
+            (feed.image &&
+              !feed.image.includes('picsum.photos') &&
+              !feed.image.includes('unsplash.com'))
+          ) {
+            return feed;
+          }
+
+          try {
+            let destination = '';
+
+            // planId가 있으면 저장된 계획에서 목적지 가져오기
+            if (feed.planId) {
+              const savedPlan = localStorage.getItem(`plan_${feed.planId}`);
+              if (savedPlan) {
+                const planData = JSON.parse(savedPlan);
+                destination = planData.destination || planData.title || '';
+              }
+            }
+
+            // 목적지가 없으면 캡션에서 추출 시도
+            if (!destination && feed.caption) {
+              const locationMatch = feed.caption.match(/(.*?)\s*여행/);
+              destination = locationMatch ? locationMatch[1] : '';
+            }
+
+            // 목적지가 있으면 OpenAI 분석 후 백엔드를 통해 대표 랜드마크 이미지 검색
+            if (destination) {
+              console.log(
+                `${destination}의 대표 이미지를 AI 분석 후 검색 중...`,
+              );
+              const placeImage = await getRepresentativePlaceImage(destination);
+
+              if (placeImage && placeImage !== 'NO_IMAGE') {
+                console.log(`${destination} 이미지 발견:`, placeImage);
+                return {
+                  ...feed,
+                  image: placeImage,
+                };
+              } else if (placeImage === 'NO_IMAGE') {
+                console.log(
+                  `${destination}에 사용할 수 있는 이미지가 없습니다.`,
+                );
+              }
+            }
+
+            return feed;
+          } catch (error) {
+            console.error('피드 이미지 업데이트 중 오류:', error);
+            return feed;
+          }
+        }),
+      );
+
+      // 이미지가 업데이트된 경우에만 상태 업데이트
+      const hasUpdates = updatedFeeds.some(
+        (feed, index) => feed.image !== userFeeds[index].image,
+      );
+
+      if (hasUpdates) {
+        setUserFeeds(updatedFeeds);
+
+        // localStorage에도 업데이트된 피드 저장
+        const currentUserId = 'current-user';
+        const targetUserId = userId || currentUserId;
+        const isCurrentUser = targetUserId === currentUserId;
+
+        if (isCurrentUser) {
+          localStorage.setItem('myFeeds', JSON.stringify(updatedFeeds));
+        } else {
+          localStorage.setItem(
+            `userFeeds_${targetUserId}`,
+            JSON.stringify(updatedFeeds),
+          );
+        }
+      }
+    };
+
+    updateTravelPlanImages();
+  }, [userFeeds.length, userId]); // userFeeds 의존성 대신 length만 사용하여 무한 루프 방지
+
   // 샘플 피드 생성 함수
   const generateSampleFeeds = (userId: string): UserFeed[] => {
     return [
@@ -232,6 +324,82 @@ const ProfilePage = () => {
   const closeTravelPlanModal = () => {
     setTravelPlanModalOpen(false);
     setSelectedFeed(null);
+  };
+
+  // 피드 삭제 기능
+  const handleDeleteFeed = (feedId: number, feedType?: string) => {
+    const isConfirmed = window.confirm('이 게시물을 삭제하시겠습니까?');
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    try {
+      // userFeeds 상태에서 해당 피드 제거
+      const updatedFeeds = userFeeds.filter((feed) => feed.id !== feedId);
+      setUserFeeds(updatedFeeds);
+
+      // localStorage에서 사용자 피드 데이터 업데이트
+      const savedFeeds = localStorage.getItem('userFeeds');
+      if (savedFeeds) {
+        const allFeeds = JSON.parse(savedFeeds);
+        const updatedAllFeeds = allFeeds.filter(
+          (feed: UserFeed) => feed.id !== feedId,
+        );
+        localStorage.setItem('userFeeds', JSON.stringify(updatedAllFeeds));
+      }
+
+      // 여행 계획 피드인 경우 관련 데이터도 정리
+      if (feedType === 'travel-plan') {
+        const feedToDelete = userFeeds.find((feed) => feed.id === feedId);
+        if (feedToDelete?.planId) {
+          localStorage.removeItem(`plan_${feedToDelete.planId}`);
+        }
+      }
+
+      // 프로필 게시물 수 업데이트
+      if (userProfile) {
+        const updatedProfile = {
+          ...userProfile,
+          postsCount: Math.max(0, userProfile.postsCount - 1),
+        };
+        setUserProfile(updatedProfile);
+
+        // localStorage에도 반영
+        if (updatedProfile.isCurrentUser) {
+          const savedProfile = localStorage.getItem('userProfile');
+          if (savedProfile) {
+            const profileData = JSON.parse(savedProfile);
+            localStorage.setItem(
+              'userProfile',
+              JSON.stringify({
+                ...profileData,
+                postsCount: updatedProfile.postsCount,
+              }),
+            );
+          }
+        }
+      }
+
+      toast.success('게시물이 삭제되었습니다.', {
+        position: 'top-center',
+        duration: 3000,
+        style: {
+          background: '#333',
+          color: '#fff',
+        },
+      });
+    } catch (error) {
+      console.error('게시물 삭제 중 오류:', error);
+      toast.error('게시물 삭제 중 오류가 발생했습니다.', {
+        position: 'top-center',
+        duration: 3000,
+        style: {
+          background: '#f44336',
+          color: '#fff',
+        },
+      });
+    }
   };
 
   // 로딩 중
@@ -379,7 +547,13 @@ const ProfilePage = () => {
               transition={{ duration: 0.15 }}
             >
               {userFeeds.length > 0 ? (
-                <PostGrid feeds={userFeeds} onFeedClick={handleFeedClick} />
+                <PostGrid
+                  feeds={userFeeds}
+                  onFeedClick={handleFeedClick}
+                  currentUserId={userProfile.id}
+                  isCurrentUser={userProfile.isCurrentUser}
+                  onDeleteFeed={handleDeleteFeed}
+                />
               ) : (
                 <div
                   style={{
@@ -484,16 +658,41 @@ const ProfilePage = () => {
 interface PostGridProps {
   feeds: UserFeed[];
   onFeedClick: (feed: UserFeed) => void;
+  currentUserId: string;
+  isCurrentUser: boolean;
+  onDeleteFeed: (feedId: number, feedType?: string) => void;
 }
 
-const PostGrid = ({ feeds, onFeedClick }: PostGridProps) => (
+const PostGrid = ({
+  feeds,
+  onFeedClick,
+  currentUserId,
+  isCurrentUser,
+  onDeleteFeed,
+}: PostGridProps) => (
   <PostsGridContainer>
     {feeds.map((feed) => (
-      <PostItem key={feed.id} onClick={() => onFeedClick(feed)}>
+      <PostItem key={feed.id}>
         <img
           src={feed.image || `https://picsum.photos/400/400?random=${feed.id}`}
           alt={`post-${feed.id}`}
+          onClick={() => onFeedClick(feed)}
+          style={{ cursor: 'pointer' }}
         />
+
+        {/* 삭제 버튼 - 본인의 게시물에만 표시 */}
+        {isCurrentUser && (
+          <DeleteButton
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation(); // 이벤트 버블링 방지
+              onDeleteFeed(feed.id, feed.type);
+            }}
+            title="게시물 삭제"
+          >
+            ×
+          </DeleteButton>
+        )}
+
         <div
           style={{
             position: 'absolute',
@@ -511,7 +710,9 @@ const PostGrid = ({ feeds, onFeedClick }: PostGridProps) => (
             opacity: 0,
             transition: 'opacity 0.3s ease',
             borderRadius: '8px',
+            pointerEvents: 'none', // 호버 오버레이는 클릭 불가
           }}
+          className="hover-overlay"
         >
           <div
             style={{
@@ -838,7 +1039,7 @@ const PostItem = styled.div`
   }
 
   /* 호버 시 오버레이 표시 */
-  &:hover > div {
+  &:hover .hover-overlay {
     opacity: 1;
   }
 `;
@@ -1099,5 +1300,38 @@ const CreatePostButton = styled(EditProfileButton)`
 
   &:hover {
     background-color: rgba(0, 149, 246, 0.1);
+  }
+`;
+
+const DeleteButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #ff4444;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background-color: #ff4444;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  /* PostItem hover 시 표시 */
+  ${PostItem}:hover & {
+    opacity: 1;
   }
 `;

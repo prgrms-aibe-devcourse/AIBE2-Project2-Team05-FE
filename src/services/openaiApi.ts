@@ -312,6 +312,81 @@ class OpenAIService {
   }
 
   /**
+   * 여행지의 가장 대표적인 랜드마크를 분석합니다
+   */
+  async analyzeRepresentativeLandmark(destination: string): Promise<string> {
+    try {
+      if (!this.apiKey) {
+        console.warn(
+          'OpenAI API 키가 설정되지 않았습니다. 원본 목적지를 반환합니다.',
+        );
+        return destination;
+      }
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: `당신은 여행지 전문가입니다. 주어진 여행 목적지의 가장 대표적이고 상징적인 랜드마크 또는 장소 1개를 정확한 명칭으로 추천해주세요.
+
+              분석 기준:
+              1. 해당 지역을 가장 잘 나타내는 상징적인 장소
+              2. 관광객들이 가장 많이 찾는 유명한 명소
+              3. 그 지역 하면 가장 먼저 떠오르는 대표 장소
+              4. 사진으로 찍었을 때 그 지역임을 바로 알 수 있는 곳
+              5. 실제 존재하는 정확한 장소명
+
+              좋은 예시:
+              - 제주도 → "한라산" 또는 "성산일출봉"
+              - 부산 → "해운대해수욕장" 또는 "감천문화마을"
+              - 서울 → "남산서울타워" 또는 "경복궁"
+              - 경주 → "불국사" 또는 "첨성대"
+
+              주의사항:
+              - 정확한 공식 명칭 사용
+              - 1개만 추천
+              - 다른 설명 없이 장소명만 반환
+              - 존재하지 않는 가상의 장소 금지
+
+              장소명만 간단히 답변해주세요.`,
+            },
+            {
+              role: 'user',
+              content: `다음 여행지의 가장 대표적인 랜드마크나 상징적인 장소 1개를 정확한 명칭으로 추천해주세요: ${destination}`,
+            },
+          ],
+          max_tokens: 50,
+          temperature: 0.3, // 일관된 결과를 위해 낮은 temperature
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API 에러: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const landmark = data.choices[0]?.message?.content?.trim();
+
+      if (landmark && landmark.length > 0) {
+        console.log(`${destination}의 대표 랜드마크 분석 결과: ${landmark}`);
+        return landmark;
+      }
+
+      return destination; // 분석 실패시 원본 목적지 반환
+    } catch (error) {
+      console.error('대표 랜드마크 분석 중 오류:', error);
+      return destination; // 오류 발생시 원본 목적지 반환
+    }
+  }
+
+  /**
    * 기본 추천지 생성 (API 호출 실패시)
    */
   private getDefaultRecommendations(destination: string): Array<{

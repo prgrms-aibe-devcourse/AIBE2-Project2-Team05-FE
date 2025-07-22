@@ -5,6 +5,7 @@ import PlaceSearchInput from '../components/PlaceSearchInput';
 import * as S from './PlanWritePage.style';
 import PlaceMap from '../components/PlaceMap';
 import openaiService from '../services/openaiApi';
+import { getRepresentativePlaceImage } from '../services/backendPlacesApi';
 
 // 일정 항목 타입 정의
 interface ScheduleItem {
@@ -285,6 +286,44 @@ const PlanWritePage: React.FC = () => {
         // AI 분석 실패 시에도 기본 데이터로 저장 진행
       }
 
+      // Google Places에서 대표 이미지 가져오기
+      let destinationImage = generateTravelImage(formData.destination); // 기본 이미지
+
+      try {
+        toast.loading('AI가 대표 랜드마크를 분석하여 이미지를 검색 중...', {
+          id: 'image-search',
+        });
+
+        const placeImage = await getRepresentativePlaceImage(
+          formData.destination,
+        );
+        if (placeImage && placeImage !== 'NO_IMAGE') {
+          destinationImage = placeImage;
+          toast.success('AI 분석으로 완벽한 대표 이미지를 찾았습니다! 🎯', {
+            id: 'image-search',
+          });
+          console.log(
+            `${formData.destination} AI 분석 대표 이미지:`,
+            placeImage,
+          );
+        } else {
+          toast.dismiss('image-search');
+          if (placeImage === 'NO_IMAGE') {
+            console.log(
+              `${formData.destination}에 사용할 수 있는 이미지가 없어 기본 이미지를 사용합니다.`,
+            );
+          } else {
+            console.log(
+              `${formData.destination}의 이미지를 찾지 못해 기본 이미지를 사용합니다.`,
+            );
+          }
+        }
+      } catch (error) {
+        console.error('이미지 검색 중 오류:', error);
+        toast.dismiss('image-search');
+        // 기본 이미지로 계속 진행
+      }
+
       // localStorage에 여행 계획 저장
       localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
 
@@ -293,7 +332,7 @@ const PlanWritePage: React.FC = () => {
         id: parseInt(planId),
         author: authorInfo.name,
         avatar: authorInfo.profileImage,
-        image: generateTravelImage(formData.destination), // 대표 이미지 생성
+        image: destinationImage, // Google Places에서 가져온 실제 이미지
         likes: 0,
         caption: `${planData.destination} ${planData.period} 여행 계획을 세웠어요! 🏖️\n${planData.title}\n📅 ${planData.startDate} ~ ${planData.endDate}\n💰 예산: ${planData.budget}\n👥 인원: ${planData.people}`,
         type: 'travel-plan',
@@ -324,7 +363,7 @@ const PlanWritePage: React.FC = () => {
         styles: formData.styles,
         accommodation: formData.accommodation,
         transportation: formData.transportation,
-        image: generateTravelImage(formData.destination),
+        image: destinationImage, // Google Places에서 가져온 실제 이미지
         likes: 0,
         views: 0,
         status: 'recruiting', // recruiting, completed, cancelled
