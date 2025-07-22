@@ -291,16 +291,93 @@ class BackendPlacesApiService {
       return mockData;
     }
 
+    // 지역별 좌표 매핑
+    const locationCoords: { [key: string]: { lat: number; lng: number } } = {
+      // 국내 주요 도시
+      서울: { lat: 37.5665, lng: 126.978 },
+      부산: { lat: 35.1796, lng: 129.0756 },
+      대구: { lat: 35.8714, lng: 128.6014 },
+      인천: { lat: 37.4563, lng: 126.7052 },
+      광주: { lat: 35.1595, lng: 126.8526 },
+      대전: { lat: 36.3504, lng: 127.3845 },
+      울산: { lat: 35.5384, lng: 129.3114 },
+      강릉: { lat: 37.7519, lng: 128.876 },
+      제주: { lat: 33.4996, lng: 126.531 },
+      전주: { lat: 35.8242, lng: 127.148 },
+      춘천: { lat: 37.8813, lng: 127.7298 },
+      여수: { lat: 34.7604, lng: 127.6622 },
+
+      // 해외 주요 도시
+      도쿄: { lat: 35.6762, lng: 139.6503 },
+      오사카: { lat: 34.6937, lng: 135.5023 },
+      파리: { lat: 48.8566, lng: 2.3522 },
+      런던: { lat: 51.5074, lng: -0.1278 },
+      뉴욕: { lat: 40.7128, lng: -74.006 },
+      로마: { lat: 41.9028, lng: 12.4964 },
+    };
+
+    // 지역에 따른 좌표 선택
+    const coords = region
+      ? locationCoords[region] ||
+        locationCoords[
+          Object.keys(locationCoords).find((city) => region.includes(city)) ||
+            '서울'
+        ] ||
+        locationCoords['서울']
+      : locationCoords['서울'];
+
+    // 장소명에 따른 카테고리 분류
+    const getPlaceCategory = (name: string): string[] => {
+      if (
+        name.includes('역') ||
+        name.includes('터미널') ||
+        name.includes('공항')
+      )
+        return ['transit_station'];
+      if (
+        name.includes('해수욕장') ||
+        name.includes('해변') ||
+        name.includes('비치')
+      )
+        return ['natural_feature', 'tourist_attraction'];
+      if (name.includes('공원') || name.includes('산') || name.includes('폭포'))
+        return ['park', 'natural_feature'];
+      if (
+        name.includes('박물관') ||
+        name.includes('미술관') ||
+        name.includes('전시관')
+      )
+        return ['museum'];
+      if (
+        name.includes('사찰') ||
+        name.includes('성당') ||
+        name.includes('교회')
+      )
+        return ['place_of_worship'];
+      if (
+        name.includes('시장') ||
+        name.includes('마트') ||
+        name.includes('백화점')
+      )
+        return ['shopping_mall'];
+      if (name.includes('카페') || name.includes('커피')) return ['cafe'];
+      if (
+        name.includes('식당') ||
+        name.includes('국수') ||
+        name.includes('음식')
+      )
+        return ['restaurant'];
+      if (name.includes('호텔') || name.includes('숙박')) return ['lodging'];
+      return ['establishment', 'point_of_interest'];
+    };
+
     // 기본 Mock 데이터
     return {
       success: true,
       placeId: `mock_${placeName.replace(/\s+/g, '_')}`,
       name: placeName,
       formattedAddress: region ? `${region} 지역 내` : '위치 정보 확인 중',
-      geometry: {
-        lat: 37.5665,
-        lng: 126.978,
-      },
+      geometry: coords,
       photos: [
         {
           photoReference: 'mock_default_photo',
@@ -310,7 +387,7 @@ class BackendPlacesApiService {
           htmlAttributions: [],
         },
       ],
-      rating: 4.0,
+      rating: Math.round((Math.random() * 2 + 3) * 10) / 10, // 3.0 ~ 5.0 랜덤 평점
       reviews: [
         {
           authorName: '여행자',
@@ -320,7 +397,19 @@ class BackendPlacesApiService {
           relativeTimeDescription: '1일 전',
         },
       ],
-      types: ['establishment'],
+      types: getPlaceCategory(placeName),
+      openingHours: {
+        openNow: Math.random() > 0.2, // 80% 확률로 영업 중
+        weekdayText: [
+          '월요일: 오전 9:00 ~ 오후 6:00',
+          '화요일: 오전 9:00 ~ 오후 6:00',
+          '수요일: 오전 9:00 ~ 오후 6:00',
+          '목요일: 오전 9:00 ~ 오후 6:00',
+          '금요일: 오전 9:00 ~ 오후 6:00',
+          '토요일: 오전 9:00 ~ 오후 7:00',
+          '일요일: 오전 10:00 ~ 오후 6:00',
+        ],
+      },
     };
   }
 

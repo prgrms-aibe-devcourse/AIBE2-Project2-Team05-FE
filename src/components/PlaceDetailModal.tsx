@@ -44,18 +44,41 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
         region,
       );
 
+      console.log('📊 백엔드 API 응답 데이터:', details);
+
       if (details) {
+        console.log('✅ 장소 정보 수신 성공:');
+        console.log('  - 장소명:', details.name);
+        console.log('  - 주소:', details.formattedAddress);
+        console.log('  - 좌표:', details.geometry);
+        console.log('  - 사진 개수:', details.photos?.length || 0);
+        if (details.photos && details.photos.length > 0) {
+          console.log('  - 첫 번째 사진 URL:', details.photos[0].photoUrl);
+
+          // 사진 URL이 실제로 접근 가능한지 테스트
+          const testImg = new Image();
+          testImg.onload = () => console.log('✅ 사진 URL 접근 성공');
+          testImg.onerror = (err) =>
+            console.error('❌ 사진 URL 접근 실패:', err);
+          testImg.src = details.photos[0].photoUrl;
+        }
+
         setPlaceDetails(details);
 
         // 카카오맵 로드
+        console.log(
+          '🗺️ 카카오맵 로드 시작:',
+          details.geometry.lat,
+          details.geometry.lng,
+        );
         setTimeout(() => {
           loadKakaoMap(details.geometry.lat, details.geometry.lng);
         }, 100);
       } else {
-        console.error('장소 상세 정보를 가져올 수 없습니다.');
+        console.error('❌ 장소 상세 정보를 가져올 수 없습니다.');
       }
     } catch (error) {
-      console.error('장소 상세 정보 조회 실패:', error);
+      console.error('❌ 장소 상세 정보 조회 실패:', error);
     } finally {
       setLoading(false);
     }
@@ -63,10 +86,19 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
 
   // 카카오맵 로드
   const loadKakaoMap = (lat: number, lng: number) => {
-    if (!mapContainerRef.current || !window.kakao?.maps) {
-      console.warn('카카오맵 API가 로드되지 않았습니다.');
+    console.log(`🗺️ 카카오맵 로드 함수 호출: lat=${lat}, lng=${lng}`);
+
+    if (!mapContainerRef.current) {
+      console.error('❌ 지도 컨테이너 ref가 없습니다');
       return;
     }
+
+    if (!window.kakao?.maps) {
+      console.error('❌ 카카오맵 API가 로드되지 않았습니다');
+      return;
+    }
+
+    console.log('✅ 카카오맵 API 및 컨테이너 확인 완료');
 
     try {
       const mapOptions = {
@@ -74,27 +106,35 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
         level: 3, // 확대 레벨
       };
 
+      console.log('🗺️ 지도 생성 시작...');
       const map = new window.kakao.maps.Map(
         mapContainerRef.current,
         mapOptions,
       );
+      console.log('✅ 지도 생성 성공');
 
       // 마커 추가
+      console.log('📍 마커 생성 시작...');
       const markerPosition = new window.kakao.maps.LatLng(lat, lng);
       const marker = new window.kakao.maps.Marker({
         position: markerPosition,
       });
       marker.setMap(map);
+      console.log('✅ 마커 생성 및 추가 완료');
 
       // 정보창 추가
       if (placeDetails) {
+        console.log('💬 정보창 생성 시작...');
         const infoWindow = new window.kakao.maps.InfoWindow({
           content: `<div style="padding:5px; font-size:12px; text-align:center;">${placeDetails.name}</div>`,
         });
         infoWindow.open(map, marker);
+        console.log('✅ 정보창 생성 및 표시 완료');
       }
+
+      console.log('🎉 카카오맵 전체 로드 완료!');
     } catch (error) {
-      console.error('카카오맵 로드 실패:', error);
+      console.error('❌ 카카오맵 로드 실패:', error);
     }
   };
 
@@ -187,9 +227,22 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                       )}
                       alt={placeDetails.name}
                       onError={(e) => {
-                        // 이미지 로드 실패 시 Unsplash fallback
-                        (e.target as HTMLImageElement).src =
-                          `https://source.unsplash.com/600x400/?travel,korea,${encodeURIComponent(placeDetails.name)}`;
+                        console.warn(
+                          '🖼️ 구글 플레이스 이미지 로드 실패, Unsplash로 폴백:',
+                          (e.target as HTMLImageElement).src,
+                        );
+                        // 이미지 로드 실패 시 여러 단계 폴백
+                        const img = e.target as HTMLImageElement;
+                        if (img.src.includes('unsplash')) {
+                          // Unsplash도 실패한 경우 최종 폴백
+                          img.src = `https://via.placeholder.com/600x400/3682F8/FFFFFF?text=${encodeURIComponent(placeDetails.name)}`;
+                          console.warn(
+                            '🖼️ Unsplash도 실패, 플레이스홀더 이미지 사용',
+                          );
+                        } else {
+                          // 구글 이미지 실패 시 Unsplash로 폴백
+                          img.src = `https://source.unsplash.com/600x400/?travel,korea,${encodeURIComponent(placeDetails.name)}`;
+                        }
                       }}
                     />
                   </MainPhoto>
@@ -205,8 +258,18 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                             src={getPhotoUrl(photo.photoUrl)}
                             alt={`${placeDetails.name} ${index + 1}`}
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                `https://source.unsplash.com/150x100/?travel,korea`;
+                              console.warn('🖼️ 썸네일 이미지 로드 실패');
+                              const img = e.target as HTMLImageElement;
+                              if (
+                                img.src.includes('unsplash') ||
+                                img.src.includes('placeholder')
+                              ) {
+                                // 이미 폴백된 경우 기본 이미지
+                                img.src = `https://via.placeholder.com/150x100/3682F8/FFFFFF?text=No+Image`;
+                              } else {
+                                // 첫 번째 폴백
+                                img.src = `https://source.unsplash.com/150x100/?travel,korea`;
+                              }
                             }}
                           />
                         </Thumbnail>

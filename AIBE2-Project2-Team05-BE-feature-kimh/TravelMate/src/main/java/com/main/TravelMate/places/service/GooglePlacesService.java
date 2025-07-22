@@ -133,91 +133,262 @@ public class GooglePlacesService {
                 .success(true)
                 .placeId((String) place.get("id"));
             
-            // 장소명 추출
+            // 장소명 추출 (안전한 캐스팅)
             if (place.containsKey("displayName")) {
-                Map<String, Object> displayName = (Map<String, Object>) place.get("displayName");
-                if (displayName.containsKey("text")) {
-                    builder.name((String) displayName.get("text"));
+                try {
+                    Object displayNameObj = place.get("displayName");
+                    if (displayNameObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> displayName = (Map<String, Object>) displayNameObj;
+                        if (displayName.containsKey("text")) {
+                            Object textObj = displayName.get("text");
+                            if (textObj instanceof String) {
+                                builder.name((String) textObj);
+                            }
+                        }
+                    }
+                } catch (ClassCastException e) {
+                    log.warn("displayName 파싱 실패: {}", e.getMessage());
                 }
             }
             
-            // 주소 추출
-            builder.formattedAddress((String) place.get("formattedAddress"));
+            // 주소 추출 (안전한 캐스팅)
+            try {
+                Object addressObj = place.get("formattedAddress");
+                if (addressObj instanceof String) {
+                    builder.formattedAddress((String) addressObj);
+                }
+            } catch (Exception e) {
+                log.warn("formattedAddress 파싱 실패: {}", e.getMessage());
+            }
             
-            // 위치 정보 추출
+            // 위치 정보 추출 (안전한 캐스팅)
             if (place.containsKey("location")) {
-                Map<String, Object> location = (Map<String, Object>) place.get("location");
-                Double lat = (Double) location.get("latitude");
-                Double lng = (Double) location.get("longitude");
-                builder.geometry(PlaceDetailResponse.Location.builder()
-                    .lat(lat != null ? lat : 0.0)
-                    .lng(lng != null ? lng : 0.0)
-                    .build());
+                try {
+                    Object locationObj = place.get("location");
+                    if (locationObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> location = (Map<String, Object>) locationObj;
+                        
+                        Double lat = 0.0;
+                        Double lng = 0.0;
+                        
+                        if (location.get("latitude") instanceof Number) {
+                            lat = ((Number) location.get("latitude")).doubleValue();
+                        }
+                        if (location.get("longitude") instanceof Number) {
+                            lng = ((Number) location.get("longitude")).doubleValue();
+                        }
+                        
+                        builder.geometry(PlaceDetailResponse.Location.builder()
+                            .lat(lat)
+                            .lng(lng)
+                            .build());
+                    }
+                } catch (Exception e) {
+                    log.warn("location 파싱 실패: {}", e.getMessage());
+                    // 기본 좌표 설정
+                    builder.geometry(PlaceDetailResponse.Location.builder()
+                        .lat(0.0)
+                        .lng(0.0)
+                        .build());
+                }
             }
             
-            // 평점 추출
-            builder.rating((Double) place.get("rating"));
+            // 평점 추출 (안전한 캐스팅)
+            try {
+                Object ratingObj = place.get("rating");
+                if (ratingObj instanceof Number) {
+                    builder.rating(((Number) ratingObj).doubleValue());
+                }
+            } catch (Exception e) {
+                log.warn("rating 파싱 실패: {}", e.getMessage());
+            }
             
-            // 사진 정보 추출
+            // 사진 정보 추출 (안전한 캐스팅)
             if (place.containsKey("photos")) {
-                List<Map<String, Object>> photos = (List<Map<String, Object>>) place.get("photos");
-                List<PlaceDetailResponse.Photo> photoList = new ArrayList<>();
-                for (Map<String, Object> photo : photos) {
-                    String photoName = (String) photo.get("name");
-                    String photoUrl = generateNewPhotoUrl(photoName);
-                    Integer height = (Integer) photo.get("heightPx");
-                    Integer width = (Integer) photo.get("widthPx");
-                    
-                    photoList.add(PlaceDetailResponse.Photo.builder()
-                        .photoReference(photoName)
-                        .photoUrl(photoUrl)
-                        .height(height != null ? height : 400)
-                        .width(width != null ? width : 400)
-                        .htmlAttributions(new ArrayList<>())
-                        .build());
+                try {
+                    Object photosObj = place.get("photos");
+                    if (photosObj instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> photosRaw = (List<Object>) photosObj;
+                        List<PlaceDetailResponse.Photo> photoList = new ArrayList<>();
+                        
+                        for (Object photoObj : photosRaw) {
+                            if (photoObj instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> photo = (Map<String, Object>) photoObj;
+                                
+                                Object nameObj = photo.get("name");
+                                if (nameObj instanceof String) {
+                                    String photoName = (String) nameObj;
+                                    String photoUrl = generateNewPhotoUrl(photoName);
+                                    
+                                    Integer height = 400;
+                                    Integer width = 400;
+                                    
+                                    if (photo.get("heightPx") instanceof Number) {
+                                        height = ((Number) photo.get("heightPx")).intValue();
+                                    }
+                                    if (photo.get("widthPx") instanceof Number) {
+                                        width = ((Number) photo.get("widthPx")).intValue();
+                                    }
+                                    
+                                    photoList.add(PlaceDetailResponse.Photo.builder()
+                                        .photoReference(photoName)
+                                        .photoUrl(photoUrl)
+                                        .height(height)
+                                        .width(width)
+                                        .htmlAttributions(new ArrayList<>())
+                                        .build());
+                                }
+                            }
+                        }
+                        builder.photos(photoList);
+                    }
+                } catch (Exception e) {
+                    log.warn("photos 파싱 실패: {}", e.getMessage());
                 }
-                builder.photos(photoList);
             }
             
-            // 리뷰 정보 추출
+            // 리뷰 정보 추출 (안전한 캐스팅)
             if (place.containsKey("reviews")) {
-                List<Map<String, Object>> reviews = (List<Map<String, Object>>) place.get("reviews");
-                List<PlaceDetailResponse.Review> reviewList = new ArrayList<>();
-                for (Map<String, Object> review : reviews) {
-                    Map<String, Object> authorAttribution = (Map<String, Object>) review.get("authorAttribution");
-                    String authorName = authorAttribution != null ? (String) authorAttribution.get("displayName") : "익명";
-                    
-                    reviewList.add(PlaceDetailResponse.Review.builder()
-                        .authorName(authorName)
-                        .rating((Integer) review.get("rating"))
-                        .text((String) review.get("text"))
-                        .time(System.currentTimeMillis())
-                        .relativeTimeDescription((String) review.get("relativePublishTimeDescription"))
-                        .build());
+                try {
+                    Object reviewsObj = place.get("reviews");
+                    if (reviewsObj instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> reviewsRaw = (List<Object>) reviewsObj;
+                        List<PlaceDetailResponse.Review> reviewList = new ArrayList<>();
+                        
+                        for (Object reviewObj : reviewsRaw) {
+                            if (reviewObj instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> review = (Map<String, Object>) reviewObj;
+                                
+                                String authorName = "익명";
+                                Object authorAttrObj = review.get("authorAttribution");
+                                if (authorAttrObj instanceof Map) {
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> authorAttribution = (Map<String, Object>) authorAttrObj;
+                                    Object nameObj = authorAttribution.get("displayName");
+                                    if (nameObj instanceof String) {
+                                        authorName = (String) nameObj;
+                                    }
+                                }
+                                
+                                Integer rating = 5;
+                                if (review.get("rating") instanceof Number) {
+                                    rating = ((Number) review.get("rating")).intValue();
+                                }
+                                
+                                String reviewText = "";
+                                Object textObj = review.get("text");
+                                if (textObj instanceof String) {
+                                    reviewText = (String) textObj;
+                                } else if (textObj instanceof Map) {
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> textMap = (Map<String, Object>) textObj;
+                                    Object innerTextObj = textMap.get("text");
+                                    if (innerTextObj instanceof String) {
+                                        reviewText = (String) innerTextObj;
+                                    }
+                                }
+                                
+                                String timeDescription = "최근";
+                                Object timeDescObj = review.get("relativePublishTimeDescription");
+                                if (timeDescObj instanceof String) {
+                                    timeDescription = (String) timeDescObj;
+                                }
+                                
+                                reviewList.add(PlaceDetailResponse.Review.builder()
+                                    .authorName(authorName)
+                                    .rating(rating)
+                                    .text(reviewText)
+                                    .time(System.currentTimeMillis())
+                                    .relativeTimeDescription(timeDescription)
+                                    .build());
+                            }
+                        }
+                        builder.reviews(reviewList);
+                    }
+                } catch (Exception e) {
+                    log.warn("reviews 파싱 실패: {}", e.getMessage());
                 }
-                builder.reviews(reviewList);
             }
             
-            // 전화번호
-            builder.formattedPhoneNumber((String) place.get("nationalPhoneNumber"));
+            // 전화번호 (안전한 캐스팅)
+            try {
+                Object phoneObj = place.get("nationalPhoneNumber");
+                if (phoneObj instanceof String) {
+                    builder.formattedPhoneNumber((String) phoneObj);
+                }
+            } catch (Exception e) {
+                log.warn("nationalPhoneNumber 파싱 실패: {}", e.getMessage());
+            }
             
-            // 웹사이트
-            builder.website((String) place.get("websiteUri"));
+            // 웹사이트 (안전한 캐스팅)
+            try {
+                Object websiteObj = place.get("websiteUri");
+                if (websiteObj instanceof String) {
+                    builder.website((String) websiteObj);
+                }
+            } catch (Exception e) {
+                log.warn("websiteUri 파싱 실패: {}", e.getMessage());
+            }
             
-            // 운영시간 정보 추출
+            // 운영시간 정보 추출 (안전한 캐스팅)
             if (place.containsKey("regularOpeningHours")) {
-                Map<String, Object> openingHours = (Map<String, Object>) place.get("regularOpeningHours");
-                Boolean openNow = (Boolean) openingHours.get("openNow");
-                List<String> weekdayText = (List<String>) openingHours.get("weekdayDescriptions");
-                
-                builder.openingHours(PlaceDetailResponse.OpeningHours.builder()
-                    .openNow(openNow != null ? openNow : false)
-                    .weekdayText(weekdayText != null ? weekdayText : new ArrayList<>())
-                    .build());
+                try {
+                    Object openingHoursObj = place.get("regularOpeningHours");
+                    if (openingHoursObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> openingHours = (Map<String, Object>) openingHoursObj;
+                        
+                        Boolean openNow = false;
+                        Object openNowObj = openingHours.get("openNow");
+                        if (openNowObj instanceof Boolean) {
+                            openNow = (Boolean) openNowObj;
+                        }
+                        
+                        List<String> weekdayText = new ArrayList<>();
+                        Object weekdayTextObj = openingHours.get("weekdayDescriptions");
+                        if (weekdayTextObj instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<Object> weekdayRaw = (List<Object>) weekdayTextObj;
+                            for (Object day : weekdayRaw) {
+                                if (day instanceof String) {
+                                    weekdayText.add((String) day);
+                                }
+                            }
+                        }
+                        
+                        builder.openingHours(PlaceDetailResponse.OpeningHours.builder()
+                            .openNow(openNow)
+                            .weekdayText(weekdayText)
+                            .build());
+                    }
+                } catch (Exception e) {
+                    log.warn("openingHours 파싱 실패: {}", e.getMessage());
+                }
             }
             
-            // 장소 유형
-            builder.types((List<String>) place.get("types"));
+            // 장소 유형 (안전한 캐스팅)
+            try {
+                Object typesObj = place.get("types");
+                if (typesObj instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> typesRaw = (List<Object>) typesObj;
+                    List<String> typesList = new ArrayList<>();
+                    for (Object type : typesRaw) {
+                        if (type instanceof String) {
+                            typesList.add((String) type);
+                        }
+                    }
+                    builder.types(typesList);
+                }
+            } catch (Exception e) {
+                log.warn("types 파싱 실패: {}", e.getMessage());
+            }
             
             return builder.build();
             
