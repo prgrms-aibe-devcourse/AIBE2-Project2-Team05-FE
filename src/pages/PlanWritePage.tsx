@@ -5,6 +5,9 @@ import PlaceSearchInput from '../components/PlaceSearchInput';
 import * as S from './PlanWritePage.style';
 import PlaceMap from '../components/PlaceMap';
 import openaiService from '../services/openaiApi';
+import matePostService from '../services/matePostService';
+import { getDestinationRepresentativeImage } from '../services/backendPlacesApi'; // 백엔드 구글 플레이스 API 추가
+import { AIRecommendationData } from '../types/plan';
 
 // 일정 항목 타입 정의
 interface ScheduleItem {
@@ -285,6 +288,130 @@ const PlanWritePage: React.FC = () => {
         // AI 분석 실패 시에도 기본 데이터로 저장 진행
       }
 
+      // AI 추천 장소 생성 (한 번만 생성하여 저장)
+      toast.loading('AI 맞춤 추천 장소를 생성하는 중...', {
+        id: 'ai-recommendations',
+      });
+
+      try {
+        console.log(
+          '🤖 여행 플랜용 AI 추천 장소 생성 시작:',
+          formData.destination,
+        );
+
+        // 방문 예정 장소 추출
+        const visitedPlaces = Object.values(formData.schedules)
+          .flat()
+          .map((item) => item.place)
+          .filter((place) => place && place.trim() !== '');
+
+        if (visitedPlaces.length > 0) {
+          // 간단한 여행 계획 객체 구성
+          const simplePlan = {
+            days: [
+              {
+                events: visitedPlaces.map((place, index) => ({
+                  id: index + 1,
+                  location: place,
+                  startTime: '09:00',
+                  endTime: '12:00',
+                })),
+              },
+            ],
+          };
+
+          const aiRecommendations =
+            await openaiService.generateNearbyRecommendations(
+              formData.destination,
+              formData.styles || ['관광'],
+              simplePlan,
+            );
+
+          // AI 추천 데이터를 planData에 저장
+          const aiRecommendationData: AIRecommendationData = {
+            recommendations: aiRecommendations,
+            generatedAt: new Date().toISOString(),
+            destination: formData.destination,
+            visitedPlaces: visitedPlaces,
+            travelStyles: formData.styles || ['관광'],
+          };
+
+          planData.aiRecommendations = aiRecommendationData;
+
+          toast.success(
+            `✅ AI 추천 완료! ${aiRecommendations.length}개의 맞춤 장소를 추천받았습니다.`,
+            { id: 'ai-recommendations' },
+          );
+          console.log(
+            '🎉 AI 추천 장소 생성 완료:',
+            aiRecommendations.length,
+            '개',
+          );
+        } else {
+          console.warn('⚠️ 방문 예정 장소가 없어 AI 추천을 생성하지 않습니다.');
+          toast.dismiss('ai-recommendations');
+        }
+      } catch (error) {
+        console.error('AI 추천 장소 생성 중 오류:', error);
+        toast.dismiss('ai-recommendations');
+        toast.error('AI 추천 생성에 실패했습니다. 나중에 다시 시도해주세요.');
+        // AI 추천 실패해도 여행 계획 저장은 진행
+      }
+
+      // 구글 플레이스 API를 통해 대표 이미지 가져오기 (필수)
+      toast.loading('여행지 대표 이미지를 불러오는 중...', {
+        id: 'place-image',
+      });
+
+      let destinationImageUrl = '';
+
+      try {
+        console.log(
+          `🔍 구글 플레이스 API로 이미지 검색: ${formData.destination}`,
+        );
+
+        const imageUrl = await getDestinationRepresentativeImage(
+          formData.destination,
+        );
+
+        if (imageUrl && imageUrl !== 'NO_IMAGE') {
+          destinationImageUrl = imageUrl;
+          planData.imageUrl = imageUrl;
+
+          toast.success('✅ 구글 플레이스에서 대표 이미지를 가져왔습니다!', {
+            id: 'place-image',
+          });
+          console.log(
+            `✅ 구글 플레이스 이미지 성공: ${formData.destination} -> ${imageUrl}`,
+          );
+        } else {
+          // 구글 플레이스에서 이미지를 찾지 못한 경우
+          destinationImageUrl = getPlaceholderImageUrl(formData.destination);
+          planData.imageUrl = destinationImageUrl;
+
+          toast.success('기본 이미지로 설정되었습니다.', {
+            id: 'place-image',
+          });
+          console.warn(
+            `⚠️ 구글 플레이스에서 이미지 없음, placeholder 사용: ${formData.destination}`,
+          );
+        }
+      } catch (error) {
+        console.error('구글 플레이스 API 오류:', error);
+
+        // API 실패시 placeholder 이미지 사용
+        destinationImageUrl = getPlaceholderImageUrl(formData.destination);
+        planData.imageUrl = destinationImageUrl;
+
+        toast.dismiss('place-image');
+        toast.error(
+          '구글 플레이스 API 오류가 발생했습니다. 기본 이미지를 사용합니다.',
+        );
+        console.error(
+          `❌ 구글 플레이스 API 실패, placeholder 사용: ${formData.destination} -> ${destinationImageUrl}`,
+        );
+      }
+
       // localStorage에 여행 계획 저장
       localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
 
@@ -293,7 +420,7 @@ const PlanWritePage: React.FC = () => {
         id: parseInt(planId),
         author: authorInfo.name,
         avatar: authorInfo.profileImage,
-        image: generateTravelImage(formData.destination), // 대표 이미지 생성
+        image: destinationImageUrl, // 구글 플레이스 API 또는 placeholder 이미지 사용
         likes: 0,
         caption: `${planData.destination} ${planData.period} 여행 계획을 세웠어요! 🏖️\n${planData.title}\n📅 ${planData.startDate} ~ ${planData.endDate}\n💰 예산: ${planData.budget}\n👥 인원: ${planData.people}`,
         type: 'travel-plan',
@@ -301,57 +428,64 @@ const PlanWritePage: React.FC = () => {
         createdAt: planData.createdAt,
       };
 
-      // 2. 메이트 찾기 데이터 생성
-      const mateData = {
-        id: parseInt(planId),
-        userId: currentUserId,
-        userName: authorInfo.name,
-        userAvatar: authorInfo.profileImage,
-        title: planData.title,
-        destination: planData.destination,
-        startDate: planData.startDate,
-        endDate: planData.endDate,
-        period: planData.period,
-        budget: planData.budget,
-        currentPeople: 1, // 작성자 본인
-        maxPeople: parseInt(String(formData.people)),
-        preferences: {
-          gender: formData.preferredGender,
-          age: formData.preferredAge,
-          language: formData.preferredLanguage,
-          memo: formData.matchingMemo,
-        },
-        styles: formData.styles,
-        accommodation: formData.accommodation,
-        transportation: formData.transportation,
-        image: generateTravelImage(formData.destination),
-        likes: 0,
-        views: 0,
-        status: 'recruiting', // recruiting, completed, cancelled
-        createdAt: planData.createdAt,
-        tags: generateTags(formData.destination, formData.styles),
-      };
-
-      // 3. 프로필 피드에 저장 (현재 사용자)
+      // 2. 프로필 피드에 저장 (현재 사용자)
       const existingFeeds = JSON.parse(localStorage.getItem('myFeeds') || '[]');
       const updatedFeeds = [profileFeedData, ...existingFeeds];
       localStorage.setItem('myFeeds', JSON.stringify(updatedFeeds));
 
-      // 4. 메이트 찾기에 저장
-      const existingMatePosts = JSON.parse(
-        localStorage.getItem('matePosts') || '[]',
-      );
-      const updatedMatePosts = [mateData, ...existingMatePosts];
-      localStorage.setItem('matePosts', JSON.stringify(updatedMatePosts));
+      // 3. 여행메이트 찾기 자동 등록/해제 (새로운 서비스 사용)
+      try {
+        console.log('🎯 여행메이트 등록 시도:', {
+          matchingEnabled: formData.matchingEnabled,
+          planId: planId,
+          planTitle: planData.title,
+          planDestination: planData.destination,
+        });
 
-      // 5. 개별 계획 저장 (다른 사용자가 참조할 수 있도록)
+        const mateRegistrationSuccess = matePostService.autoRegisterMatePost(
+          planData,
+          formData.matchingEnabled,
+        );
+
+        if (mateRegistrationSuccess && formData.matchingEnabled) {
+          console.log('✅ 여행메이트 찾기에 성공적으로 등록되었습니다.');
+
+          // 등록 확인
+          const allMatePosts = matePostService.getAllMatePosts();
+          console.log(
+            '📋 현재 등록된 여행메이트 포스트 수:',
+            allMatePosts.length,
+          );
+
+          const myMatePost = allMatePosts.find(
+            (post) => post.planId === planId,
+          );
+          if (myMatePost) {
+            console.log('🎉 방금 등록한 포스트 확인됨:', myMatePost);
+          } else {
+            console.warn('⚠️ 등록한 포스트를 찾을 수 없습니다.');
+          }
+        } else if (mateRegistrationSuccess && !formData.matchingEnabled) {
+          console.log('🚫 여행메이트 찾기 등록이 해제되었습니다.');
+        } else {
+          console.warn('❌ 여행메이트 등록에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('여행메이트 등록 처리 중 오류:', error);
+        // 메이트 등록 실패해도 계획 저장은 진행
+      }
+
+      // 4. 개별 계획 저장 (다른 사용자가 참조할 수 있도록)
       localStorage.setItem(`plan_${planId}`, JSON.stringify(planData));
 
-      toast.success(
-        isEditMode
-          ? '여행 계획이 수정되었습니다!'
-          : '여행 계획이 작성되었습니다! 🎉\n✅ 프로필에 추가됨\n✅ 메이트 찾기에 등록됨',
-      );
+      // 성공 메시지 생성
+      const successMessage = isEditMode
+        ? '여행 계획이 수정되었습니다!'
+        : formData.matchingEnabled
+          ? '여행 계획이 작성되었습니다! 🎉\n✅ 프로필에 추가됨\n✅ 메이트 찾기에 등록됨'
+          : '여행 계획이 작성되었습니다! 🎉\n✅ 프로필에 추가됨';
+
+      toast.success(successMessage);
 
       // 계획 보기 페이지로 이동
       navigate('/plan');
@@ -497,27 +631,75 @@ const PlanWritePage: React.FC = () => {
     return true;
   };
 
-  // 여행지 기반 대표 이미지 생성
-  const generateTravelImage = (destination: string): string => {
-    const imageMap: { [key: string]: string } = {
-      제주도:
-        'https://images.unsplash.com/photo-1539650116574-75c0c6d3e81b?w=400',
-      부산: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
-      서울: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      강릉: 'https://images.unsplash.com/photo-1578552913303-d9bc48a05eba?w=400',
-      여수: 'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=400',
-      경주: 'https://images.unsplash.com/photo-1578498720135-6b3ec66bd7e8?w=400',
+  // 여행지별 placeholder 이미지 반환 함수 (구글 플레이스 API 실패 시 사용)
+  const getPlaceholderImageUrl = (destination: string): string => {
+    // 목적지별 placeholder 이미지 맵핑
+    const placeholderImageMap: { [key: string]: string } = {
+      // 국내 도시들
+      제주도: 'https://via.placeholder.com/800x600/4A90E2/FFFFFF?text=Jeju',
+      제주: 'https://via.placeholder.com/800x600/4A90E2/FFFFFF?text=Jeju',
+      부산: 'https://via.placeholder.com/800x600/2ECC71/FFFFFF?text=Busan',
+      서울: 'https://via.placeholder.com/800x600/E74C3C/FFFFFF?text=Seoul',
+      강릉: 'https://via.placeholder.com/800x600/3498DB/FFFFFF?text=Gangneung',
+      전주: 'https://via.placeholder.com/800x600/F39C12/FFFFFF?text=Jeonju',
+      여수: 'https://via.placeholder.com/800x600/1ABC9C/FFFFFF?text=Yeosu',
+      경주: 'https://via.placeholder.com/800x600/8E44AD/FFFFFF?text=Gyeongju',
+      인천: 'https://via.placeholder.com/800x600/16A085/FFFFFF?text=Incheon',
+      대구: 'https://via.placeholder.com/800x600/F1C40F/FFFFFF?text=Daegu',
+      광주: 'https://via.placeholder.com/800x600/E67E22/FFFFFF?text=Gwangju',
+      울산: 'https://via.placeholder.com/800x600/2980B9/FFFFFF?text=Ulsan',
+      춘천: 'https://via.placeholder.com/800x600/27AE60/FFFFFF?text=Chuncheon',
+      속초: 'https://via.placeholder.com/800x600/D35400/FFFFFF?text=Sokcho',
+
+      // 해외 지역들
+      일본: 'https://via.placeholder.com/800x600/9B59B6/FFFFFF?text=Japan',
+      도쿄: 'https://via.placeholder.com/800x600/9B59B6/FFFFFF?text=Tokyo',
+      오사카: 'https://via.placeholder.com/800x600/8E44AD/FFFFFF?text=Osaka',
+      교토: 'https://via.placeholder.com/800x600/9B59B6/FFFFFF?text=Kyoto',
+
+      유럽: 'https://via.placeholder.com/800x600/34495E/FFFFFF?text=Europe',
+      파리: 'https://via.placeholder.com/800x600/34495E/FFFFFF?text=Paris',
+      런던: 'https://via.placeholder.com/800x600/2C3E50/FFFFFF?text=London',
+      로마: 'https://via.placeholder.com/800x600/7F8C8D/FFFFFF?text=Rome',
+      바르셀로나:
+        'https://via.placeholder.com/800x600/95A5A6/FFFFFF?text=Barcelona',
+      암스테르담:
+        'https://via.placeholder.com/800x600/34495E/FFFFFF?text=Amsterdam',
+
+      미국: 'https://via.placeholder.com/800x600/C0392B/FFFFFF?text=USA',
+      뉴욕: 'https://via.placeholder.com/800x600/C0392B/FFFFFF?text=NewYork',
+      로스앤젤레스: 'https://via.placeholder.com/800x600/E74C3C/FFFFFF?text=LA',
+      샌프란시스코: 'https://via.placeholder.com/800x600/EC7063/FFFFFF?text=SF',
+      라스베이거스:
+        'https://via.placeholder.com/800x600/F1948A/FFFFFF?text=Vegas',
+
+      중국: 'https://via.placeholder.com/800x600/A93226/FFFFFF?text=China',
+      베이징: 'https://via.placeholder.com/800x600/A93226/FFFFFF?text=Beijing',
+      상하이: 'https://via.placeholder.com/800x600/CB4335/FFFFFF?text=Shanghai',
+      홍콩: 'https://via.placeholder.com/800x600/D5DBDB/FFFFFF?text=HongKong',
+
+      동남아시아:
+        'https://via.placeholder.com/800x600/229954/FFFFFF?text=SEAsia',
+      태국: 'https://via.placeholder.com/800x600/229954/FFFFFF?text=Thailand',
+      방콕: 'https://via.placeholder.com/800x600/27AE60/FFFFFF?text=Bangkok',
+      싱가포르:
+        'https://via.placeholder.com/800x600/2ECC71/FFFFFF?text=Singapore',
+      베트남: 'https://via.placeholder.com/800x600/58D68D/FFFFFF?text=Vietnam',
+      하노이: 'https://via.placeholder.com/800x600/58D68D/FFFFFF?text=Hanoi',
+      호치민:
+        'https://via.placeholder.com/800x600/7DCEA0/FFFFFF?text=HoChiMinh',
+
+      호주: 'https://via.placeholder.com/800x600/148F77/FFFFFF?text=Australia',
+      시드니: 'https://via.placeholder.com/800x600/148F77/FFFFFF?text=Sydney',
+      멜버른:
+        'https://via.placeholder.com/800x600/1ABC9C/FFFFFF?text=Melbourne',
     };
 
-    // 목적지 키워드로 매칭, 없으면 랜덤 여행 이미지
-    for (const [keyword, imageUrl] of Object.entries(imageMap)) {
-      if (destination.includes(keyword)) {
-        return imageUrl;
-      }
-    }
-
-    // 기본 여행 이미지
-    return `https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=80`;
+    // 기본 이미지
+    return (
+      placeholderImageMap[destination] ||
+      'https://via.placeholder.com/800x600/95A5A6/FFFFFF?text=Travel'
+    );
   };
 
   // 태그 생성 함수

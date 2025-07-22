@@ -1,3 +1,7 @@
+import webSearchService from './webSearchService';
+import kakaoMapService from './kakaoMapService';
+import type { KakaoPlace, CategorySearchResult } from './kakaoMapService';
+
 // OpenAI API 연동 서비스
 class OpenAIService {
   private apiKey: string;
@@ -6,6 +10,21 @@ class OpenAIService {
   constructor() {
     // 환경변수에서 API 키를 가져옴 (개발 환경에서는 .env 파일 사용)
     this.apiKey = process.env.REACT_APP_OPENAI_API_KEY || '';
+
+    // 디버깅용 로그 (보안상 키의 처음 몇 글자만 표시)
+    if (this.apiKey) {
+      console.log(
+        '🔑 OpenAI API 키 로드됨:',
+        this.apiKey.substring(0, 7) + '...',
+      );
+      if (!this.apiKey.startsWith('sk-')) {
+        console.warn('⚠️ OpenAI API 키 형식 오류: sk-로 시작해야 합니다');
+      }
+    } else {
+      console.warn(
+        '⚠️ OpenAI API 키가 없습니다. REACT_APP_OPENAI_API_KEY 환경변수를 확인하세요',
+      );
+    }
   }
 
   /**
@@ -93,7 +112,9 @@ class OpenAIService {
   }
 
   /**
-   * 여행지 근처 가볼만한 곳 추천
+   * 여행지 근처 가볼만한 곳 추천 (카카오맵 검색 + AI 판단)
+   * 1. 목적지 근처에서 카테고리별로 카카오맵 API 키워드검색 실시
+   * 2. 리스트업 하고 OpenAI가 판단해서 적당한거 3개로 추림
    */
   async generateNearbyRecommendations(
     destination: string,
@@ -105,21 +126,114 @@ class OpenAIService {
       description: string;
       category: string;
       distance: string;
+      verified: boolean;
+      source?: string;
     }>
   > {
     try {
-      if (!this.apiKey) {
-        console.warn(
-          'OpenAI API 키가 설정되지 않았습니다. 기본 추천지를 반환합니다.',
-        );
-        return this.getDefaultRecommendations(destination);
-      }
+      console.log('🔍 카카오맵 검색 + AI 분석을 통한 실제 장소 추천 시작...');
+      console.log(`📍 목적지: ${destination}`);
+      console.log(`🎯 여행 스타일: ${travelStyle.join(', ')}`);
 
-      const styleText = travelStyle.join(', ');
+      // 여행 계획에서 방문 예정 장소들 추출
       const visitedPlaces = this.extractPlacesFromPlan({
         destination,
         days: travelPlan.days,
       });
+
+      console.log(`🗺️ 방문 예정 장소들: ${visitedPlaces.join(', ')}`);
+
+      // 1단계: 카카오맵 API로 카테고리별 키워드 검색
+      console.log('🔍 카카오맵 키워드 검색 시작...');
+
+      const searchResults = await kakaoMapService.searchPlacesByCategory(
+        destination,
+        ['restaurant', 'activity', 'attraction'],
+      );
+
+      // 검색 결과 로깅
+      searchResults.forEach((result) => {
+        console.log(
+          `📍 ${result.category}: ${result.places.length}개 장소 발견`,
+        );
+      });
+
+      // 검색 결과가 충분하지 않은 경우 기본 추천 사용
+      const totalPlaces = searchResults.reduce(
+        (sum, result) => sum + result.places.length,
+        0,
+      );
+
+      if (totalPlaces === 0) {
+        console.warn('⚠️ 카카오맵 검색 결과가 없어 기본 추천을 사용합니다.');
+        return this.getDefaultRecommendations(destination);
+      }
+
+      // 2단계: OpenAI가 각 카테고리에서 최적의 3개씩 선별
+      console.log('🤖 OpenAI 장소 선별 분석 시작...');
+
+      const selectedRecommendations = await this.selectBestPlacesWithAI(
+        searchResults,
+        destination,
+        travelStyle,
+        visitedPlaces,
+      );
+
+      if (selectedRecommendations.length > 0) {
+        console.log(
+          `✅ AI 분석 완료, ${selectedRecommendations.length}개의 최적화된 추천 생성됨`,
+        );
+        return selectedRecommendations;
+      } else {
+        console.warn('⚠️ AI 선별 결과가 없어 기본 추천을 사용합니다.');
+        return this.getDefaultRecommendations(destination);
+      }
+    } catch (error) {
+      console.error('🚨 근처 장소 추천 중 오류:', error);
+
+      // 에러 타입에 따른 처리
+      if (error instanceof Error) {
+        if (error.message.includes('카카오맵')) {
+          console.error('카카오맵 API 오류:', error.message);
+        } else if (error.message.includes('OpenAI')) {
+          console.error('OpenAI API 오류:', error.message);
+        }
+      }
+
+      // 항상 기본 추천을 반환하여 사용자 경험 유지
+      console.log('🛡️ 기본 추천으로 대체합니다.');
+      return this.getDefaultRecommendations(destination);
+    }
+  }
+
+  /**
+   * OpenAI가 카카오맵 검색 결과에서 최적의 장소들을 선별
+   */
+  private async selectBestPlacesWithAI(
+    searchResults: CategorySearchResult[],
+    destination: string,
+    travelStyle: string[],
+    visitedPlaces: string[],
+  ): Promise<
+    Array<{
+      name: string;
+      description: string;
+      category: string;
+      distance: string;
+      verified: boolean;
+      source: string;
+    }>
+  > {
+    if (!this.apiKey) {
+      console.warn('OpenAI API 키가 없어 첫 번째 결과들을 반환합니다.');
+      return this.formatKakaoSearchResults(searchResults);
+    }
+
+    try {
+      // 검색 결과를 AI 분석용 텍스트로 포맷
+      const searchResultsText = this.formatKakaoResultsForAI(searchResults);
+      const styleText =
+        travelStyle.length > 0 ? travelStyle.join(', ') : '일반 관광';
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -128,77 +242,222 @@ class OpenAIService {
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o', // 더 정확한 판단을 위해 GPT-4 사용
           messages: [
             {
               role: 'system',
-              content: `당신은 현지 여행 가이드 전문가입니다. 주어진 여행 목적지와 실제 방문 예정 장소들을 분석해서, 그 근처에 있는 실제 존재하는 가볼만한 곳을 카테고리별로 정확히 9개 추천해주세요.
+              content: `당신은 여행 추천 전문가입니다. 카카오맵에서 검색된 실제 존재하는 장소들을 분석해서, 주어진 여행 계획과 스타일에 가장 적합한 장소들을 카테고리별로 정확히 3개씩 선별해주세요.
 
-              추천 기준:
-              1. 실제 방문 예정 장소들과 가까운 거리에 위치
-              2. 현지에서 실제로 운영되고 있는 검증된 장소들만 추천
-              3. 온라인에서 찾을 수 있고 실제 방문 가능한 곳들
-              4. 여행 스타일과 일정에 맞는 장소들 우선 선택
+⚠️ 중요한 원칙:
+1. 반드시 제공된 카카오맵 검색 결과에서만 선별할 것
+2. 각 장소의 실제 이름을 정확히 그대로 사용할 것
+3. 카테고리별로 정확히 3개씩 선별 (총 9개)
+4. 여행 스타일과 방문 예정 장소와의 연관성 고려
 
-              카테고리별 추천 개수:
-              - 맛집: 3개 (현지 특산 음식, 유명 맛집, 카페/디저트)
-              - 액티비티: 3개 (체험 프로그램, 스포츠, 레저 활동)
-              - 관광명소: 3개 (유명 명소, 문화재, 자연 경관)
+선별 기준:
+1. 방문 예정 장소들과의 접근성 및 연관성
+2. 여행 스타일과의 부합성 (${styleText})
+3. 장소의 인기도 및 특별함
+4. 여행 일정과의 조화
 
-              다음 형식으로 JSON 배열로 응답해주세요:
-              [
-                {
-                  "name": "실제 장소명 (정확한 이름)",
-                  "description": "간단한 설명 (1-2문장, 왜 추천하는지 포함)",
-                  "category": "맛집|액티비티|관광명소",
-                  "distance": "방문 예정지로부터의 거리 (예: 도보 10분, 차량 30분)"
-                }
-              ]
+카테고리별 선별:
+- 맛집(restaurant): 3개 선별 
+- 액티비티(activity): 3개 선별
+- 관광명소(attraction): 3개 선별
 
-              주의사항:
-              - 반드시 실제 존재하는 장소만 추천
-              - 가상의 장소나 일반적인 설명은 금지
-              - 장소명은 정확하고 구체적으로 작성
-              - 각 카테고리마다 정확히 3개씩 총 9개
-              - 방문 예정 장소들과의 접근성 고려
-
-              정확히 9개의 장소만 JSON 형태로 반환하고, 다른 설명은 하지 마세요.`,
+다음 형식으로 JSON 배열로 응답해주세요:
+[
+  {
+    "name": "카카오맵에서 검색된 실제 장소명",
+    "description": "이 장소의 특징과 추천 이유 (50자 내외)",
+    "category": "restaurant|activity|attraction",
+    "distance": "예상 접근성 (도보 10분, 차량 15분 등)",
+    "verified": true,
+    "source": "kakao_map"
+  }
+]`,
             },
             {
               role: 'user',
-              content: `주요 목적지: ${destination}
-              실제 방문 예정 장소들: ${visitedPlaces.join(', ')}
-              여행 스타일: ${styleText}
-              
-              위 정보를 바탕으로 방문 예정 장소들 근처의 실제 존재하는 맛집 3개, 액티비티 3개, 관광명소 3개를 추천해주세요.`,
+              content: `목적지: ${destination}
+여행 스타일: ${styleText}
+방문 예정 장소들: ${visitedPlaces.join(', ')}
+
+카카오맵 검색 결과:
+${searchResultsText}
+
+📝 요청사항:
+위 카카오맵 검색 결과에서 여행 계획에 가장 적합한 장소들을 카테고리별로 3개씩 선별해주세요.
+반드시 검색 결과에 있는 실제 장소명을 그대로 사용하고, 총 9개를 선별해주세요.`,
             },
           ],
-          max_tokens: 1200,
-          temperature: 0.7,
+          response_format: { type: 'json_object' },
+          temperature: 0.3, // 일관성있는 선별을 위해 낮은 temperature
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API 에러: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`🚨 OpenAI API 오류 (${response.status}):`, errorText);
+
+        // API 키 문제인 경우 자세한 안내
+        if (response.status === 401) {
+          console.error('❌ OpenAI API 인증 실패. API 키를 확인하세요.');
+          console.error('💡 해결 방법:');
+          console.error(
+            '   1. .env 파일에 REACT_APP_OPENAI_API_KEY=sk-xxx 형식으로 추가',
+          );
+          console.error('   2. API 키가 유효하고 크레딧이 남아있는지 확인');
+          console.error('   3. 앱을 다시 시작 (npm start)');
+        }
+
+        // fallback: 기본 추천 결과 반환
+        console.log('🔄 OpenAI API 실패로 인해 기본 추천 결과를 반환합니다');
+        return this.getFallbackRecommendations(searchResults, destination);
       }
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content;
 
+      if (!content) {
+        throw new Error('OpenAI 응답이 비어있습니다');
+      }
+
+      console.log('🤖 OpenAI 선별 결과:', content);
+
       try {
-        // JSON 파싱 시도
-        const recommendations = JSON.parse(content);
-        return Array.isArray(recommendations)
-          ? recommendations
-          : this.getDefaultRecommendations(destination);
-      } catch {
-        // JSON 파싱 실패시 기본 추천지 반환
-        return this.getDefaultRecommendations(destination);
+        const response = JSON.parse(content);
+        let recommendations = [];
+
+        // 응답 형식 처리 (배열 또는 객체)
+        if (Array.isArray(response)) {
+          recommendations = response;
+        } else if (
+          response.recommendations &&
+          Array.isArray(response.recommendations)
+        ) {
+          recommendations = response.recommendations;
+        } else if (response.places && Array.isArray(response.places)) {
+          recommendations = response.places;
+        } else {
+          throw new Error('응답 형식이 올바르지 않습니다');
+        }
+
+        // 유효성 검증
+        const validRecommendations = recommendations.filter(
+          (rec: any) =>
+            rec &&
+            typeof rec.name === 'string' &&
+            rec.name.trim().length > 0 &&
+            typeof rec.category === 'string' &&
+            ['restaurant', 'activity', 'attraction'].includes(rec.category),
+        );
+
+        console.log(
+          `✅ OpenAI 선별 완료: ${validRecommendations.length}개 장소 선정`,
+        );
+
+        return validRecommendations;
+      } catch (parseError) {
+        console.error('🚨 OpenAI 응답 파싱 실패:', parseError);
+        throw new Error('OpenAI 응답 파싱 실패');
       }
     } catch (error) {
-      console.error('근처 장소 추천 중 오류:', error);
-      return this.getDefaultRecommendations(destination);
+      console.error('🚨 OpenAI 선별 중 오류:', error);
+
+      // AI 선별 실패 시 카카오맵 결과를 직접 포맷해서 반환
+      console.log('📋 카카오맵 검색 결과를 직접 사용합니다.');
+      return this.formatKakaoSearchResults(searchResults);
     }
+  }
+
+  /**
+   * 카카오맵 검색 결과를 AI 분석용 텍스트로 포맷
+   */
+  private formatKakaoResultsForAI(
+    searchResults: CategorySearchResult[],
+  ): string {
+    let resultText = '';
+
+    searchResults.forEach((categoryResult) => {
+      const categoryName =
+        {
+          restaurant: '맛집',
+          activity: '액티비티',
+          attraction: '관광명소',
+        }[categoryResult.category] || categoryResult.category;
+
+      resultText += `\n=== ${categoryName} ===\n`;
+
+      categoryResult.places.forEach((place, index) => {
+        resultText += `${index + 1}. ${place.place_name}\n`;
+        resultText += `   - 주소: ${place.address_name}\n`;
+        resultText += `   - 카테고리: ${place.category_name}\n`;
+        if (place.phone) {
+          resultText += `   - 전화: ${place.phone}\n`;
+        }
+        resultText += '\n';
+      });
+    });
+
+    return resultText;
+  }
+
+  /**
+   * 카카오맵 검색 결과를 추천 형식으로 포맷 (AI 분석 실패시 사용)
+   */
+  private formatKakaoSearchResults(
+    searchResults: CategorySearchResult[],
+  ): Array<{
+    name: string;
+    description: string;
+    category: string;
+    distance: string;
+    verified: boolean;
+    source: string;
+  }> {
+    const formatted: Array<{
+      name: string;
+      description: string;
+      category: string;
+      distance: string;
+      verified: boolean;
+      source: string;
+    }> = [];
+
+    searchResults.forEach((categoryResult) => {
+      // 각 카테고리에서 최대 3개씩 선택
+      const topPlaces = categoryResult.places.slice(0, 3);
+
+      topPlaces.forEach((place) => {
+        formatted.push({
+          name: place.place_name,
+          description: `${place.category_name} - ${place.address_name}`,
+          category: this.mapCategoryToRecommendationType(
+            categoryResult.category,
+          ),
+          distance: place.distance || '정보 없음',
+          verified: true,
+          source: 'kakao_map',
+        });
+      });
+    });
+
+    return formatted;
+  }
+
+  /**
+   * 카카오맵 카테고리를 추천 타입으로 매핑
+   */
+  private mapCategoryToRecommendationType(
+    category: 'restaurant' | 'activity' | 'attraction',
+  ): string {
+    const mapping = {
+      restaurant: '맛집',
+      activity: '액티비티',
+      attraction: '관광명소',
+    };
+    return mapping[category] || category;
   }
 
   /**
@@ -319,6 +578,8 @@ class OpenAIService {
     description: string;
     category: string;
     distance: string;
+    verified: boolean;
+    source?: string;
   }> {
     // 주요 여행지별 기본 추천지
     const defaultPlaces: { [key: string]: any[] } = {
@@ -330,6 +591,8 @@ class OpenAIService {
             '제주 특산품인 흑돼지를 맛볼 수 있는 현지 인기 맛집입니다.',
           category: '맛집',
           distance: '차량 15분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '오설록 티 뮤지엄 카페',
@@ -337,12 +600,16 @@ class OpenAIService {
             '제주 녹차를 이용한 다양한 음료와 디저트를 즐길 수 있습니다.',
           category: '맛집',
           distance: '차량 20분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '제주 해물찜 맛집',
           description: '신선한 제주 바다의 해산물로 만든 해물찜 전문점입니다.',
           category: '맛집',
           distance: '차량 10분',
+          verified: false,
+          source: 'default',
         },
         // 액티비티 3개
         {
@@ -351,18 +618,24 @@ class OpenAIService {
             '제주도의 상징 한라산을 등반하며 자연을 만끽할 수 있습니다.',
           category: '액티비티',
           distance: '차량 40분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '바다 스쿠버다이빙',
           description: '제주 맑은 바다에서 스쿠버다이빙을 체험할 수 있습니다.',
           category: '액티비티',
           distance: '차량 25분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '승마체험장',
           description: '제주 초원에서 승마를 배우고 체험할 수 있는 곳입니다.',
           category: '액티비티',
           distance: '차량 30분',
+          verified: false,
+          source: 'default',
         },
         // 관광명소 3개
         {
@@ -370,12 +643,16 @@ class OpenAIService {
           description: '일출 명소로 유명한 유네스코 세계자연유산입니다.',
           category: '관광명소',
           distance: '차량 30분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '중문관광단지',
           description: '다양한 관광 시설과 아름다운 해변이 있는 곳입니다.',
           category: '관광명소',
           distance: '차량 25분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '비자림',
@@ -383,6 +660,8 @@ class OpenAIService {
             '천년의 역사를 가진 비자나무 군락지로 산림욕을 즐길 수 있습니다.',
           category: '관광명소',
           distance: '차량 35분',
+          verified: false,
+          source: 'default',
         },
       ],
       부산: [
@@ -392,6 +671,8 @@ class OpenAIService {
           description: '부산 대표 수산시장에서 신선한 회를 맛볼 수 있습니다.',
           category: '맛집',
           distance: '지하철 15분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '광안리 맛집거리',
@@ -399,6 +680,8 @@ class OpenAIService {
             '해변 뷰와 함께 다양한 음식을 즐길 수 있는 맛집 거리입니다.',
           category: '맛집',
           distance: '지하철 20분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '부산 돼지국밥 골목',
@@ -406,6 +689,8 @@ class OpenAIService {
             '부산의 대표 음식인 돼지국밥을 맛볼 수 있는 전통 골목입니다.',
           category: '맛집',
           distance: '도보 10분',
+          verified: false,
+          source: 'default',
         },
         // 액티비티 3개
         {
@@ -413,18 +698,24 @@ class OpenAIService {
           description: '부산 대표 해수욕장에서 서핑을 배우고 즐길 수 있습니다.',
           category: '액티비티',
           distance: '지하철 25분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '태종대 해안산책',
           description: '절벽과 바다가 어우러진 해안 둘레길을 걸을 수 있습니다.',
           category: '액티비티',
           distance: '버스 40분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '부산항 요트투어',
           description: '부산 앞바다를 요트로 둘러보는 특별한 체험입니다.',
           category: '액티비티',
           distance: '지하철 15분',
+          verified: false,
+          source: 'default',
         },
         // 관광명소 3개
         {
@@ -433,18 +724,24 @@ class OpenAIService {
             '부산 대표 해수욕장으로 다양한 액티비티를 즐길 수 있습니다.',
           category: '관광명소',
           distance: '지하철 20분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '감천문화마을',
           description: '알록달록한 벽화와 독특한 건축물이 매력적인 마을입니다.',
           category: '관광명소',
           distance: '버스 30분',
+          verified: false,
+          source: 'default',
         },
         {
           name: '부산타워',
           description: '부산 시내를 한눈에 내려다볼 수 있는 전망대입니다.',
           category: '관광명소',
           distance: '지하철 25분',
+          verified: false,
+          source: 'default',
         },
       ],
     };
@@ -464,18 +761,24 @@ class OpenAIService {
         description: '지역 특산물과 전통 음식을 맛볼 수 있는 현지 맛집입니다.',
         category: '맛집',
         distance: '도보 10분',
+        verified: false,
+        source: 'default',
       },
       {
         name: '로컬 카페',
         description: '현지인들이 자주 찾는 분위기 좋은 카페입니다.',
         category: '맛집',
         distance: '도보 5분',
+        verified: false,
+        source: 'default',
       },
       {
         name: '전통 시장 먹거리',
         description: '전통 시장에서 맛볼 수 있는 다양한 길거리 음식입니다.',
         category: '맛집',
         distance: '도보 15분',
+        verified: false,
+        source: 'default',
       },
       // 액티비티 3개
       {
@@ -484,6 +787,8 @@ class OpenAIService {
           '지역을 자전거로 둘러보며 자연과 문화를 체험할 수 있습니다.',
         category: '액티비티',
         distance: '도보 5분',
+        verified: false,
+        source: 'default',
       },
       {
         name: '트레킹 코스',
@@ -491,12 +796,16 @@ class OpenAIService {
           '현지의 아름다운 자연을 걸으며 감상할 수 있는 산책로입니다.',
         category: '액티비티',
         distance: '차량 15분',
+        verified: false,
+        source: 'default',
       },
       {
         name: '문화 체험 프로그램',
         description: '지역 전통 문화를 직접 체험해볼 수 있는 프로그램입니다.',
         category: '액티비티',
         distance: '차량 20분',
+        verified: false,
+        source: 'default',
       },
       // 관광명소 3개
       {
@@ -504,12 +813,16 @@ class OpenAIService {
         description: '지역의 역사와 문화를 배울 수 있는 교육적인 장소입니다.',
         category: '관광명소',
         distance: '차량 20분',
+        verified: false,
+        source: 'default',
       },
       {
         name: '전통 건축물',
         description: '지역의 전통 건축 양식을 감상할 수 있는 문화재입니다.',
         category: '관광명소',
         distance: '도보 20분',
+        verified: false,
+        source: 'default',
       },
       {
         name: '자연 공원',
@@ -517,8 +830,54 @@ class OpenAIService {
           '아름다운 자연 경관을 즐기며 휴식을 취할 수 있는 공원입니다.',
         category: '관광명소',
         distance: '차량 25분',
+        verified: false,
+        source: 'default',
       },
     ];
+  }
+
+  /**
+   * 카카오맵 검색 결과를 추천 형식으로 포맷 (AI 분석 실패시 사용)
+   */
+  private getFallbackRecommendations(
+    searchResults: CategorySearchResult[],
+    destination: string,
+  ): Array<{
+    name: string;
+    description: string;
+    category: string;
+    distance: string;
+    verified: boolean;
+    source: string;
+  }> {
+    const fallbackRecommendations: Array<{
+      name: string;
+      description: string;
+      category: string;
+      distance: string;
+      verified: boolean;
+      source: string;
+    }> = [];
+
+    searchResults.forEach((categoryResult) => {
+      // 각 카테고리에서 최대 3개씩 선택
+      const topPlaces = categoryResult.places.slice(0, 3);
+
+      topPlaces.forEach((place) => {
+        fallbackRecommendations.push({
+          name: place.place_name,
+          description: `${place.category_name} - ${place.address_name}`,
+          category: this.mapCategoryToRecommendationType(
+            categoryResult.category,
+          ),
+          distance: place.distance || '정보 없음',
+          verified: true,
+          source: 'kakao_map',
+        });
+      });
+    });
+
+    return fallbackRecommendations;
   }
 }
 

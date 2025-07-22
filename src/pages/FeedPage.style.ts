@@ -2,25 +2,20 @@ import styled from 'styled-components';
 
 export const PageContainer = styled.div`
   display: flex;
-  justify-content: center;
   background-color: #f0f2f5;
   font-family: 'NotoSansHans', sans-serif;
 `;
 
 export const MainContent = styled.main`
   width: 100%;
-  max-width: 935px;
   display: flex;
   gap: 30px;
+  padding: 0 20px;
 `;
 
 export const FeedContainer = styled.div`
-  width: 100%;
-  max-width: 614px;
-
-  @media (max-width: 1000px) {
-    max-width: 100%;
-  }
+  width: 60%;
+  margin: 0 auto;
 `;
 
 export const Sidebar = styled.aside`

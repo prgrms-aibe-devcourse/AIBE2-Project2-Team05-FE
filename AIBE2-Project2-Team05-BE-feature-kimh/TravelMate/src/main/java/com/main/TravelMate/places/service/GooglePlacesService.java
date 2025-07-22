@@ -3,6 +3,8 @@ package com.main.TravelMate.places.service;
 import com.main.TravelMate.places.dto.GooglePlacesResponse;
 import com.main.TravelMate.places.dto.PlaceImageRequest;
 import com.main.TravelMate.places.dto.PlaceImageResponse;
+import com.main.TravelMate.places.dto.PlaceDetailRequest;
+import com.main.TravelMate.places.dto.PlaceDetailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Google Places API 서비스 (New API 사용)
@@ -33,7 +37,343 @@ public class GooglePlacesService {
     private static final String PHOTO_BASE_URL = "https://places.googleapis.com/v1";
     
     /**
-     * 장소 이미지를 검색합니다 (New Places API 사용)
+     * 장소 상세 정보를 조회합니다 (새로운 메소드)
+     */
+    public PlaceDetailResponse getPlaceDetails(PlaceDetailRequest request) {
+        log.info("장소 상세 정보 조회 시작: {}", request.getPlaceName());
+        
+        // API 키가 설정되지 않은 경우 Mock 데이터 반환
+        if (googlePlacesApiKey == null || googlePlacesApiKey.equals("your_google_places_api_key_here")) {
+            log.warn("Google Places API 키가 설정되지 않았습니다. Mock 데이터를 반환합니다.");
+            return createMockPlaceDetails(request.getPlaceName(), request.getRegion());
+        }
+        
+        try {
+            Map<String, Object> response = searchPlacesForDetails(request);
+            return extractPlaceDetailsFromResponse(response, request.getPlaceName());
+        } catch (Exception e) {
+            log.error("장소 상세 정보 조회 중 오류 발생: {}", e.getMessage());
+            return PlaceDetailResponse.failure(
+                request.getPlaceName(), 
+                "장소 정보 조회 중 오류가 발생했습니다: " + e.getMessage()
+            );
+        }
+    }
+    
+    /**
+     * 장소 상세 정보를 위한 Google Places API 검색
+     */
+    private Map<String, Object> searchPlacesForDetails(PlaceDetailRequest request) {
+        // 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        headers.set("X-Goog-Api-Key", googlePlacesApiKey);
+        headers.set("X-Goog-FieldMask", 
+            "places.id,places.displayName,places.formattedAddress," +
+            "places.location,places.photos,places.rating,places.reviews," +
+            "places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours," +
+            "places.types");
+        
+        // 요청 바디 설정
+        Map<String, Object> requestBody = new HashMap<>();
+        String searchQuery = request.getPlaceName();
+        if (request.getRegion() != null && !request.getRegion().isEmpty()) {
+            searchQuery += " " + request.getRegion();
+        }
+        requestBody.put("textQuery", searchQuery);
+        requestBody.put("languageCode", request.getLanguageCode());
+        
+        // 위치 정보가 있으면 추가
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            Map<String, Object> locationBias = new HashMap<>();
+            Map<String, Object> circle = new HashMap<>();
+            Map<String, Object> center = new HashMap<>();
+            center.put("latitude", request.getLatitude());
+            center.put("longitude", request.getLongitude());
+            circle.put("center", center);
+            circle.put("radius", request.getRadius());
+            locationBias.put("circle", circle);
+            requestBody.put("locationBias", locationBias);
+        }
+        
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        
+        log.info("Google Places API 상세 정보 요청 시작");
+        
+        ResponseEntity<Map> response = restTemplate.exchange(
+            GOOGLE_PLACES_NEW_BASE_URL,
+            HttpMethod.POST,
+            entity,
+            Map.class
+        );
+        
+        log.info("Google Places API 상세 정보 응답 받음");
+        
+        return response.getBody();
+    }
+    
+    /**
+     * API 응답에서 장소 상세 정보를 추출
+     */
+    @SuppressWarnings("unchecked")
+    private PlaceDetailResponse extractPlaceDetailsFromResponse(Map<String, Object> response, String originalPlaceName) {
+        if (response == null || !response.containsKey("places")) {
+            return PlaceDetailResponse.failure(originalPlaceName, "검색 결과가 없습니다.");
+        }
+        
+        List<Map<String, Object>> places = (List<Map<String, Object>>) response.get("places");
+        if (places == null || places.isEmpty()) {
+            return PlaceDetailResponse.failure(originalPlaceName, "검색 결과가 없습니다.");
+        }
+        
+        Map<String, Object> place = places.get(0);
+        
+        try {
+            PlaceDetailResponse.PlaceDetailResponseBuilder builder = PlaceDetailResponse.builder()
+                .success(true)
+                .placeId((String) place.get("id"));
+            
+            // 장소명 추출
+            if (place.containsKey("displayName")) {
+                Map<String, Object> displayName = (Map<String, Object>) place.get("displayName");
+                if (displayName.containsKey("text")) {
+                    builder.name((String) displayName.get("text"));
+                }
+            }
+            
+            // 주소 추출
+            builder.formattedAddress((String) place.get("formattedAddress"));
+            
+            // 위치 정보 추출
+            if (place.containsKey("location")) {
+                Map<String, Object> location = (Map<String, Object>) place.get("location");
+                Double lat = (Double) location.get("latitude");
+                Double lng = (Double) location.get("longitude");
+                builder.geometry(PlaceDetailResponse.Location.builder()
+                    .lat(lat != null ? lat : 0.0)
+                    .lng(lng != null ? lng : 0.0)
+                    .build());
+            }
+            
+            // 평점 추출
+            builder.rating((Double) place.get("rating"));
+            
+            // 사진 정보 추출
+            if (place.containsKey("photos")) {
+                List<Map<String, Object>> photos = (List<Map<String, Object>>) place.get("photos");
+                List<PlaceDetailResponse.Photo> photoList = new ArrayList<>();
+                for (Map<String, Object> photo : photos) {
+                    String photoName = (String) photo.get("name");
+                    String photoUrl = generateNewPhotoUrl(photoName);
+                    Integer height = (Integer) photo.get("heightPx");
+                    Integer width = (Integer) photo.get("widthPx");
+                    
+                    photoList.add(PlaceDetailResponse.Photo.builder()
+                        .photoReference(photoName)
+                        .photoUrl(photoUrl)
+                        .height(height != null ? height : 400)
+                        .width(width != null ? width : 400)
+                        .htmlAttributions(new ArrayList<>())
+                        .build());
+                }
+                builder.photos(photoList);
+            }
+            
+            // 리뷰 정보 추출
+            if (place.containsKey("reviews")) {
+                List<Map<String, Object>> reviews = (List<Map<String, Object>>) place.get("reviews");
+                List<PlaceDetailResponse.Review> reviewList = new ArrayList<>();
+                for (Map<String, Object> review : reviews) {
+                    Map<String, Object> authorAttribution = (Map<String, Object>) review.get("authorAttribution");
+                    String authorName = authorAttribution != null ? (String) authorAttribution.get("displayName") : "익명";
+                    
+                    reviewList.add(PlaceDetailResponse.Review.builder()
+                        .authorName(authorName)
+                        .rating((Integer) review.get("rating"))
+                        .text((String) review.get("text"))
+                        .time(System.currentTimeMillis())
+                        .relativeTimeDescription((String) review.get("relativePublishTimeDescription"))
+                        .build());
+                }
+                builder.reviews(reviewList);
+            }
+            
+            // 전화번호
+            builder.formattedPhoneNumber((String) place.get("nationalPhoneNumber"));
+            
+            // 웹사이트
+            builder.website((String) place.get("websiteUri"));
+            
+            // 운영시간 정보 추출
+            if (place.containsKey("regularOpeningHours")) {
+                Map<String, Object> openingHours = (Map<String, Object>) place.get("regularOpeningHours");
+                Boolean openNow = (Boolean) openingHours.get("openNow");
+                List<String> weekdayText = (List<String>) openingHours.get("weekdayDescriptions");
+                
+                builder.openingHours(PlaceDetailResponse.OpeningHours.builder()
+                    .openNow(openNow != null ? openNow : false)
+                    .weekdayText(weekdayText != null ? weekdayText : new ArrayList<>())
+                    .build());
+            }
+            
+            // 장소 유형
+            builder.types((List<String>) place.get("types"));
+            
+            return builder.build();
+            
+        } catch (Exception e) {
+            log.error("장소 상세 정보 파싱 중 오류: {}", e.getMessage());
+            return PlaceDetailResponse.failure(originalPlaceName, "응답 데이터 파싱 중 오류가 발생했습니다.");
+        }
+    }
+    
+    /**
+     * Mock 장소 상세 정보 생성 (개발/테스트용)
+     */
+    private PlaceDetailResponse createMockPlaceDetails(String placeName, String region) {
+        // Mock 데이터 맵
+        Map<String, PlaceDetailResponse> mockData = createMockDataMap();
+        
+        PlaceDetailResponse mockPlace = mockData.get(placeName);
+        if (mockPlace != null) {
+            return mockPlace;
+        }
+        
+        // 기본 Mock 데이터 생성
+        return PlaceDetailResponse.builder()
+            .success(true)
+            .placeId("mock_" + placeName.replaceAll("\\s+", "_"))
+            .name(placeName)
+            .formattedAddress(region != null ? region + " 지역 내" : "위치 정보 확인 중")
+            .geometry(PlaceDetailResponse.Location.builder()
+                .lat(37.5665)
+                .lng(126.9780)
+                .build())
+            .photos(List.of(
+                PlaceDetailResponse.Photo.builder()
+                    .photoReference("mock_photo_ref")
+                    .photoUrl("https://source.unsplash.com/600x400/?travel,korea," + placeName.replaceAll("\\s+", "+"))
+                    .height(400)
+                    .width(600)
+                    .htmlAttributions(new ArrayList<>())
+                    .build()
+            ))
+            .rating(4.0)
+            .reviews(List.of(
+                PlaceDetailResponse.Review.builder()
+                    .authorName("여행자")
+                    .rating(4)
+                    .text(placeName + "에 대한 리뷰입니다. 좋은 장소네요!")
+                    .time(System.currentTimeMillis() - 86400000)
+                    .relativeTimeDescription("1일 전")
+                    .build()
+            ))
+            .types(List.of("establishment"))
+            .build();
+    }
+    
+    /**
+     * Mock 데이터 맵 생성
+     */
+    private Map<String, PlaceDetailResponse> createMockDataMap() {
+        Map<String, PlaceDetailResponse> mockData = new HashMap<>();
+        
+        // 강릉 서퍼비치
+        mockData.put("강릉 서퍼비치", PlaceDetailResponse.builder()
+            .success(true)
+            .placeId("mock_surfbeach_gangneung")
+            .name("강릉 서퍼비치")
+            .formattedAddress("강원도 강릉시 사천면 진리해변길 20")
+            .geometry(PlaceDetailResponse.Location.builder()
+                .lat(37.8853)
+                .lng(128.8493)
+                .build())
+            .photos(List.of(
+                PlaceDetailResponse.Photo.builder()
+                    .photoReference("mock_photo_ref_1")
+                    .photoUrl("https://source.unsplash.com/600x400/?surf,beach,gangneung")
+                    .height(400)
+                    .width(600)
+                    .htmlAttributions(new ArrayList<>())
+                    .build()
+            ))
+            .rating(4.2)
+            .reviews(List.of(
+                PlaceDetailResponse.Review.builder()
+                    .authorName("서핑 러버")
+                    .rating(5)
+                    .text("강릉에서 서핑하기 최고의 장소입니다. 파도도 좋고 시설도 깔끔해요!")
+                    .time(System.currentTimeMillis() - 86400000)
+                    .relativeTimeDescription("1일 전")
+                    .build()
+            ))
+            .formattedPhoneNumber("033-123-4567")
+            .website("http://gangneungsurfbeach.com")
+            .openingHours(PlaceDetailResponse.OpeningHours.builder()
+                .openNow(true)
+                .weekdayText(List.of(
+                    "월요일: 오전 9:00 ~ 오후 6:00",
+                    "화요일: 오전 9:00 ~ 오후 6:00",
+                    "수요일: 오전 9:00 ~ 오후 6:00",
+                    "목요일: 오전 9:00 ~ 오후 6:00",
+                    "금요일: 오전 9:00 ~ 오후 6:00",
+                    "토요일: 오전 8:00 ~ 오후 7:00",
+                    "일요일: 오전 8:00 ~ 오후 7:00"
+                ))
+                .build())
+            .types(List.of("tourist_attraction", "establishment"))
+            .build());
+        
+        // 올레국수
+        mockData.put("올레국수", PlaceDetailResponse.builder()
+            .success(true)
+            .placeId("mock_ole_noodles")
+            .name("올레국수")
+            .formattedAddress("제주특별자치도 제주시 구좌읍 올레로 123")
+            .geometry(PlaceDetailResponse.Location.builder()
+                .lat(33.4996)
+                .lng(126.531)
+                .build())
+            .photos(List.of(
+                PlaceDetailResponse.Photo.builder()
+                    .photoReference("mock_photo_ref_2")
+                    .photoUrl("https://source.unsplash.com/600x400/?noodle,korean,food")
+                    .height(400)
+                    .width(600)
+                    .htmlAttributions(new ArrayList<>())
+                    .build()
+            ))
+            .rating(4.5)
+            .reviews(List.of(
+                PlaceDetailResponse.Review.builder()
+                    .authorName("제주 맛집 탐험가")
+                    .rating(5)
+                    .text("정말 맛있는 고기국수집이에요. 제주 향토음식의 진수를 느낄 수 있습니다.")
+                    .time(System.currentTimeMillis() - 172800000)
+                    .relativeTimeDescription("2일 전")
+                    .build()
+            ))
+            .formattedPhoneNumber("064-123-4567")
+            .openingHours(PlaceDetailResponse.OpeningHours.builder()
+                .openNow(true)
+                .weekdayText(List.of(
+                    "월요일: 오전 11:00 ~ 오후 8:00",
+                    "화요일: 오전 11:00 ~ 오후 8:00",
+                    "수요일: 휴무일",
+                    "목요일: 오전 11:00 ~ 오후 8:00",
+                    "금요일: 오전 11:00 ~ 오후 8:00",
+                    "토요일: 오전 11:00 ~ 오후 8:00",
+                    "일요일: 오전 11:00 ~ 오후 8:00"
+                ))
+                .build())
+            .types(List.of("restaurant", "food", "establishment"))
+            .build());
+        
+        return mockData;
+    }
+
+    /**
+     * 장소 이미지를 검색합니다 (New Places API 사용) - 기존 메소드 유지
      */
     public PlaceImageResponse getPlaceImage(PlaceImageRequest request) {
         log.info("장소 이미지 검색 시작: {}", request.getPlaceName());
@@ -62,7 +402,7 @@ public class GooglePlacesService {
     }
     
     /**
-     * Google Places API (New)로 장소를 검색합니다
+     * Google Places API (New)로 장소를 검색합니다 - 기존 메소드 유지
      */
     private Map<String, Object> searchPlacesNew(PlaceImageRequest request) {
         // 헤더 설정
@@ -105,7 +445,7 @@ public class GooglePlacesService {
     }
     
     /**
-     * Google Places API (New) 응답에서 이미지 URL을 추출합니다
+     * Google Places API (New) 응답에서 이미지 URL을 추출합니다 - 기존 메소드 유지
      */
     @SuppressWarnings("unchecked")
     private PlaceImageResponse extractImageUrlFromNewApi(Map<String, Object> response, String originalPlaceName) {
@@ -165,7 +505,7 @@ public class GooglePlacesService {
     }
     
     /**
-     * Google Places Photo API (New) URL을 생성합니다
+     * Google Places Photo API (New) URL을 생성합니다 - 기존 메소드 유지
      */
     private String generateNewPhotoUrl(String photoName) {
         return String.format(

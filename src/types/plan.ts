@@ -25,6 +25,24 @@ export interface SummaryCard {
   icon?: string;
 }
 
+// AI 추천 데이터 타입 추가
+export interface AIRecommendation {
+  name: string;
+  description: string;
+  category: string;
+  distance: string;
+  verified: boolean;
+  source?: string; // optional로 변경
+}
+
+export interface AIRecommendationData {
+  recommendations: AIRecommendation[];
+  generatedAt: string; // 생성 시점
+  destination: string; // 목적지
+  visitedPlaces: string[]; // 방문 예정 장소들
+  travelStyles: string[]; // 여행 스타일
+}
+
 export interface TravelPlan {
   id: string;
   title: string;
@@ -40,6 +58,8 @@ export interface TravelPlan {
     name: string;
     profileImage: string;
   };
+  // AI 추천 데이터 추가
+  aiRecommendations?: AIRecommendationData;
 }
 
 // === 여행 계획 작성을 위한 타입들 ===

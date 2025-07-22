@@ -151,17 +151,87 @@ REACT_APP_UNSPLASH_ACCESS_KEY=your-unsplash-key
 
 ### 3️⃣ **백엔드 서버 실행**
 
+백엔드 서버는 Spring Boot로 구성되어 있으며, 다음 단계로 실행할 수 있습니다:
+
+#### **3-1. 백엔드 환경 변수 설정**
+
+백엔드 디렉토리에도 `.env` 파일을 생성해야 합니다:
+
 ```bash
 # 백엔드 디렉토리로 이동
 cd AIBE2-Project2-Team05-BE-feature-kimh/TravelMate
 
-# Spring Boot 애플리케이션 실행
-./gradlew bootRun
-# 또는
+# .env 파일 생성
+touch .env
+```
+
+`.env` 파일에 다음 내용을 추가하세요:
+
+```env
+# Google Places API (백엔드에서 사용)
+GOOGLE_PLACES_API_KEY=your-google-places-api-key-here
+
+# 선택사항: 다른 API 키들
+REACT_APP_KAKAO_MAP_API_KEY=your-kakao-map-key
+REACT_APP_GOOGLE_PLACES_API_KEY=your-google-places-key
+```
+
+#### **3-2. MySQL 데이터베이스 설정**
+
+백엔드는 MySQL 데이터베이스를 사용합니다:
+
+1. **MySQL 설치 및 실행**
+
+   ```bash
+   # macOS (Homebrew)
+   brew install mysql
+   brew services start mysql
+
+   # Ubuntu/Debian
+   sudo apt update
+   sudo apt install mysql-server
+   sudo systemctl start mysql
+
+   # Windows
+   # MySQL Community Server 다운로드 및 설치
+   ```
+
+2. **데이터베이스 생성**
+
+   ```sql
+   # MySQL에 로그인
+   mysql -u root -p
+
+   # 데이터베이스 생성
+   CREATE DATABASE travel_mate_db;
+
+   # 사용자 생성 및 권한 부여 (선택사항)
+   CREATE USER 'travelmate'@'localhost' IDENTIFIED BY 'password';
+   GRANT ALL PRIVILEGES ON travel_mate_db.* TO 'travelmate'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+#### **3-3. 백엔드 서버 실행**
+
+```bash
+# 백엔드 디렉토리에서
+cd AIBE2-Project2-Team05-BE-feature-kimh/TravelMate
+
+# 방법 1: start.sh 스크립트 사용 (권장)
 ./start.sh
+
+# 방법 2: Gradle 직접 실행
+./gradlew bootRun
 ```
 
 **백엔드 서버**: `http://localhost:8080`
+
+#### **3-4. 백엔드 동작 확인**
+
+서버가 정상적으로 실행되면 다음 URL로 API 테스트:
+
+- 헬스체크: `http://localhost:8080/api/places/health`
+- API 문서: `http://localhost:8080` (Swagger UI 예정)
 
 ### 4️⃣ **프론트엔드 실행**
 
@@ -208,7 +278,23 @@ npm start
 
 ## 🧪 테스트 시나리오
 
-### **Scenario 1: AI 추천 기능**
+### **Scenario 1: 전체 시스템 테스트 (백엔드 + 프론트엔드)**
+
+```
+1. 백엔드 서버 실행 확인:
+   - http://localhost:8080/api/places/health 접속
+   - "OK" 응답 확인
+
+2. 프론트엔드 접속:
+   - http://localhost:3000 접속
+   - 회원가입/로그인 테스트
+
+3. API 연동 테스트:
+   - Google Places API 동작 확인
+   - 백엔드와 프론트엔드 통신 확인
+```
+
+### **Scenario 2: AI 추천 기능**
 
 ```
 1. /plan/write 접속
@@ -221,7 +307,7 @@ npm start
    - 근처 추천: 각 지역 맛집/액티비티/관광명소
 ```
 
-### **Scenario 2: 소셜 기능**
+### **Scenario 3: 소셜 기능**
 
 ```
 1. /mypage에서 프로필 설정
@@ -235,7 +321,7 @@ npm start
 
 ## 🐛 문제 해결
 
-### **일반적인 문제들**
+### **프론트엔드 문제들**
 
 1. **포트 3000이 이미 사용 중**
 
@@ -245,7 +331,7 @@ npm start
    ```
 
 2. **OpenAI API 오류**
-   - `.env` 파일의 API 키 확인
+   - 프론트엔드 `.env` 파일의 API 키 확인
    - OpenAI 계정 크레딧 잔액 확인
    - API 키가 없어도 기본 추천으로 동작
 
@@ -253,9 +339,32 @@ npm start
    - 카카오맵 API 키 확인
    - 도메인 설정 확인
 
-4. **백엔드 연결 오류**
+### **백엔드 문제들**
+
+4. **백엔드 서버 실행 오류**
+
+   ```bash
+   # 권한 문제 해결
+   chmod +x ./gradlew
+   chmod +x ./start.sh
+
+   # Java 버전 확인 (Java 17 필요)
+   java -version
+   ```
+
+5. **MySQL 연결 오류**
+   - MySQL 서버가 실행 중인지 확인: `brew services list | grep mysql`
+   - 데이터베이스 `travel_mate_db`가 존재하는지 확인
+   - `application.yml`의 DB 설정 확인
+
+6. **Google Places API 오류 (백엔드)**
+   - 백엔드 `.env` 파일의 `GOOGLE_PLACES_API_KEY` 확인
+   - API 키 활성화 및 Places API 권한 확인
+
+7. **백엔드 연결 오류**
    - 백엔드 서버가 실행 중인지 확인 (`http://localhost:8080`)
    - CORS 설정 확인
+   - 포트 8080이 사용 가능한지 확인: `npx kill-port 8080`
 
 ---
 
