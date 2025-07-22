@@ -40,4 +40,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return path.equals("/api/admin/login")
+                || path.equals("/api/admin/signup")
+                || path.startsWith("/api/auth");
+    }
 }

@@ -32,6 +32,7 @@ import ReportManagementPage from './pages/ReportManagementPage';
 import LikePage from './pages/LikePage';
 import PlanPage from './pages/PlanPage';
 import PlanWritePage from './pages/PlanWritePage';
+import AdminLoginPage from './pages/AdminLoginPage';
 
 function App() {
   const location = useLocation();
@@ -50,6 +51,7 @@ function App() {
           <Routes location={location} key={location.pathname}>
             {/* 인증이 필요 없는 경로 */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 
             {/* 메인 레이아웃을 사용하는 경로 (인증 필요) */}

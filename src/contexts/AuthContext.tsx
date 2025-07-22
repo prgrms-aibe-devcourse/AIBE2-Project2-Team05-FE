@@ -1,12 +1,14 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { User } from '../types/user';
 
 // AuthContext에서 제공할 값들의 타입을 정의합니다.
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { email: string; role: string } | null; // role 추가
-  login: (token: string, email: string, role: string) => void; // login 함수 인자 변경
+  user: User | null;
+  token: string | null;
+  isAdmin: boolean;
+  login: (newToken: string, userData: User) => void;
   logout: () => void;
-  isLoading: boolean; // 로딩 상태 추가
 }
 
 // React.createContext를 사용하여 AuthContext를 생성합니다.
@@ -21,53 +23,50 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ email: string; role: string } | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true); // 로딩 상태 추가
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
-    // 앱이 처음 로드될 때 localStorage에서 토큰과 사용자 정보를 확인합니다.
-    const token = localStorage.getItem('accessToken');
-    const userEmail = localStorage.getItem('userEmail');
-    const userRole = localStorage.getItem('userRole');
-
-    console.log('AuthProvider useEffect - token:', token);
-    console.log('AuthProvider useEffect - userEmail:', userEmail);
-    console.log('AuthProvider useEffect - userRole:', userRole);
-
-    if (token && userEmail && userRole) {
-      setIsAuthenticated(true);
-      setUser({ email: userEmail, role: userRole });
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (storedToken && storedUser) {
+        const parsedUser: User = JSON.parse(storedUser);
+        setToken(storedToken);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+        if(parsedUser.role === 'ADMIN') {
+            setIsAdmin(true);
+        }
     }
-
-    setIsLoading(false); // 초기화 완료
   }, []);
 
-  const login = (token: string, email: string, role: string) => {
-    // 로그인 성공 시 토큰과 사용자 정보를 localStorage에 저장합니다.
-    localStorage.setItem('accessToken', token);
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('userRole', role);
+  const login = (newToken: string, userData: User) => {
+    setToken(newToken);
+    setUser(userData);
     setIsAuthenticated(true);
-    setUser({ email, role });
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+
+    if (userData.role === 'ADMIN') {
+        setIsAdmin(true);
+    } else {
+        setIsAdmin(false);
+    }
   };
 
   const logout = () => {
-    // 로그아웃 시 localStorage에서 토큰과 사용자 정보를 제거합니다.
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
-    setIsAuthenticated(false);
+    setToken(null);
     setUser(null);
-    window.location.href = '/login'; // 로그인 페이지로 리디렉션
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   };
 
   return (
-    <AuthContext.Provider
-      value={{ isAuthenticated, user, login, logout, isLoading }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isAdmin, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
