@@ -39,10 +39,9 @@ export const getNextAvailableStatuses = (
   const statusFlow: Record<FeedStatus, FeedStatus[]> = {
     recruiting: ['matched'],
     matched: ['traveling'],
-    traveling: [], // 후기완료는 실제 후기 작성시에만 변경됨
-    completed: [],
+    traveling: ['completed'], // 여행완료 버튼 활성화
+    completed: [], // 후기완료는 실제 후기 작성시에만 변경됨 -> 'review_completed'
   };
-
   return statusFlow[currentStatus] || [];
 };
 

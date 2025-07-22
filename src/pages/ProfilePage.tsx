@@ -1328,16 +1328,17 @@ const PlanPageModal: React.FC<PlanPageModalProps> = ({
         {/* 하단: 액션 바 */}
         {isCurrentUser && (
           <ModalActionBar>
-            {/* 후기 작성 버튼 (여행중 상태일 때만 표시) */}
-            {feed.status === 'traveling' && !feed.review && (
-              <ModalReviewButton
-                onClick={() => onReviewModalOpen?.(feed)}
-                disabled={!getReviewButtonState(feed, currentUserId).enabled}
-                title={getReviewButtonState(feed, currentUserId).tooltip}
-              >
-                {getReviewButtonState(feed, currentUserId).text}
-              </ModalReviewButton>
-            )}
+            {/* 후기 작성 버튼 (여행중/여행완료 상태일 때 표시) */}
+            {(feed.status === 'traveling' || feed.status === 'completed') &&
+              !feed.review && (
+                <ModalReviewButton
+                  onClick={() => onReviewModalOpen?.(feed)}
+                  disabled={!getReviewButtonState(feed, currentUserId).enabled}
+                  title={getReviewButtonState(feed, currentUserId).tooltip}
+                >
+                  {getReviewButtonState(feed, currentUserId).text}
+                </ModalReviewButton>
+              )}
 
             {/* 상태 변경 버튼 */}
             <NextStatusButtonWithRefresh

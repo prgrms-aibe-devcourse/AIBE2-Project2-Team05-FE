@@ -6,7 +6,7 @@ export const FEED_STATUS_LABELS: Record<FeedStatus, string> = {
   recruiting: '모집중',
   matched: '매칭완료',
   traveling: '여행중',
-  completed: '후기완료',
+  completed: '여행완료', // '후기완료'에서 '여행완료'로 변경
 };
 
 // 피드 상태별 색상 (UI에서 사용)

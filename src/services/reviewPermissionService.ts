@@ -19,9 +19,9 @@ export interface ReviewPermissionOptions {
 // 기본 권한 설정
 const DEFAULT_PERMISSION_OPTIONS: ReviewPermissionOptions = {
   allowOwnerOnly: false,
-  allowParticipantsOnly: true,
+  allowParticipantsOnly: false, // 임시로 false로 변경
   timeLimit: 30, // 30일
-  requireTravelEnd: false, // traveling 상태에서도 가능
+  requireTravelEnd: false, // 임시로 false로 변경 (여행중에서도 후기 작성 가능)
 };
 
 /**
@@ -34,8 +34,19 @@ export const checkReviewPermission = (
 ): ReviewPermissionResult => {
   const settings = { ...DEFAULT_PERMISSION_OPTIONS, ...options };
 
+  // 디버깅용 로그
+  console.log('🔍 후기 작성 권한 체크:', {
+    feedId: feed.id,
+    feedStatus: feed.status,
+    userId: userId,
+    feedAuthor: feed.author,
+    hasReview: !!feed.review,
+    settings,
+  });
+
   // 1. 기본 사용자 ID 체크
   if (!userId || userId.trim() === '') {
+    console.log('❌ 권한 체크 실패: NO_USER_ID');
     return {
       canWrite: false,
       reason: '로그인이 필요합니다.',
@@ -50,6 +61,7 @@ export const checkReviewPermission = (
     feed.status === 'recruiting' ||
     feed.status === 'matched'
   ) {
+    console.log('❌ 권한 체크 실패: TRAVEL_NOT_STARTED');
     return {
       canWrite: false,
       reason: '아직 여행이 시작되지 않았습니다.',
@@ -63,19 +75,21 @@ export const checkReviewPermission = (
 
   // 3. 여행 완료 상태 필수 체크
   if (settings.requireTravelEnd && feed.status !== 'completed') {
+    console.log('❌ 권한 체크 실패: TRAVEL_NOT_COMPLETED');
     return {
       canWrite: false,
       reason: '여행이 완료된 후에만 후기를 작성할 수 있습니다.',
       errorCode: 'TRAVEL_NOT_COMPLETED',
       suggestions: [
         '여행을 완료하신 후 후기를 작성해주세요.',
-        '여행 상태를 "후기완료"로 변경해주세요.',
+        '여행 상태를 "여행완료"로 변경해주세요.',
       ],
     };
   }
 
   // 4. 이미 후기가 작성된 경우
   if (feed.review) {
+    console.log('❌ 권한 체크 실패: REVIEW_ALREADY_EXISTS');
     return {
       canWrite: false,
       reason: '이미 후기가 작성되었습니다.',
@@ -87,6 +101,7 @@ export const checkReviewPermission = (
   // 5. 작성자 권한 체크
   const isOwner = feed.author === userId;
   if (settings.allowOwnerOnly && !isOwner) {
+    console.log('❌ 권한 체크 실패: NOT_OWNER');
     return {
       canWrite: false,
       reason: '여행 계획 작성자만 후기를 작성할 수 있습니다.',
@@ -98,6 +113,7 @@ export const checkReviewPermission = (
   // 6. 참여자 권한 체크
   const isParticipant = feed.participants?.includes(userId) || false;
   if (settings.allowParticipantsOnly && !isOwner && !isParticipant) {
+    console.log('❌ 권한 체크 실패: NOT_PARTICIPANT');
     return {
       canWrite: false,
       reason: '여행에 참여한 사람만 후기를 작성할 수 있습니다.',
@@ -118,6 +134,7 @@ export const checkReviewPermission = (
     );
 
     if (daysPassed > settings.timeLimit) {
+      console.log('❌ 권한 체크 실패: TIME_LIMIT_EXCEEDED');
       return {
         canWrite: false,
         reason: `후기 작성 기간이 만료되었습니다. (${settings.timeLimit}일 이내)`,
@@ -130,6 +147,7 @@ export const checkReviewPermission = (
   }
 
   // 모든 체크 통과
+  console.log('✅ 후기 작성 권한 통과');
   return {
     canWrite: true,
     reason: '후기 작성이 가능합니다.',
