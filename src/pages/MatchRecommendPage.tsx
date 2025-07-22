@@ -10,13 +10,15 @@ import {
 import { getPlaceImageByCategory } from '../services/unsplashApi';
 import { getPlaceImageFromBackend } from '../services/backendPlacesApi';
 import feedStatusService from '../services/feedStatusService';
-import { generateMockUserFeeds } from '../data/mockProfileData';
+// import { generateMockUserFeeds } from '../data/mockProfileData'; // Mock 데이터 생성 비활성화로 제거
 import matePostService from '../services/matePostService'; // 추가
+import travelPlanApiService from '../services/travelPlanApi'; // 백엔드 API 연결
 
 interface Activity {
   time: string;
   title: string;
   description?: string;
+  place?: string; // 실제 장소명 추가 (지도 검색용)
 }
 
 interface DayPlan {
@@ -371,142 +373,253 @@ const MatchRecommendPage: React.FC = () => {
     return addedCount;
   };
 
-  // 실제 피드들 중 모집중인 것들만 매칭 사용자로 변환
-  const allUsers: MatchingUser[] = useMemo(() => {
-    console.log(
-      '🔄 실제 피드 + 여행메이트 포스트에서 모집중인 매칭 사용자 생성 시작...',
-    );
+  // 📡 백엔드 API에서 매칭 사용자 데이터 로드 (상태 관리)
+  const [allUsers, setAllUsers] = useState<MatchingUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
 
-    // 🔍 현재 localStorage 상태 디버깅
-    console.log('=== 📊 현재 localStorage 상태 ===');
-    const myFeedsStr = localStorage.getItem('myFeeds');
-    const matePostsStr = localStorage.getItem('matePosts');
-    console.log(
-      'myFeeds:',
-      myFeedsStr ? JSON.parse(myFeedsStr).length : 0,
-      '개',
-    );
-    console.log(
-      'matePosts:',
-      matePostsStr ? JSON.parse(matePostsStr).length : 0,
-      '개',
-    );
+  // 🚀 백엔드 API에서 매칭 데이터 로드
+  useEffect(() => {
+    const loadMatchingUsersFromBackend = async () => {
+      setIsLoadingUsers(true);
+      console.log('🔄 백엔드에서 매칭 사용자 데이터 로드 시작...');
 
-    // 개별 계획 파일들 확인
-    const planKeys = Object.keys(localStorage).filter((key) =>
-      key.startsWith('plan_'),
-    );
-    console.log('저장된 여행 계획들:', planKeys.length, '개', planKeys);
-
-    const matchingUsers: MatchingUser[] = [];
-    let processedCount = 0;
-
-    try {
-      // 1. matePostService에서 등록된 여행메이트 포스트 가져오기 (우선 처리)
       try {
-        const matePostList = matePostService.getAllMatePosts();
-        console.log('🎯 여행메이트 포스트 로드:', matePostList.length, '개');
+        // 🎯 백엔드 API에서 매칭 활성화된 여행 계획 조회
+        const backendPlans =
+          await travelPlanApiService.getMatchingTravelPlans();
+        console.log(
+          `📡 백엔드에서 매칭 계획 ${backendPlans.length}개 로드 성공`,
+        );
 
-        if (matePostList.length > 0) {
-          console.log('📋 로드된 여행메이트 포스트 목록:');
-          matePostList.forEach((post, index) => {
-            console.log(
-              `  ${index + 1}. ${post.userName} - ${post.destination} (${post.period})`,
-            );
-          });
-        }
+        const matchingUsers: MatchingUser[] = [];
 
-        matePostList.forEach((matePost) => {
+        // 백엔드 데이터를 MatchingUser 형식으로 변환
+        backendPlans.forEach((plan, index) => {
           try {
-            // 🔍 원본 여행 계획 데이터 가져오기
-            let originalPlanData = null;
-            let actualAge = 25; // 기본값
-            let actualTravelPlan: DayPlan[] = [];
-
-            if (matePost.planId) {
-              try {
-                const planDataStr = localStorage.getItem(
-                  `plan_${matePost.planId}`,
+            // 여행 계획을 DayPlan 형식으로 변환
+            let travelPlan: DayPlan[] = [];
+            if (plan.schedules && typeof plan.schedules === 'object') {
+              // schedules 객체를 DayPlan 배열로 변환
+              Object.keys(plan.schedules).forEach((dayKey) => {
+                const dayNumber = parseInt(dayKey.replace('day', '')) || 1;
+                const activities = (plan.schedules[dayKey] || []).map(
+                  (schedule: any) => ({
+                    time: schedule.time || '00:00',
+                    title: `${schedule.place} - ${schedule.activity}`,
+                    description: schedule.memo || '',
+                    place: schedule.place || '', // 🎯 실제 장소명 별도 저장
+                  }),
                 );
-                if (planDataStr) {
-                  originalPlanData = JSON.parse(planDataStr);
-                  console.log(
-                    `📋 원본 계획 데이터 로드 성공: ${matePost.planId}`,
-                  );
 
-                  // 실제 여행 계획 사용
-                  if (
-                    originalPlanData.days &&
-                    Array.isArray(originalPlanData.days)
-                  ) {
-                    actualTravelPlan = originalPlanData.days;
-                  }
-
-                  // 작성자 정보에서 실제 나이 추출 (있다면)
-                  if (originalPlanData.author && originalPlanData.author.age) {
-                    actualAge = originalPlanData.author.age;
-                  }
-                } else {
-                  console.warn(
-                    `⚠️ 원본 계획 데이터 없음: plan_${matePost.planId}`,
-                  );
+                if (activities.length > 0) {
+                  travelPlan.push({
+                    day: dayNumber,
+                    activities,
+                  });
                 }
-              } catch (error) {
-                console.warn(
-                  `❌ 원본 계획 데이터 로드 실패: ${matePost.planId}`,
-                  error,
-                );
-              }
+              });
             }
 
-            // MatePost를 MatchingUser로 정확히 변환
+            // 실제 계획이 없으면 Mock 계획 생성
+            if (travelPlan.length === 0) {
+              travelPlan = generateMockTravelPlan(plan.destination);
+            }
+
             const matchingUser: MatchingUser = {
-              id: matePost.id,
-              name: matePost.userName,
-              age: actualAge, // 실제 나이 사용 (기본값: 25)
-              location: matePost.destination,
-              profileImage: matePost.userAvatar,
-              destination: matePost.destination,
-              duration: matePost.period,
-              budget: matePost.budget,
-              travelStyle: matePost.styles.slice(0, 3),
-              coordinates: getDestinationCoordinates(matePost.destination),
-              maxMembers: matePost.maxPeople,
-              currentMembers: matePost.currentPeople,
-              travelPlan:
-                actualTravelPlan.length > 0
-                  ? actualTravelPlan
-                  : generateMockTravelPlan(matePost.destination), // 실제 계획 우선 사용
+              id: parseInt(plan.planId) || index + 1000,
+              name: plan.author.name,
+              age: 25, // 기본값, 실제 나이 정보가 있다면 사용
+              location: plan.destination,
+              profileImage: plan.author.profileImage || '👤',
+              destination: plan.destination,
+              duration: plan.period,
+              budget: plan.budget,
+              travelStyle:
+                plan.styleLabels?.slice(0, 3) || plan.styles?.slice(0, 3) || [],
+              coordinates: getDestinationCoordinates(plan.destination),
+              maxMembers: parseInt(plan.people.replace(/[^0-9]/g, '')) || 2,
+              currentMembers: 1, // 작성자 본인
+              travelPlan: travelPlan,
               gender:
-                matePost.preferences.gender === '남성'
+                plan.matchingInfo?.preferredGender === '남성'
                   ? 'male'
-                  : matePost.preferences.gender === '여성'
+                  : plan.matchingInfo?.preferredGender === '여성'
                     ? 'female'
                     : 'any',
             };
 
             matchingUsers.push(matchingUser);
-            processedCount++;
             console.log(
-              `✅ 여행메이트 포스트 추가: ${matchingUser.name} - ${matchingUser.destination} (실제 데이터 사용: ${originalPlanData ? 'O' : 'X'})`,
+              `✅ 백엔드 데이터 변환 성공: ${plan.author.name} - ${plan.destination}`,
             );
           } catch (error) {
-            console.warn('여행메이트 포스트 변환 중 오류:', error);
+            console.warn(`❌ 계획 변환 실패: ${plan.planId}`, error);
           }
         });
+
+        if (matchingUsers.length > 0) {
+          setAllUsers(matchingUsers);
+          console.log(
+            `🎉 백엔드에서 ${matchingUsers.length}개의 매칭 사용자 로드 완료`,
+          );
+        } else {
+          console.log('📝 백엔드에 매칭 활성화된 여행 계획이 없습니다.');
+          await loadLocalFallbackData(); // 로컬 데이터 폴백
+        }
       } catch (error) {
-        console.warn('여행메이트 포스트 로드 실패:', error);
+        console.error('❌ 백엔드 매칭 데이터 로드 실패:', error);
+        await loadLocalFallbackData(); // 로컬 데이터 폴백
+      } finally {
+        setIsLoadingUsers(false);
       }
+    };
 
-      // 2. 내 피드들 가져오기 (matePostService에 없는 추가 피드들)
+    // 🔄 로컬 데이터 폴백 함수 (기존 로직)
+    const loadLocalFallbackData = async () => {
+      console.log('🔄 로컬 데이터 폴백 시작...');
+
+      // 🔍 현재 localStorage 상태 디버깅
+      console.log('=== 📊 현재 localStorage 상태 ===');
       const myFeedsStr = localStorage.getItem('myFeeds');
-      if (myFeedsStr) {
-        const myFeeds = JSON.parse(myFeedsStr);
-        console.log('📱 내 피드 로드:', myFeeds.length, '개');
-        processedCount += processRecruitingFeeds(myFeeds, matchingUsers, '나');
-      }
+      const matePostsStr = localStorage.getItem('matePosts');
+      console.log(
+        'myFeeds:',
+        myFeedsStr ? JSON.parse(myFeedsStr).length : 0,
+        '개',
+      );
+      console.log(
+        'matePosts:',
+        matePostsStr ? JSON.parse(matePostsStr).length : 0,
+        '개',
+      );
 
-      // 3. 다양한 사용자들의 프로필 피드 가져오기
+      // 개별 계획 파일들 확인
+      const planKeys = Object.keys(localStorage).filter((key) =>
+        key.startsWith('plan_'),
+      );
+      console.log('저장된 여행 계획들:', planKeys.length, '개', planKeys);
+
+      const matchingUsers: MatchingUser[] = [];
+      let processedCount = 0;
+
+      try {
+        // 1. matePostService에서 등록된 여행메이트 포스트 가져오기 (우선 처리)
+        try {
+          const matePostList = matePostService.getAllMatePosts();
+          console.log('🎯 여행메이트 포스트 로드:', matePostList.length, '개');
+
+          if (matePostList.length > 0) {
+            console.log('📋 로드된 여행메이트 포스트 목록:');
+            matePostList.forEach((post, index) => {
+              console.log(
+                `  ${index + 1}. ${post.userName} - ${post.destination} (${post.period})`,
+              );
+            });
+          }
+
+          matePostList.forEach((matePost) => {
+            try {
+              // 🔍 원본 여행 계획 데이터 가져오기
+              let originalPlanData = null;
+              let actualAge = 25; // 기본값
+              let actualTravelPlan: DayPlan[] = [];
+
+              if (matePost.planId) {
+                try {
+                  const planDataStr = localStorage.getItem(
+                    `plan_${matePost.planId}`,
+                  );
+                  if (planDataStr) {
+                    originalPlanData = JSON.parse(planDataStr);
+                    console.log(
+                      `📋 원본 계획 데이터 로드 성공: ${matePost.planId}`,
+                    );
+
+                    // 실제 여행 계획 사용
+                    if (
+                      originalPlanData.days &&
+                      Array.isArray(originalPlanData.days)
+                    ) {
+                      actualTravelPlan = originalPlanData.days;
+                    }
+
+                    // 작성자 정보에서 실제 나이 추출 (있다면)
+                    if (
+                      originalPlanData.author &&
+                      originalPlanData.author.age
+                    ) {
+                      actualAge = originalPlanData.author.age;
+                    }
+                  } else {
+                    console.warn(
+                      `⚠️ 원본 계획 데이터 없음: plan_${matePost.planId}`,
+                    );
+                  }
+                } catch (error) {
+                  console.warn(
+                    `❌ 원본 계획 데이터 로드 실패: ${matePost.planId}`,
+                    error,
+                  );
+                }
+              }
+
+              // MatePost를 MatchingUser로 정확히 변환
+              const matchingUser: MatchingUser = {
+                id: matePost.id,
+                name: matePost.userName,
+                age: actualAge, // 실제 나이 사용 (기본값: 25)
+                location: matePost.destination,
+                profileImage: matePost.userAvatar,
+                destination: matePost.destination,
+                duration: matePost.period,
+                budget: matePost.budget,
+                travelStyle: matePost.styles.slice(0, 3),
+                coordinates: getDestinationCoordinates(matePost.destination),
+                maxMembers: matePost.maxPeople,
+                currentMembers: matePost.currentPeople,
+                travelPlan:
+                  actualTravelPlan.length > 0
+                    ? actualTravelPlan
+                    : generateMockTravelPlan(matePost.destination), // 실제 계획 우선 사용
+                gender:
+                  matePost.preferences.gender === '남성'
+                    ? 'male'
+                    : matePost.preferences.gender === '여성'
+                      ? 'female'
+                      : 'any',
+              };
+
+              matchingUsers.push(matchingUser);
+              processedCount++;
+              console.log(
+                `✅ 여행메이트 포스트 추가: ${matchingUser.name} - ${matchingUser.destination} (실제 데이터 사용: ${originalPlanData ? 'O' : 'X'})`,
+              );
+            } catch (error) {
+              console.warn('여행메이트 포스트 변환 중 오류:', error);
+            }
+          });
+        } catch (error) {
+          console.warn('여행메이트 포스트 로드 실패:', error);
+        }
+
+        // 2. 내 피드들 가져오기 (matePostService에 없는 추가 피드들)
+        const myFeedsStr = localStorage.getItem('myFeeds');
+        if (myFeedsStr) {
+          const myFeeds = JSON.parse(myFeedsStr);
+          console.log('📱 내 피드 로드:', myFeeds.length, '개');
+          processedCount += processRecruitingFeeds(
+            myFeeds,
+            matchingUsers,
+            '나',
+          );
+        }
+
+        // 🚫 Mock 데이터 생성 비활성화됨 (실제 사용자 데이터만 사용)
+        console.log(
+          '❌ Mock 사용자 피드 생성이 비활성화되었습니다. 실제 사용자 데이터만 표시됩니다.',
+        );
+
+        /* Mock 데이터 생성 코드 비활성화
       const userIds = [
         'user_001',
         'user_002',
@@ -529,26 +642,36 @@ const MatchRecommendPage: React.FC = () => {
           console.warn(`사용자 ${userId} 피드 처리 실패:`, error);
         }
       });
-    } catch (error) {
-      console.error('피드 데이터 처리 중 오류:', error);
-    }
+      */
+      } catch (error) {
+        console.error('피드 데이터 처리 중 오류:', error);
+      }
 
-    console.log(
-      `🎉 총 ${matchingUsers.length}개의 모집중인 매칭 사용자 생성 (처리된 피드: ${processedCount}개)`,
-    );
+      console.log(
+        `🎉 총 ${matchingUsers.length}개의 모집중인 매칭 사용자 생성 (처리된 피드: ${processedCount}개)`,
+      );
 
-    // 실제 매칭 사용자들의 상세 정보 출력
-    if (matchingUsers.length > 0) {
-      console.log('📋 모집중인 매칭 사용자 목록:');
-      matchingUsers.forEach((user, index) => {
-        console.log(
-          `  ${index + 1}. ${user.name} - ${user.destination} (${user.duration})`,
-        );
-      });
-    }
+      // 실제 매칭 사용자들의 상세 정보 출력
+      if (matchingUsers.length > 0) {
+        console.log('📋 모집중인 매칭 사용자 목록:');
+        matchingUsers.forEach((user, index) => {
+          console.log(
+            `  ${index + 1}. ${user.name} - ${user.destination} (${user.duration})`,
+          );
+        });
+      }
 
-    return matchingUsers;
-  }, [refreshTrigger]);
+      // 기존 로컬 데이터 로드 로직 (Mock 데이터 생성 비활성화됨)
+      const localUsers: MatchingUser[] = [];
+      console.log(
+        '📝 로컬 데이터에서 실제 사용자 데이터가 없어 빈 상태로 설정',
+      );
+      setAllUsers(localUsers);
+    };
+
+    // 백엔드 데이터 로드 실행
+    loadMatchingUsersFromBackend();
+  }, [refreshTrigger]); // refreshTrigger 변경시 다시 로드
 
   // 모든 마커들이 보이도록 지도 뷰를 조정하는 함수
   const fitMapToMarkers = (markers: MarkerData[]) => {
@@ -747,40 +870,66 @@ const MatchRecommendPage: React.FC = () => {
     if (searchedMarkers[cacheKey]) return;
 
     // 선택된 Day의 활동들을 찾음
+    console.log(
+      `🔍 Day ${selectedDay} 검색 시작 - 사용자: ${currentUser.name}`,
+    );
+    console.log('📋 전체 여행 계획:', currentUser.travelPlan);
+
     const selectedDayPlan = currentUser.travelPlan.find(
       (plan) => plan.day === selectedDay,
     );
-    if (!selectedDayPlan) return;
+
+    if (!selectedDayPlan) {
+      console.warn(`❌ Day ${selectedDay} 계획을 찾을 수 없음`);
+      return;
+    }
+
+    console.log(`✅ Day ${selectedDay} 계획 발견:`, selectedDayPlan);
 
     // 검색 시작
     setIsSearchingPlaces(true);
 
     // 키워드 검색으로 실제 장소 좌표를 찾아서 마커 생성
-    const searchPromises = selectedDayPlan.activities.map((activity, index) => {
-      const activityId = `activity-${currentUser.id}-${selectedDay}-${index}`;
+    const searchPromises = (selectedDayPlan.activities || []).map(
+      (activity, index) => {
+        const activityId = `activity-${currentUser.id}-${selectedDay}-${index}`;
 
-      // 검색 키워드 최적화: 불필요한 단어 제거 및 목적지 추가
-      let searchKeyword = activity.title
-        .replace(/^(점심:|저녁:|아침:|브런치:)/g, '') // 시간 관련 접두사 제거
-        .replace(/\s+/g, ' ') // 여러 공백을 하나로
-        .trim();
+        // 🎯 실제 장소명 우선 사용 (백엔드 데이터의 place 필드)
+        let searchKeyword = '';
 
-      // 목적지와 함께 검색하여 정확도 향상
-      searchKeyword = `${currentUser.destination} ${searchKeyword}`;
+        if (activity.place && activity.place.trim()) {
+          // place 필드가 있으면 이를 우선 사용 (더 정확한 검색)
+          searchKeyword = activity.place.trim();
+          console.log(`🎯 장소명으로 검색: ${searchKeyword}`);
+        } else {
+          // place 필드가 없으면 title에서 추출
+          searchKeyword = activity.title
+            .replace(/^(점심:|저녁:|아침:|브런치:)/g, '') // 시간 관련 접두사 제거
+            .replace(/\s+/g, ' ') // 여러 공백을 하나로
+            .trim();
+          console.log(`📝 제목에서 추출: ${searchKeyword}`);
+        }
 
-      return searchPlaceByKeyword(
-        searchKeyword,
-        currentUser.coordinates,
-        activityId,
-      );
-    });
+        // 목적지와 함께 검색하여 정확도 향상
+        searchKeyword = `${currentUser.destination} ${searchKeyword}`;
+
+        return searchPlaceByKeyword(
+          searchKeyword,
+          currentUser.coordinates,
+          activityId,
+        );
+      },
+    );
 
     // 모든 검색이 완료되면 마커 업데이트
     Promise.all(searchPromises)
       .then((results) => {
+        console.log(`📊 Day ${selectedDay} 검색 결과:`, results);
+
         const validMarkers = results.filter(
           (marker): marker is MarkerData => marker !== null,
         );
+        console.log(`✅ 유효한 마커 ${validMarkers.length}개 발견`);
 
         // 실제 방문 장소들만 마커로 표시 (기본 목적지 마커 제외)
         const allMarkers = validMarkers;
@@ -790,16 +939,21 @@ const MatchRecommendPage: React.FC = () => {
           ...prev,
           [cacheKey]: allMarkers,
         }));
+        console.log(`💾 마커 캐시 저장 완료: ${cacheKey}`);
 
         // 검색 완료
         setIsSearchingPlaces(false);
 
         // 모든 마커들이 보이도록 지도 뷰 조정
         if (allMarkers.length > 0) {
+          console.log(`🗺️ 지도에 ${allMarkers.length}개 마커 표시 및 뷰 조정`);
           fitMapToMarkers(allMarkers);
+        } else {
+          console.warn('⚠️ 표시할 마커가 없습니다');
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error(`❌ Day ${selectedDay} 장소 검색 실패:`, error);
         // 검색 실패 시에도 로딩 상태 해제
         setIsSearchingPlaces(false);
       });
@@ -1031,26 +1185,30 @@ const MatchRecommendPage: React.FC = () => {
   // 여행 일정 페이지네이션 계산
   const plansPerPage = 3;
   const totalPlanPages = Math.ceil(
-    currentUser.travelPlan.length / plansPerPage,
+    (currentUser?.travelPlan?.length || 0) / plansPerPage,
   );
-  const paginatedPlans = currentUser.travelPlan.slice(
-    planPage * plansPerPage,
-    (planPage + 1) * plansPerPage,
-  );
+  // currentUser가 null인지 체크하여 안전하게 처리
+  const paginatedPlans =
+    currentUser?.travelPlan?.slice(
+      planPage * plansPerPage,
+      (planPage + 1) * plansPerPage,
+    ) || [];
 
-  // 지도 마커 데이터 생성
-  const markerData: MarkerData[] = [
-    {
-      id: currentUser.id.toString(),
-      position: {
-        lat: currentUser.coordinates.lat,
-        lng: currentUser.coordinates.lng,
-      },
-      title: currentUser.destination,
-      description: currentUser.name,
-      category: 'attraction' as const,
-    },
-  ];
+  // 지도 마커 데이터 생성 (currentUser가 null이면 빈 배열 반환)
+  const markerData: MarkerData[] = currentUser
+    ? [
+        {
+          id: currentUser.id?.toString() || '0', // id가 null일 경우 기본값 '0' 사용
+          position: {
+            lat: currentUser.coordinates?.lat || 37.5665, // 기본 좌표 (서울)
+            lng: currentUser.coordinates?.lng || 126.978,
+          },
+          title: currentUser.destination || '알 수 없음',
+          description: currentUser.name || '익명',
+          category: 'attraction' as const,
+        },
+      ]
+    : [];
 
   // 다음 사용자로 이동
   const nextUser = () => {
@@ -1260,6 +1418,33 @@ const MatchRecommendPage: React.FC = () => {
     </Container>
   );
 
+  // currentUser가 null인 경우 로딩 표시
+  if (!currentUser) {
+    return (
+      <Container
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            flexDirection: 'column',
+          }}
+        >
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+          <div style={{ fontSize: '1.2rem', color: '#666' }}>
+            추천할 사용자를 찾는 중...
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <Container
       initial={{ opacity: 0, scale: 0.95 }}
@@ -1267,9 +1452,27 @@ const MatchRecommendPage: React.FC = () => {
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3 }}
     >
-      {/* 더 이상 사용자가 없을 때 */}
-      {filteredUsers.length === 0 ? (
-        <NoMoreUsersView />
+      {/* 로딩 상태 및 사용자 없음 처리 */}
+      {isLoadingUsers ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'white' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
+          <div style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+            백엔드에서 매칭 데이터 로드 중...
+          </div>
+          <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+            잠시만 기다려주세요
+          </div>
+        </div>
+      ) : filteredUsers.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'white' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✈️</div>
+          <div style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+            아직 매칭 활성화된 여행 계획이 없어요
+          </div>
+          <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+            여행 계획을 작성하고 메이트를 찾아보세요!
+          </div>
+        </div>
       ) : (
         <>
           <div className="page-header">
@@ -1360,7 +1563,7 @@ const MatchRecommendPage: React.FC = () => {
                       />
                     )}
                     <div className="tags-overlay">
-                      {currentUser.travelStyle.map((style, index) => (
+                      {(currentUser.travelStyle || []).map((style, index) => (
                         <span key={index} className="tag">
                           #{style}
                         </span>
@@ -1414,23 +1617,25 @@ const MatchRecommendPage: React.FC = () => {
                               </button>
                             </div>
                             <ul className="activity-list">
-                              {plan.activities.map((activity, actIndex) => (
-                                <li key={actIndex} className="activity-item">
-                                  <div className="activity-time">
-                                    {activity.time}
-                                  </div>
-                                  <div className="activity-content">
-                                    <div className="activity-title">
-                                      {activity.title}
+                              {(plan.activities || []).map(
+                                (activity, actIndex) => (
+                                  <li key={actIndex} className="activity-item">
+                                    <div className="activity-time">
+                                      {activity.time}
                                     </div>
-                                    {activity.description && (
-                                      <div className="activity-description">
-                                        {activity.description}
+                                    <div className="activity-content">
+                                      <div className="activity-title">
+                                        {activity.title}
                                       </div>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
+                                      {activity.description && (
+                                        <div className="activity-description">
+                                          {activity.description}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </li>
+                                ),
+                              )}
                             </ul>
                           </div>
                         ))}
@@ -1634,9 +1839,9 @@ const MatchRecommendPage: React.FC = () => {
                 <div className="marker-info-body">
                   {markerDetail ? (
                     <>
-                      {markerDetail.photos.length > 0 && (
+                      {(markerDetail.photos || []).length > 0 && (
                         <div className="marker-images">
-                          {markerDetail.photos.map((photo, index) => (
+                          {(markerDetail.photos || []).map((photo, index) => (
                             <img
                               key={index}
                               src={photo}

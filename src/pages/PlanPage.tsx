@@ -205,8 +205,24 @@ const PlanPage: React.FC = () => {
       let savedPlan: string | null = null;
 
       try {
-        // localStorage에서 저장된 계획 불러오기
-        savedPlan = localStorage.getItem('currentTravelPlan');
+        // URL 파라미터에 따른 계획 로드 (우선순위: 개별 계획 > 현재 계획)
+        if (id && id !== 'undefined') {
+          // 1. URL 파라미터가 있으면 해당 개별 계획 로드
+          console.log('🔍 개별 여행 계획 로드 시도:', id);
+          savedPlan = localStorage.getItem(`plan_${id}`);
+
+          if (savedPlan) {
+            console.log('✅ 개별 계획 로드 성공:', id);
+          } else {
+            console.log('⚠️ 개별 계획 없음, 현재 계획으로 폴백:', id);
+            // 개별 계획이 없으면 현재 계획으로 폴백
+            savedPlan = localStorage.getItem('currentTravelPlan');
+          }
+        } else {
+          // 2. URL 파라미터가 없으면 현재 계획 로드
+          console.log('🔍 현재 여행 계획 로드');
+          savedPlan = localStorage.getItem('currentTravelPlan');
+        }
 
         if (savedPlan) {
           const parsedPlan = JSON.parse(savedPlan);

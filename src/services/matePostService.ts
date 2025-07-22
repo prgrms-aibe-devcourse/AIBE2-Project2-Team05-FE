@@ -271,8 +271,14 @@ class MatePostService {
 
   /**
    * Mock 여행 계획들을 매칭 포스트로 변환하여 추가
+   * ❌ 비활성화됨 - 실제 사용자 데이터만 사용
    */
   initializeFromMockPlans(mockPlans: any[]): void {
+    console.log('❌ Mock 데이터 초기화가 비활성화되었습니다.');
+    return; // 즉시 종료
+
+    // 비활성화된 코드 (Mock 데이터 생성 방지)
+    /*
     console.log('🔄 Mock 여행 계획들을 매칭에 반영 시작...');
 
     let addedCount = 0;
@@ -333,6 +339,7 @@ class MatePostService {
     });
 
     console.log(`🎉 총 ${addedCount}개의 Mock 계획이 매칭에 반영되었습니다.`);
+    */
   }
 
   /**

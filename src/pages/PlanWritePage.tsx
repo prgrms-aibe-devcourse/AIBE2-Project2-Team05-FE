@@ -6,8 +6,19 @@ import * as S from './PlanWritePage.style';
 import PlaceMap from '../components/PlaceMap';
 import openaiService from '../services/openaiApi';
 import matePostService from '../services/matePostService';
+import travelPlanApiService, {
+  TravelPlanData,
+} from '../services/travelPlanApi'; // 백엔드 여행 계획 API
 import { getDestinationRepresentativeImage } from '../services/backendPlacesApi'; // 백엔드 구글 플레이스 API 추가
-import { AIRecommendationData } from '../types/plan';
+import {
+  TravelPlan,
+  TravelDay,
+  TravelEvent,
+  Author,
+  MatchingInfo,
+  RecommendedPlace,
+  AIRecommendationData,
+} from '../types/plan';
 
 // 일정 항목 타입 정의
 interface ScheduleItem {
@@ -238,9 +249,13 @@ const PlanWritePage: React.FC = () => {
       });
 
       try {
-        // OpenAI API로 해시태그와 근처 추천지 생성 (병렬 처리)
-        const [aiHashtags, nearbyRecommendations] = await Promise.all([
-          openaiService.generateHashtags({
+        // 🛡️ 안전한 순차 처리로 변경 (병렬 처리 시 오류 발생 가능성 낮춤)
+        console.log('🤖 AI 해시태그 생성 시작...');
+        let aiHashtags: string[] = [];
+        let nearbyRecommendations: any[] = [];
+
+        try {
+          aiHashtags = await openaiService.generateHashtags({
             title: formData.title,
             destination: formData.destination,
             days: Object.values(formData.schedules).map(
@@ -254,38 +269,85 @@ const PlanWritePage: React.FC = () => {
               }),
             ),
             styles: getStyleLabels(formData.styles),
-          }),
-          openaiService.generateNearbyRecommendations(
-            formData.destination,
-            getStyleLabels(formData.styles),
+          });
+          console.log('✅ AI 해시태그 생성 성공:', aiHashtags.length, '개');
+        } catch (hashError) {
+          console.error('⚠️ AI 해시태그 생성 실패:', hashError);
+          aiHashtags = [
+            `#${formData.destination}여행`,
+            `#${getStyleLabels(formData.styles)[0] || '여행'}`,
+          ];
+        }
+
+        console.log('🤖 AI 추천 장소 생성 시작...');
+        try {
+          nearbyRecommendations =
+            await openaiService.generateNearbyRecommendations(
+              formData.destination,
+              getStyleLabels(formData.styles),
+              {
+                days: Object.values(formData.schedules).map(
+                  (daySchedule, index) => ({
+                    events: daySchedule.map((item) => ({
+                      time: item.time,
+                      place: item.place,
+                      activity: item.activity,
+                      memo: item.memo,
+                    })),
+                  }),
+                ),
+              },
+            );
+          console.log(
+            '✅ AI 추천 장소 생성 성공:',
+            nearbyRecommendations.length,
+            '개',
+          );
+        } catch (recommendError) {
+          console.error('⚠️ AI 추천 장소 생성 실패:', recommendError);
+          // 🔄 기본 추천 데이터 제공
+          nearbyRecommendations = [
             {
-              days: Object.values(formData.schedules).map(
-                (daySchedule, index) => ({
-                  events: daySchedule.map((item) => ({
-                    time: item.time,
-                    place: item.place,
-                    activity: item.activity,
-                    memo: item.memo,
-                  })),
-                }),
-              ),
+              name: `${formData.destination} 관광명소`,
+              description: `${formData.destination}의 유명한 관광지입니다.`,
+              category: '관광명소',
+              distance: '정보 없음',
+              verified: false,
             },
-          ),
-        ]);
+            {
+              name: `${formData.destination} 맛집`,
+              description: `${formData.destination}의 현지 맛집을 추천합니다.`,
+              category: '맛집',
+              distance: '정보 없음',
+              verified: false,
+            },
+          ];
+        }
 
         // AI 추천 결과를 planData에 추가
         planData.aiHashtags = aiHashtags;
         planData.nearbyRecommendations = nearbyRecommendations;
 
         toast.success(
-          'AI 분석 완료! 맞춤 해시태그와 근처 관광지를 추천받았습니다.',
+          `AI 분석 완료! 해시태그 ${aiHashtags.length}개와 추천 장소 ${nearbyRecommendations.length}개를 생성했습니다.`,
           { id: 'ai-analysis' },
         );
       } catch (error) {
-        console.error('AI 분석 중 오류:', error);
+        console.error('AI 분석 중 전체 오류:', error);
         toast.dismiss('ai-analysis');
-        toast.error('AI 분석에 실패했지만 기본 추천을 제공합니다.');
-        // AI 분석 실패 시에도 기본 데이터로 저장 진행
+        toast.error('AI 분석에 실패했지만 기본 데이터로 저장합니다.');
+
+        // 🛡️ 완전 실패 시 기본 데이터 제공
+        planData.aiHashtags = [`#${formData.destination}여행`];
+        planData.nearbyRecommendations = [
+          {
+            name: `${formData.destination} 여행지`,
+            description: '추후 더 자세한 정보를 제공할 예정입니다.',
+            category: '관광명소',
+            distance: '정보 없음',
+            verified: false,
+          },
+        ];
       }
 
       // AI 추천 장소 생성 (한 번만 생성하여 저장)
@@ -336,7 +398,7 @@ const PlanWritePage: React.FC = () => {
             travelStyles: formData.styles || ['관광'],
           };
 
-          planData.aiRecommendations = aiRecommendationData;
+          planData.nearbyRecommendations = aiRecommendations;
 
           toast.success(
             `✅ AI 추천 완료! ${aiRecommendations.length}개의 맞춤 장소를 추천받았습니다.`,
@@ -412,8 +474,60 @@ const PlanWritePage: React.FC = () => {
         );
       }
 
-      // localStorage에 여행 계획 저장
-      localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
+      // 🚀 백엔드 API에 여행 계획 저장 (우선)
+      console.log('💾 백엔드에 여행 계획 저장 시작...');
+
+      try {
+        // 백엔드 API 형식으로 데이터 변환
+        const travelPlanData: TravelPlanData = {
+          planId: planId,
+          userId: currentUserId,
+          title: formData.title,
+          destination: formData.destination,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          period: calculateDays(formData.startDate, formData.endDate),
+          budget: `${formData.budget}만원`,
+          people: `${formData.people}명`,
+          styles: formData.styles,
+          styleLabels: getStyleLabels(formData.styles),
+          matchingInfo: formData.matchingEnabled
+            ? {
+                preferredGender: formData.preferredGender,
+                preferredAge: formData.preferredAge,
+                preferredLanguage: formData.preferredLanguage,
+                matchingMemo: formData.matchingMemo,
+              }
+            : undefined,
+          author: authorInfo,
+          schedules: formData.schedules,
+          aiHashtags: planData.aiHashtags,
+          nearbyRecommendations: planData.nearbyRecommendations,
+          imageUrl: destinationImageUrl,
+        };
+
+        // 백엔드 API 호출
+        const savedPlan =
+          await travelPlanApiService.saveTravelPlan(travelPlanData);
+        console.log('✅ 백엔드 저장 성공:', savedPlan.planId);
+
+        // 성공 시 localStorage에도 저장 (동기화)
+        localStorage.setItem(
+          'currentTravelPlan',
+          JSON.stringify({
+            ...planData,
+            planId: savedPlan.planId, // 백엔드에서 받은 실제 ID 사용
+          }),
+        );
+
+        console.log('🎉 백엔드와 로컬스토리지 모두 저장 완료');
+      } catch (backendError) {
+        console.error('❌ 백엔드 저장 실패, 로컬스토리지 폴백:', backendError);
+
+        // 백엔드 실패 시 로컬스토리지에만 저장
+        localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
+        console.log('💾 로컬스토리지 폴백 저장 완료');
+      }
 
       // 1. 프로필 피드 데이터 생성
       const profileFeedData = {

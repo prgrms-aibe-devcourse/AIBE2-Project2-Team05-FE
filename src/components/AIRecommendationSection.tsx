@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import PlaceDetailModal from './PlaceDetailModal';
 import { AIRecommendationData } from '../types/plan';
+import openaiService from '../services/openaiApi';
 
 // 추천 장소 타입 정의
 interface RecommendedPlace {
@@ -57,12 +58,28 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
         const planDataStr = localStorage.getItem(`plan_${planId}`);
         if (planDataStr) {
           const planData = JSON.parse(planDataStr);
+
+          // ✅ 우선 planData.nearbyRecommendations 확인 (PlanWritePage에서 저장한 데이터)
+          if (
+            planData.nearbyRecommendations &&
+            Array.isArray(planData.nearbyRecommendations)
+          ) {
+            console.log(
+              '✅ 메인 플랜에서 추천 데이터 발견:',
+              planData.nearbyRecommendations.length,
+              '개',
+            );
+            setRecommendations(planData.nearbyRecommendations);
+            return;
+          }
+
+          // 🔄 기존 방식도 지원 (하위 호환성)
           if (
             planData.aiRecommendations &&
             planData.aiRecommendations.recommendations
           ) {
             console.log(
-              '✅ localStorage에서 추천 데이터 발견:',
+              '✅ 기존 형식 추천 데이터 발견:',
               planData.aiRecommendations.recommendations.length,
               '개',
             );
@@ -79,6 +96,103 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
     console.log('⚠️ 저장된 AI 추천 데이터가 없습니다.');
     setRecommendations([]);
   }, [planId, savedRecommendations]);
+
+  // 새로운 AI 추천 생성 및 저장
+  const generateNewRecommendations = async () => {
+    if (!destination || travelStyles.length === 0) {
+      console.warn('⚠️ 목적지나 여행 스타일 정보가 없습니다.');
+      return;
+    }
+
+    setLoading(true);
+    console.log('🤖 새로운 AI 추천 생성 시작...', {
+      destination,
+      travelStyles,
+      visitedPlaces,
+    });
+
+    try {
+      // OpenAI API를 통해 추천 생성 (visitedPlaces를 days 형식으로 변환)
+      const travelPlanData = {
+        days: [
+          {
+            day: 1,
+            activities: visitedPlaces.map((place) => ({ name: place })),
+          },
+        ],
+      };
+
+      const aiRecommendations =
+        await openaiService.generateNearbyRecommendations(
+          destination,
+          travelStyles,
+          travelPlanData,
+        );
+
+      if (aiRecommendations && aiRecommendations.length > 0) {
+        console.log('✅ AI 추천 생성 성공:', aiRecommendations.length, '개');
+
+        // RecommendedPlace 형식으로 변환
+        const formattedRecommendations: RecommendedPlace[] =
+          aiRecommendations.map((rec, index) => ({
+            name: rec.name,
+            description: rec.description,
+            category: rec.category || '관광명소',
+            distance: rec.distance || '정보 없음',
+            verified: rec.verified || false,
+            source: 'OpenAI',
+          }));
+
+        setRecommendations(formattedRecommendations);
+
+        // ✅ localStorage에 저장 (planId가 있는 경우) - 메인 planData에 통합 저장
+        if (planId) {
+          try {
+            // 기존 planData 로드
+            const existingPlanStr = localStorage.getItem(`plan_${planId}`);
+            if (existingPlanStr) {
+              const planData = JSON.parse(existingPlanStr);
+
+              // nearbyRecommendations 업데이트
+              planData.nearbyRecommendations = formattedRecommendations;
+              planData.lastRecommendationUpdate = new Date().toISOString();
+
+              // planData 다시 저장
+              localStorage.setItem(`plan_${planId}`, JSON.stringify(planData));
+              console.log('💾 메인 planData에 AI 추천 업데이트 완료:', planId);
+            } else {
+              console.warn(
+                '⚠️ 메인 planData를 찾을 수 없어 별도 저장:',
+                planId,
+              );
+              // 메인 planData가 없으면 기존 방식으로 저장
+              const recommendationData = {
+                destination,
+                travelStyles,
+                visitedPlaces,
+                recommendations: formattedRecommendations,
+                generatedAt: new Date().toISOString(),
+              };
+              localStorage.setItem(
+                `ai_recommendations_${planId}`,
+                JSON.stringify(recommendationData),
+              );
+            }
+          } catch (error) {
+            console.error('AI 추천 저장 중 오류:', error);
+          }
+        }
+      } else {
+        console.warn('⚠️ AI 추천 결과가 없습니다.');
+        setRecommendations([]);
+      }
+    } catch (error) {
+      console.error('❌ AI 추천 생성 실패:', error);
+      setRecommendations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadSavedRecommendations();
@@ -122,11 +236,16 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
           <EmptyIcon>🔍</EmptyIcon>
           <EmptyText>AI 추천 데이터가 없습니다</EmptyText>
           <EmptyDescription>
-            이 여행 계획은 새로운 AI 추천 시스템 도입 이전에 작성되었습니다.
-            <br />
-            새로운 여행 계획을 작성하면 AI가 분석한 맞춤 추천을 받을 수 있어요!
-            ✨
+            AI가 {destination} 근처의 맞춤 장소를 추천해드릴게요!
+            <br />✨ 아래 버튼을 클릭해서 새로운 추천을 받아보세요!
           </EmptyDescription>
+          <RefreshButton
+            onClick={generateNewRecommendations}
+            disabled={loading}
+            style={{ marginTop: '16px' }}
+          >
+            {loading ? '🔄 생성 중...' : '🤖 AI 추천받기'}
+          </RefreshButton>
         </EmptyState>
       </Container>
     );
@@ -137,8 +256,11 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
       <Container>
         <Header>
           <Title>🤖 AI 추천 근처 가볼만한 곳</Title>
-          <RefreshButton onClick={loadSavedRecommendations} disabled={loading}>
-            {loading ? '🔄 생성 중...' : '🔄 새로고침'}
+          <RefreshButton
+            onClick={generateNewRecommendations}
+            disabled={loading}
+          >
+            {loading ? '🔄 생성 중...' : '✨ 새로 추천받기'}
           </RefreshButton>
         </Header>
 

@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
                         .requestMatchers("/api/places/**").permitAll() // Places API 허용
+                        .requestMatchers("/api/travel-plans/**").permitAll() // 여행 계획 API 허용 (새로 추가)
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "GUIDE", "ADMIN")
                         .anyRequest().authenticated()
                 )

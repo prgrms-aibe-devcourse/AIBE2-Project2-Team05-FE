@@ -3,8 +3,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import matePostService from '../services/matePostService';
-import { mockTravelPlans } from '../data/mockTravelPlans';
-import { generateMockUserFeeds } from '../data/mockProfileData';
+import travelPlanApiService from '../services/travelPlanApi'; // 백엔드 API 추가
 
 interface MatePost {
   id: number;
@@ -52,56 +51,170 @@ const MatchPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // 메이트 찾기 게시글 로드
-  useEffect(() => {
-    const loadMatePosts = () => {
-      try {
-        console.log('🔄 매칭 데이터 초기화 시작...');
+  // 🔥 강력한 Mock 데이터 완전 정리 함수
+  const clearMockData = () => {
+    try {
+      console.log('🗑️ 모든 Mock 데이터 완전 정리 시작...');
 
-        // 1. Mock 여행 계획들을 매칭에 반영
-        matePostService.initializeFromMockPlans(mockTravelPlans);
+      // 🔥 1. matePosts 완전 삭제 (실제 사용자 데이터만 남기기)
+      const existingMatePosts = localStorage.getItem('matePosts');
+      if (existingMatePosts) {
+        console.log('🧹 기존 matePosts 완전 삭제');
+        localStorage.removeItem('matePosts');
+      }
 
-        // 2. 다양한 사용자들의 프로필 피드를 매칭에 반영
-        const userIds = [
-          'user_001',
-          'user_002',
-          'user_003',
-          'user_004',
-          'user_005',
-        ];
+      // 🔥 2. Mock 사용자 데이터 완전 삭제
+      const allKeys = Object.keys(localStorage);
+      const mockKeys = allKeys.filter(
+        (key) =>
+          key.includes('user_00') || // Mock 사용자 ID
+          key.includes('mock') || // Mock 관련
+          key.includes('Lotusrious') || // 특정 Mock 사용자
+          key.includes('sample'), // 샘플 데이터
+      );
 
-        userIds.forEach((userId) => {
-          try {
-            const userFeeds = generateMockUserFeeds(userId);
-            matePostService.initializeFromProfileData(userFeeds);
-          } catch (error) {
-            console.warn(`사용자 ${userId} 피드 처리 실패:`, error);
+      mockKeys.forEach((key) => {
+        localStorage.removeItem(key);
+        console.log(`🗑️ Mock 데이터 삭제: ${key}`);
+      });
+
+      // 🔥 3. 특정 Mock planId들 삭제 (이미지에서 보이는 데이터)
+      const mockPlanIds = [
+        'plan_1',
+        'plan_2',
+        'plan_3',
+        'plan_강릉',
+        'plan_부산',
+        'plan_제주',
+      ];
+      mockPlanIds.forEach((planId) => {
+        if (localStorage.getItem(planId)) {
+          // 실제 사용자가 작성했는지 확인 (myFeeds에 있는지)
+          const myFeeds = localStorage.getItem('myFeeds');
+          let isRealUserPlan = false;
+
+          if (myFeeds) {
+            const feeds = JSON.parse(myFeeds);
+            isRealUserPlan = feeds.some(
+              (feed: any) =>
+                feed.planId === planId.replace('plan_', '') &&
+                feed.type === 'travel-plan',
+            );
           }
-        });
 
-        // 3. 실제 사용자가 작성한 계획들도 매칭에 반영 (myFeeds)
+          if (!isRealUserPlan) {
+            localStorage.removeItem(planId);
+            console.log(`🗑️ Mock 계획 삭제: ${planId}`);
+          }
+        }
+      });
+
+      console.log('✅ Mock 데이터 완전 정리 완료!');
+    } catch (error) {
+      console.error('Mock 데이터 정리 중 오류:', error);
+    }
+  };
+
+  // 메이트 찾기 게시글 로드 (실제 사용자 데이터만)
+  useEffect(() => {
+    const loadMatePosts = async () => {
+      try {
+        console.log('📋 실제 사용자 여행메이트 데이터 로드 시작...');
+
+        // 🗑️ 먼저 Mock 데이터 정리
+        clearMockData();
+
+        // ✅ 실제 사용자가 작성한 계획들만 매칭에 반영 (myFeeds)
         try {
           const myFeedsStr = localStorage.getItem('myFeeds');
           if (myFeedsStr) {
             const myFeeds = JSON.parse(myFeedsStr);
-            matePostService.initializeFromProfileData(myFeeds);
+            console.log(`📝 내 피드 발견: ${myFeeds.length}개`);
+
+            // 여행 계획만 필터링해서 매칭에 반영
+            const travelPlanFeeds = myFeeds.filter(
+              (feed: any) => feed.type === 'travel-plan' && feed.planId,
+            );
+            console.log(`✈️ 여행 계획 피드: ${travelPlanFeeds.length}개`);
+
+            if (travelPlanFeeds.length > 0) {
+              matePostService.initializeFromProfileData(travelPlanFeeds);
+            }
           }
         } catch (error) {
           console.warn('내 피드 매칭 반영 실패:', error);
         }
 
-        // 4. 모든 매칭 포스트 로드
-        let posts = matePostService.getAllMatePosts();
+        // 🚀 백엔드 API에서 매칭 포스트 로드 (우선)
+        console.log('🎯 백엔드에서 매칭 포스트 로드 시작...');
 
-        // 데이터가 없으면 샘플 데이터 생성 (기존 방식 유지)
-        if (posts.length === 0) {
-          console.log('⚠️ 매칭 데이터가 없어 샘플 데이터 생성...');
-          posts = generateSamplePosts();
-          // 샘플 데이터는 기존 방식으로 저장 (호환성 유지)
-          localStorage.setItem('matePosts', JSON.stringify(posts));
+        let posts: MatePost[] = [];
+
+        try {
+          // 백엔드 API에서 매칭 활성화된 여행 계획 조회
+          const backendPlans =
+            await travelPlanApiService.getMatchingTravelPlans();
+          console.log(`📡 백엔드에서 매칭 계획 ${backendPlans.length}개 조회`);
+
+          // 백엔드 데이터를 MatePost 형식으로 변환
+          posts = backendPlans.map((plan) => ({
+            id: parseInt(plan.planId),
+            userId: plan.userId,
+            userName: plan.author.name,
+            userAvatar: plan.author.profileImage || '👤',
+            title: `${plan.title} (메이트 모집)`,
+            destination: plan.destination,
+            startDate: plan.startDate,
+            endDate: plan.endDate,
+            period: plan.period,
+            budget: plan.budget,
+            currentPeople: 1, // 작성자 본인
+            maxPeople: parseInt(plan.people.replace(/[^0-9]/g, '')) || 2,
+            preferences: {
+              gender: plan.matchingInfo?.preferredGender || '무관',
+              age: plan.matchingInfo?.preferredAge || '무관',
+              language: plan.matchingInfo?.preferredLanguage || '한국어',
+              memo:
+                plan.matchingInfo?.matchingMemo ||
+                `${plan.destination} 여행을 함께할 메이트를 찾습니다!`,
+            },
+            styles: plan.styleLabels || plan.styles || [],
+            image:
+              plan.imageUrl ||
+              'https://source.unsplash.com/800x600/?travel,korea',
+            likes: 0,
+            views: 0,
+            status: 'recruiting', // 모집중
+            createdAt: plan.createdAt,
+            tags: [
+              `#${plan.destination}`,
+              ...plan.styleLabels.map((style: string) => `#${style}`),
+            ],
+            planId: plan.planId, // 원본 여행계획과 연결
+          }));
+
+          if (posts.length > 0) {
+            localStorage.setItem('matePosts', JSON.stringify(posts));
+            console.log(
+              `✅ 백엔드에서 ${posts.length}개의 매칭 포스트 로드 완료`,
+            );
+          } else {
+            console.log('📝 백엔드에 작성된 여행메이트 모집글이 없습니다.');
+          }
+        } catch (backendError) {
+          console.error(
+            '❌ 백엔드 매칭 포스트 로드 실패, 로컬 데이터 사용:',
+            backendError,
+          );
+
+          // 백엔드 실패 시 로컬 데이터 사용 (폴백)
+          posts = matePostService.getAllMatePosts();
+          console.log(`🔄 로컬에서 ${posts.length}개의 매칭 포스트 로드`);
+
+          if (posts.length === 0) {
+            console.log('📝 로컬에도 여행메이트 모집글이 없습니다.');
+          }
         }
-
-        console.log(`✅ 총 ${posts.length}개의 매칭 포스트 로드 완료`);
 
         setMatePosts(posts);
         setFilteredPosts(posts);
@@ -109,20 +222,9 @@ const MatchPage: React.FC = () => {
       } catch (error) {
         console.error('메이트 게시글 로드 중 오류:', error);
 
-        // 오류 발생 시 기존 방식으로 fallback
-        try {
-          const savedPosts = localStorage.getItem('matePosts');
-          const posts = savedPosts
-            ? JSON.parse(savedPosts)
-            : generateSamplePosts();
-          setMatePosts(posts);
-          setFilteredPosts(posts);
-        } catch (fallbackError) {
-          console.error('Fallback 로드도 실패:', fallbackError);
-          setMatePosts([]);
-          setFilteredPosts([]);
-        }
-
+        // ✅ 오류 발생 시 빈 배열로 설정 (Mock 데이터 없음)
+        setMatePosts([]);
+        setFilteredPosts([]);
         setLoading(false);
       }
     };
@@ -176,67 +278,7 @@ const MatchPage: React.FC = () => {
     setFilteredPosts(filtered);
   }, [matePosts, filters]);
 
-  // 샘플 데이터 생성
-  const generateSamplePosts = (): MatePost[] => {
-    return [
-      {
-        id: 1,
-        userId: 'user1',
-        userName: '김여행',
-        userAvatar: '👩',
-        title: '제주도 힐링 여행 같이 하실분!',
-        destination: '제주도',
-        startDate: '2024-04-15',
-        endDate: '2024-04-17',
-        period: '3일',
-        budget: '80만원',
-        currentPeople: 1,
-        maxPeople: 3,
-        preferences: {
-          gender: '여성만',
-          age: '20대',
-          language: '한국어',
-          memo: '조용하고 힐링하는 여행을 원해요',
-        },
-        styles: ['휴양', '맛집탐방'],
-        image:
-          'https://images.unsplash.com/photo-1539650116574-75c0c6d3e81b?w=400',
-        likes: 15,
-        views: 120,
-        status: 'recruiting',
-        createdAt: '2024-01-15T10:00:00.000Z',
-        tags: ['#제주도', '#힐링', '#여행메이트'],
-      },
-      {
-        id: 2,
-        userId: 'user2',
-        userName: '박모험',
-        userAvatar: '👨',
-        title: '부산 액티비티 투어 멤버 모집!',
-        destination: '부산',
-        startDate: '2024-05-01',
-        endDate: '2024-05-03',
-        period: '3일',
-        budget: '120만원',
-        currentPeople: 2,
-        maxPeople: 4,
-        preferences: {
-          gender: '무관',
-          age: '20~30대',
-          language: '한국어',
-          memo: '액티비티 좋아하는 분들과 함께해요!',
-        },
-        styles: ['액티비티', '관광'],
-        image:
-          'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
-        likes: 8,
-        views: 95,
-        status: 'recruiting',
-        createdAt: '2024-01-14T15:30:00.000Z',
-        tags: ['#부산', '#액티비티', '#관광'],
-      },
-    ];
-  };
+  // ✅ Mock 샘플 데이터 제거됨 - 실제 사용자 데이터만 사용
 
   const handleFilterChange = (filterType: keyof FilterState, value: string) => {
     setFilters((prev) => ({
@@ -355,7 +397,20 @@ const MatchPage: React.FC = () => {
             </ResultsHeader>
 
             {/* 게시글 목록 */}
-            {filteredPosts.length > 0 ? (
+            {matePosts.length === 0 ? (
+              <EmptyState>
+                <EmptyIcon>✈️</EmptyIcon>
+                <EmptyTitle>아직 여행메이트 모집글이 없어요</EmptyTitle>
+                <EmptyDescription>
+                  여행 계획을 작성하면 자동으로 여행메이트 찾기에 등록됩니다!
+                </EmptyDescription>
+                <Link to="/plan/write">
+                  <ActionButton $primary style={{ marginTop: '1rem' }}>
+                    첫 여행 계획 만들기
+                  </ActionButton>
+                </Link>
+              </EmptyState>
+            ) : filteredPosts.length > 0 ? (
               <PostGrid>
                 {filteredPosts.map((post) => (
                   <PostCard key={post.id}>

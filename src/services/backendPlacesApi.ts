@@ -89,11 +89,19 @@ class BackendPlacesApiService {
       );
 
       if (!response.ok) {
+        // 400 오류 등 상세 정보 로깅
+        const errorText = await response.text().catch(() => 'Unknown error');
         console.error(
-          '백엔드 API 응답 오류:',
-          response.status,
-          response.statusText,
+          `백엔드 API 응답 오류: ${response.status} ${response.statusText}`,
+          `URL: ${this.baseUrl}/api/places/details?${params}`,
+          `Error: ${errorText}`,
         );
+
+        // 400 오류의 경우 백엔드 서버 문제이므로 Mock 데이터로 폴백
+        if (response.status === 400) {
+          console.warn('⚠️ 백엔드 API 400 오류 - Mock 데이터로 폴백 처리');
+          return this.createMockPlaceDetails(placeName, region);
+        }
         return null;
       }
 
@@ -133,11 +141,19 @@ class BackendPlacesApiService {
       });
 
       if (!response.ok) {
+        // 400 오류 등 상세 정보 로깅 (POST 버전)
+        const errorText = await response.text().catch(() => 'Unknown error');
         console.error(
-          '백엔드 API 응답 오류:',
-          response.status,
-          response.statusText,
+          `백엔드 API POST 응답 오류: ${response.status} ${response.statusText}`,
+          `Request: ${JSON.stringify(request)}`,
+          `Error: ${errorText}`,
         );
+
+        // 400 오류의 경우 백엔드 서버 문제이므로 Mock 데이터로 폴백
+        if (response.status === 400) {
+          console.warn('⚠️ 백엔드 API POST 400 오류 - Mock 데이터로 폴백 처리');
+          return this.createMockPlaceDetails(request.placeName, request.region);
+        }
         return null;
       }
 
@@ -555,9 +571,15 @@ export const getDestinationRepresentativeImage = async (
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // 400 오류 등 상세 정보 로깅 (목적지 이미지)
+      const errorText = await response.text().catch(() => 'Unknown error');
       console.warn(
         `백엔드 목적지 이미지 API 응답 오류: ${response.status} ${response.statusText}`,
+        `Destination: ${destination} -> ${landmark}`,
+        `Error: ${errorText}`,
       );
+
+      // 400 오류의 경우 다른 이미지 서비스로 폴백 (이미 catch에서 처리)
       return null;
     }
 

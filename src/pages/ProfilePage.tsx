@@ -94,6 +94,52 @@ const ProfilePage = () => {
   const [selectedImage, setSelectedImage] = useState('');
   const [travelPlanModalOpen, setTravelPlanModalOpen] = useState(false);
   const [selectedFeed, setSelectedFeed] = useState<UserFeed | null>(null);
+  // 목적지별 이미지 캐시를 위한 상태
+  const [destinationImages, setDestinationImages] = useState<
+    Map<string, string>
+  >(new Map());
+
+  // 백엔드 API를 통해 목적지별 이미지 가져오기
+  const getDestinationImage = async (destination: string): Promise<string> => {
+    // 캐시된 이미지가 있으면 반환
+    if (destinationImages.has(destination)) {
+      return destinationImages.get(destination)!;
+    }
+
+    console.log('🔍 백엔드 API로 목적지 이미지 가져오기:', destination);
+
+    try {
+      const imageUrl = await getDestinationRepresentativeImage(destination);
+
+      if (imageUrl) {
+        console.log(
+          '✅ 백엔드에서 이미지 가져오기 성공:',
+          destination,
+          imageUrl,
+        );
+        setDestinationImages((prev) =>
+          new Map(prev).set(destination, imageUrl),
+        );
+        return imageUrl;
+      } else {
+        // 백엔드에서 이미지를 찾지 못한 경우 기본 이미지 사용
+        const fallbackImage = `https://source.unsplash.com/600x400/?travel,${encodeURIComponent(destination)}`;
+        console.log('⚠️ 백엔드에서 이미지 없음, Unsplash 사용:', destination);
+        setDestinationImages((prev) =>
+          new Map(prev).set(destination, fallbackImage),
+        );
+        return fallbackImage;
+      }
+    } catch (error) {
+      console.error('❌ 백엔드 API 호출 실패:', destination, error);
+      // API 호출 실패 시 Unsplash 이미지 사용
+      const fallbackImage = `https://source.unsplash.com/600x400/?travel,${encodeURIComponent(destination)}`;
+      setDestinationImages((prev) =>
+        new Map(prev).set(destination, fallbackImage),
+      );
+      return fallbackImage;
+    }
+  };
 
   // 피드 상태 관리 관련 state
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -137,18 +183,33 @@ const ProfilePage = () => {
         const sampleFeeds = generateMockUserFeeds(targetUserId);
         setUserFeeds(sampleFeeds);
 
-        // 각 피드에 대한 여행 계획 데이터를 실제 mockTravelPlans와 연결하여 localStorage에 저장
+        // 각 피드에 대한 여행 계획 데이터 확인 (실제 사용자 데이터 우선)
         // 구글 플레이스 API를 통해 모든 이미지 획득
         const feedProcessingPromises = sampleFeeds.map(async (feed) => {
           if (!feed.planId) return; // planId가 없으면 건너뜀
 
           try {
-            // 실제 mock 데이터에서 해당 planId를 찾아서 사용
-            let planData = getMockTravelPlanById(feed.planId);
+            // ✅ 우선 실제 사용자가 저장한 계획 데이터가 있는지 확인
+            const existingPlanData = localStorage.getItem(
+              `plan_${feed.planId}`,
+            );
+            let planData = null;
 
-            if (!planData) {
-              // 실제 mock 데이터가 없으면 generateMockPlanDataForFeed로 생성
-              planData = generateMockPlanDataForFeed(feed);
+            if (existingPlanData) {
+              // 📋 실제 사용자 데이터가 있으면 사용
+              console.log(`✅ 실제 사용자 데이터 발견: ${feed.planId}`);
+              planData = JSON.parse(existingPlanData);
+            } else {
+              // 🔄 실제 데이터가 없으면 Mock 데이터 사용 (신규 사용자용)
+              console.log(
+                `⚠️ 사용자 데이터 없음, Mock 데이터 사용: ${feed.planId}`,
+              );
+              planData = getMockTravelPlanById(feed.planId);
+
+              if (!planData) {
+                // 실제 mock 데이터가 없으면 generateMockPlanDataForFeed로 생성
+                planData = generateMockPlanDataForFeed(feed);
+              }
             }
 
             if (!planData) {
@@ -177,39 +238,45 @@ const ProfilePage = () => {
                   `✅ 구글 플레이스 이미지 획득 성공: ${planData.destination} -> ${backendImageUrl.substring(0, 60)}...`,
                 );
               } else {
-                // 구글 플레이스에서 이미지를 찾지 못함 - placeholder 사용
-                const placeholderImage = getPlaceholderImage(
+                // 구글 플레이스에서 이미지를 찾지 못함 - 백엔드 API 사용
+                const destinationImage = await getDestinationImage(
                   planData.destination,
                 );
-                planData.imageUrl = placeholderImage;
-                feed.image = placeholderImage;
+                planData.imageUrl = destinationImage;
+                feed.image = destinationImage;
 
                 console.warn(
-                  `⚠️ 구글 플레이스에서 이미지 없음, placeholder 사용: ${planData.destination} -> ${placeholderImage}`,
+                  `⚠️ 구글 플레이스에서 이미지 없음, 백엔드 API 사용: ${planData.destination} -> ${destinationImage}`,
                 );
               }
             } catch (imageError) {
-              // API 호출 실패 - placeholder 사용
-              const placeholderImage = getPlaceholderImage(
+              // API 호출 실패 - 백엔드 API 사용
+              const destinationImage = await getDestinationImage(
                 planData.destination,
               );
-              planData.imageUrl = placeholderImage;
-              feed.image = placeholderImage;
+              planData.imageUrl = destinationImage;
+              feed.image = destinationImage;
 
               console.error(
-                `❌ 구글 플레이스 API 실패, placeholder 사용: ${planData.destination} -> ${placeholderImage}`,
+                `❌ 구글 플레이스 API 실패, 백엔드 API 사용: ${planData.destination} -> ${destinationImage}`,
                 imageError,
               );
             }
 
-            // localStorage에 저장
-            localStorage.setItem(
-              `plan_${feed.planId}`,
-              JSON.stringify(planData),
-            );
-            console.log(
-              `💾 여행 계획 데이터 저장: ${feed.planId} -> ${planData.title}`,
-            );
+            // localStorage에 저장 (실제 사용자 데이터가 없었던 경우만)
+            if (!existingPlanData) {
+              localStorage.setItem(
+                `plan_${feed.planId}`,
+                JSON.stringify(planData),
+              );
+              console.log(
+                `💾 새 여행 계획 데이터 저장: ${feed.planId} -> ${planData.title}`,
+              );
+            } else {
+              console.log(
+                `🔒 기존 사용자 데이터 보존: ${feed.planId} -> ${planData.title}`,
+              );
+            }
           } catch (feedError) {
             console.error(`❌ 피드 ${feed.planId} 처리 중 오류:`, feedError);
           }
@@ -222,15 +289,10 @@ const ProfilePage = () => {
           // ✨ 구글 플레이스 이미지 로드 완료 후 피드 상태를 새롭게 업데이트
           const updatedFeeds = sampleFeeds.map((feed) => ({
             ...feed,
-            // 이미지가 없으면 여행지 기반 placeholder 사용 (picsum 대신)
+            // 이미지가 없으면 기본 여행 이미지 사용
             image:
               feed.image ||
-              getPlaceholderImage(
-                feed.caption
-                  ?.split('📅')[0]
-                  ?.replace(/[🌺🎭🌊⛰️🏛️🎨🗾🗻🏖️]/g, '')
-                  .trim() || '여행지',
-              ),
+              'https://source.unsplash.com/600x400/?travel,vacation',
           }));
 
           setUserFeeds(updatedFeeds);
@@ -252,27 +314,6 @@ const ProfilePage = () => {
         console.error('사용자 데이터 로드 실패:', error);
         setLoading(false);
       }
-    };
-
-    // 지역별 placeholder 이미지 반환 함수
-    const getPlaceholderImage = (destination: string): string => {
-      const placeholders: { [key: string]: string } = {
-        제주도: 'https://via.placeholder.com/600x400/4A90E2/FFFFFF?text=Jeju',
-        제주: 'https://via.placeholder.com/600x400/4A90E2/FFFFFF?text=Jeju',
-        부산: 'https://via.placeholder.com/600x400/2ECC71/FFFFFF?text=Busan',
-        서울: 'https://via.placeholder.com/600x400/E74C3C/FFFFFF?text=Seoul',
-        강릉: 'https://via.placeholder.com/600x400/3498DB/FFFFFF?text=Gangneung',
-        전주: 'https://via.placeholder.com/600x400/F39C12/FFFFFF?text=Jeonju',
-        일본: 'https://via.placeholder.com/600x400/9B59B6/FFFFFF?text=Japan',
-        도쿄: 'https://via.placeholder.com/600x400/9B59B6/FFFFFF?text=Tokyo',
-        유럽: 'https://via.placeholder.com/600x400/34495E/FFFFFF?text=Europe',
-        파리: 'https://via.placeholder.com/600x400/34495E/FFFFFF?text=Paris',
-      };
-
-      return (
-        placeholders[destination] ||
-        'https://via.placeholder.com/600x400/95A5A6/FFFFFF?text=Travel'
-      );
     };
 
     // 약간의 지연으로 로딩 시뮬레이션
