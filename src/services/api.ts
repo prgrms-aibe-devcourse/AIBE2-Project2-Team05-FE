@@ -17,8 +17,8 @@ const api = axios.create({
 // 여기서는 localStorage에서 토큰을 꺼내 헤더에 담아주는 역할을 합니다.
 api.interceptors.request.use(
   (config) => {
-    // localStorage에서 'accessToken'이라는 이름으로 저장된 토큰을 가져옵니다.
-    const token = localStorage.getItem('accessToken');
+    // localStorage에서 'token'이라는 이름으로 저장된 토큰을 가져옵니다.
+    const token = localStorage.getItem('token');
 
     // 토큰이 존재한다면,
     if (token) {
