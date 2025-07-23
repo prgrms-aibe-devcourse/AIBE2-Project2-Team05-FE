@@ -1,334 +1,347 @@
-import {
-  CreateTravelPlanRequest,
-  TravelPlanResponse,
-  TravelPlanFormData,
-} from '../types/plan';
+// 백엔드 여행 계획 API 서비스
+import axios from 'axios';
 
-// 백엔드 API 기본 URL - 환경변수로 관리
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+// API 베이스 URL
+const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+const API_PREFIX = '/api/travel-plans';
 
-// API 헤더 설정
-const getHeaders = () => ({
-  'Content-Type': 'application/json',
-  // 인증 토큰이 필요한 경우 추가
-  // 'Authorization': `Bearer ${getToken()}`,
+// Axios 인스턴스 생성
+const travelPlanApi = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// FormData를 API 요청 형태로 변환하는 함수
-export const transformFormDataToRequest = (
-  formData: TravelPlanFormData,
-): CreateTravelPlanRequest => {
-  return {
-    title: formData.title,
-    destination: formData.destination,
-    startDate: formData.startDate,
-    endDate: formData.endDate,
-    budget: formData.budget,
-    peopleCount: formData.peopleCount,
-    travelStyles: formData.travelStyles,
-    dayPlans: formData.dayPlans.map((day) => ({
-      dayNumber: day.dayNumber,
-      date: day.date,
-      scheduleItems: day.scheduleItems.map((item) => ({
-        time: item.time,
-        place: item.place,
-        activity: item.activity,
-        memo: item.memo,
-        cost: item.cost,
-      })),
-    })),
-    isMatchingEnabled: formData.isMatchingEnabled,
-    matchingSettings: formData.isMatchingEnabled
-      ? {
-          ageRange: formData.matchingAgeRange,
-          gender: formData.matchingGender,
-          language: formData.matchingLanguage,
-          memo: formData.matchingMemo,
+// 요청/응답 인터셉터
+travelPlanApi.interceptors.request.use(
+  (config) => {
+    console.log(
+      `🚀 API 요청: ${config.method?.toUpperCase()} ${config.url}`,
+      config.data,
+    );
+    return config;
+  },
+  (error) => {
+    console.error('❌ API 요청 오류:', error);
+    return Promise.reject(error);
+  },
+);
+
+travelPlanApi.interceptors.response.use(
+  (response) => {
+    console.log(`✅ API 응답: ${response.config.url}`, response.data);
+    return response;
+  },
+  (error) => {
+    console.error(
+      `❌ API 응답 오류: ${error.config?.url}`,
+      error.response?.data || error.message,
+    );
+    return Promise.reject(error);
+  },
+);
+
+// 타입 정의
+export interface TravelPlanData {
+  planId?: string;
+  userId: string;
+  title: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  period: string;
+  budget: string;
+  people: string;
+  styles: string[];
+  styleLabels: string[];
+  matchingInfo?: {
+    preferredGender?: string;
+    preferredAge?: string;
+    preferredLanguage?: string;
+    matchingMemo?: string;
+  };
+  author: {
+    id: string;
+    name: string;
+    profileImage?: string;
+  };
+  schedules: Record<string, ScheduleItem[]>;
+  aiHashtags?: string[];
+  nearbyRecommendations?: RecommendedPlace[];
+  imageUrl?: string;
+}
+
+export interface ScheduleItem {
+  time: string;
+  place: string;
+  activity: string;
+  memo?: string;
+}
+
+export interface RecommendedPlace {
+  name: string;
+  description: string;
+  category: string;
+  distance?: string;
+  verified?: boolean;
+  source?: string;
+  rating?: number;
+  tags?: string[];
+}
+
+export interface TravelPlanResponse extends TravelPlanData {
+  planId: string;
+  matchingEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 여행 계획 API 서비스 클래스
+ */
+class TravelPlanApiService {
+  /**
+   * 여행 계획 저장 (생성 또는 업데이트)
+   */
+  async saveTravelPlan(
+    travelPlan: TravelPlanData,
+  ): Promise<TravelPlanResponse> {
+    try {
+      console.log('💾 여행 계획 저장 시작:', travelPlan.title);
+
+      const response = await travelPlanApi.post<TravelPlanResponse>(
+        API_PREFIX,
+        {
+          ...travelPlan,
+          // matchingInfo가 있으면 활성화된 것으로 간주
+          matchingInfo: travelPlan.matchingInfo || null,
+        },
+      );
+
+      console.log('✅ 여행 계획 저장 완료:', response.data.planId);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 여행 계획 저장 실패:', error);
+
+      // 네트워크 오류 등으로 백엔드 연결 실패 시 로컬스토리지 폴백
+      if (!error.response || error.code === 'NETWORK_ERROR') {
+        console.warn('🔄 백엔드 연결 실패, 로컬스토리지로 폴백');
+        return this.saveTravelPlanToLocalStorage(travelPlan);
+      }
+
+      throw new Error(
+        `여행 계획 저장 실패: ${error.response?.data?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * 여행 계획 조회
+   */
+  async getTravelPlan(planId: string): Promise<TravelPlanResponse | null> {
+    try {
+      console.log('📋 여행 계획 조회 시작:', planId);
+
+      const response = await travelPlanApi.get<TravelPlanResponse>(
+        `${API_PREFIX}/${planId}`,
+      );
+
+      console.log('✅ 여행 계획 조회 완료:', response.data.title);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn('⚠️ 여행 계획을 찾을 수 없음:', planId);
+        return null;
+      }
+
+      // 네트워크 오류 시 로컬스토리지에서 조회
+      if (!error.response) {
+        console.warn('🔄 백엔드 연결 실패, 로컬스토리지에서 조회');
+        return this.getTravelPlanFromLocalStorage(planId);
+      }
+
+      console.error('❌ 여행 계획 조회 실패:', error);
+      throw new Error(
+        `여행 계획 조회 실패: ${error.response?.data?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * 사용자의 여행 계획 목록 조회
+   */
+  async getUserTravelPlans(userId: string): Promise<TravelPlanResponse[]> {
+    try {
+      console.log('📋 사용자 여행 계획 목록 조회:', userId);
+
+      const response = await travelPlanApi.get<TravelPlanResponse[]>(
+        `${API_PREFIX}?userId=${encodeURIComponent(userId)}`,
+      );
+
+      console.log(
+        '✅ 사용자 여행 계획 목록 조회 완료:',
+        response.data.length,
+        '개',
+      );
+      return response.data;
+    } catch (error: any) {
+      // 네트워크 오류 시 로컬스토리지에서 조회
+      if (!error.response) {
+        console.warn('🔄 백엔드 연결 실패, 로컬스토리지에서 조회');
+        return this.getUserTravelPlansFromLocalStorage(userId);
+      }
+
+      console.error('❌ 사용자 여행 계획 목록 조회 실패:', error);
+      return []; // 빈 배열 반환
+    }
+  }
+
+  /**
+   * 매칭 활성화된 여행 계획 목록 조회 (여행메이트 찾기용)
+   */
+  async getMatchingTravelPlans(): Promise<TravelPlanResponse[]> {
+    try {
+      console.log('🎯 매칭 여행 계획 목록 조회');
+
+      const response = await travelPlanApi.get<TravelPlanResponse[]>(
+        `${API_PREFIX}/matching`,
+      );
+
+      console.log(
+        '✅ 매칭 여행 계획 목록 조회 완료:',
+        response.data.length,
+        '개',
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 매칭 여행 계획 목록 조회 실패:', error);
+      return []; // 빈 배열 반환
+    }
+  }
+
+  /**
+   * 여행 계획 삭제
+   */
+  async deleteTravelPlan(planId: string, userId: string): Promise<boolean> {
+    try {
+      console.log('🗑️ 여행 계획 삭제:', planId);
+
+      await travelPlanApi.delete(
+        `${API_PREFIX}/${planId}?userId=${encodeURIComponent(userId)}`,
+      );
+
+      console.log('✅ 여행 계획 삭제 완료:', planId);
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn('⚠️ 삭제할 여행 계획을 찾을 수 없음:', planId);
+        return false;
+      }
+
+      console.error('❌ 여행 계획 삭제 실패:', error);
+      throw new Error(
+        `여행 계획 삭제 실패: ${error.response?.data?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
+   * API 상태 확인
+   */
+  async healthCheck(): Promise<boolean> {
+    try {
+      await travelPlanApi.get(`${API_PREFIX}/health`);
+      return true;
+    } catch (error) {
+      console.warn('⚠️ 백엔드 API 연결 실패');
+      return false;
+    }
+  }
+
+  // =========================
+  // 로컬스토리지 폴백 메서드들
+  // =========================
+
+  /**
+   * 로컬스토리지에 여행 계획 저장 (폴백용)
+   */
+  private saveTravelPlanToLocalStorage(
+    travelPlan: TravelPlanData,
+  ): TravelPlanResponse {
+    const planId = travelPlan.planId || `plan_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const savedPlan: TravelPlanResponse = {
+      ...travelPlan,
+      planId,
+      matchingEnabled: !!travelPlan.matchingInfo,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // 개별 계획 저장
+    localStorage.setItem(`plan_${planId}`, JSON.stringify(savedPlan));
+
+    // 현재 계획으로도 저장
+    localStorage.setItem('currentTravelPlan', JSON.stringify(savedPlan));
+
+    console.log('💾 로컬스토리지에 여행 계획 저장:', planId);
+    return savedPlan;
+  }
+
+  /**
+   * 로컬스토리지에서 여행 계획 조회 (폴백용)
+   */
+  private getTravelPlanFromLocalStorage(
+    planId: string,
+  ): TravelPlanResponse | null {
+    try {
+      const stored = localStorage.getItem(`plan_${planId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      return null;
+    } catch (error) {
+      console.error('로컬스토리지 여행 계획 조회 실패:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 로컬스토리지에서 사용자 여행 계획 목록 조회 (폴백용)
+   */
+  private getUserTravelPlansFromLocalStorage(
+    userId: string,
+  ): TravelPlanResponse[] {
+    try {
+      const myFeeds = localStorage.getItem('myFeeds');
+      if (!myFeeds) return [];
+
+      const feeds = JSON.parse(myFeeds);
+      const travelPlanFeeds = feeds.filter(
+        (feed: any) => feed.type === 'travel-plan' && feed.planId,
+      );
+
+      const travelPlans: TravelPlanResponse[] = [];
+
+      travelPlanFeeds.forEach((feed: any) => {
+        const planData = localStorage.getItem(`plan_${feed.planId}`);
+        if (planData) {
+          travelPlans.push(JSON.parse(planData));
         }
-      : undefined,
-    additionalInfo: {
-      accommodation: formData.accommodation,
-      transportation: formData.transportation,
-      memo: formData.extraMemo,
-    },
-  };
-};
+      });
 
-// 여행 계획 생성
-export const createTravelPlan = async (
-  formData: TravelPlanFormData,
-): Promise<TravelPlanResponse> => {
-  const requestData = transformFormDataToRequest(formData);
-
-  try {
-    // TODO: 백엔드 API 연결 시 실제 구현
-    const response = await fetch(`${API_BASE_URL}/api/travel-plans`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(requestData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
-    }
-
-    const data: TravelPlanResponse = await response.json();
-    return data;
-  } catch (error) {
-    console.error('여행 계획 생성 실패:', error);
-
-    // 현재는 모킹된 응답 반환 (백엔드 연결 전까지)
-    return mockCreateTravelPlan(requestData);
-  }
-};
-
-// 여행 계획 수정
-export const updateTravelPlan = async (
-  id: string,
-  formData: TravelPlanFormData,
-): Promise<TravelPlanResponse> => {
-  const requestData = transformFormDataToRequest(formData);
-
-  try {
-    // TODO: 백엔드 API 연결 시 실제 구현
-    const response = await fetch(`${API_BASE_URL}/api/travel-plans/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(requestData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
-    }
-
-    const data: TravelPlanResponse = await response.json();
-    return data;
-  } catch (error) {
-    console.error('여행 계획 수정 실패:', error);
-
-    // 현재는 모킹된 응답 반환 (백엔드 연결 전까지)
-    return mockUpdateTravelPlan(id, requestData);
-  }
-};
-
-// 여행 계획 삭제
-export const deleteTravelPlan = async (id: string): Promise<void> => {
-  try {
-    // TODO: 백엔드 API 연결 시 실제 구현
-    const response = await fetch(`${API_BASE_URL}/api/travel-plans/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
-    }
-  } catch (error) {
-    console.error('여행 계획 삭제 실패:', error);
-
-    // 현재는 모킹된 응답 (백엔드 연결 전까지)
-    console.log('모킹된 삭제 완료');
-  }
-};
-
-// 여행 계획 조회
-export const getTravelPlan = async (
-  id: string,
-): Promise<TravelPlanResponse> => {
-  try {
-    // TODO: 백엔드 API 연결 시 실제 구현
-    const response = await fetch(`${API_BASE_URL}/api/travel-plans/${id}`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
-    }
-
-    const data: TravelPlanResponse = await response.json();
-    return data;
-  } catch (error) {
-    console.error('여행 계획 조회 실패:', error);
-
-    // 현재는 모킹된 응답 반환 (백엔드 연결 전까지)
-    return mockGetTravelPlan(id);
-  }
-};
-
-// 임시 저장
-export const saveTravelPlanDraft = async (
-  formData: TravelPlanFormData,
-): Promise<{ id: string }> => {
-  try {
-    // TODO: 백엔드 API 연결 시 실제 구현
-    const response = await fetch(`${API_BASE_URL}/api/travel-plans/draft`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(formData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('임시 저장 실패:', error);
-
-    // 현재는 모킹된 응답 반환 (백엔드 연결 전까지)
-    return { id: 'draft_' + Date.now() };
-  }
-};
-
-// === 모킹 함수들 (백엔드 연결 전까지 사용) ===
-
-const mockCreateTravelPlan = async (
-  requestData: CreateTravelPlanRequest,
-): Promise<TravelPlanResponse> => {
-  // 실제 백엔드 연결 전까지 사용할 모킹 함수
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // 네트워크 지연 시뮬레이션
-
-  return {
-    id: 'plan_' + Date.now(),
-    ...requestData,
-    dayPlans: requestData.dayPlans.map((day, index) => ({
-      id: `day_${index}_${Date.now()}`,
-      ...day,
-      scheduleItems: day.scheduleItems.map((item, itemIndex) => ({
-        id: `item_${index}_${itemIndex}_${Date.now()}`,
-        ...item,
-      })),
-    })),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    authorId: 'current_user_id', // 실제로는 인증된 사용자 ID
-  };
-};
-
-const mockUpdateTravelPlan = async (
-  id: string,
-  requestData: CreateTravelPlanRequest,
-): Promise<TravelPlanResponse> => {
-  // 실제 백엔드 연결 전까지 사용할 모킹 함수
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // 네트워크 지연 시뮬레이션
-
-  return {
-    id,
-    ...requestData,
-    dayPlans: requestData.dayPlans.map((day, index) => ({
-      id: `day_${index}_${Date.now()}`,
-      ...day,
-      scheduleItems: day.scheduleItems.map((item, itemIndex) => ({
-        id: `item_${index}_${itemIndex}_${Date.now()}`,
-        ...item,
-      })),
-    })),
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 하루 전
-    updatedAt: new Date().toISOString(),
-    authorId: 'current_user_id',
-  };
-};
-
-const mockGetTravelPlan = async (id: string): Promise<TravelPlanResponse> => {
-  // 실제 백엔드 연결 전까지 사용할 모킹 함수
-  await new Promise((resolve) => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
-
-  return {
-    id,
-    title: '제주도 힐링 여행',
-    destination: '제주도',
-    startDate: '2024-03-15',
-    endDate: '2024-03-17',
-    budget: 500000,
-    peopleCount: 2,
-    travelStyles: ['relaxation', 'nature', 'food'],
-    dayPlans: [
-      {
-        id: 'day_1',
-        dayNumber: 1,
-        date: '2024-03-15',
-        scheduleItems: [
-          {
-            id: 'item_1_1',
-            time: '09:00',
-            place: '제주공항',
-            activity: '항공편 도착',
-            memo: '렌터카 픽업',
-            cost: 0,
-          },
-        ],
-      },
-    ],
-    isMatchingEnabled: true,
-    matchingSettings: {
-      ageRange: '20-30',
-      gender: 'any',
-      language: 'korean',
-      memo: '함께 여행할 동반자를 찾습니다.',
-    },
-    additionalInfo: {
-      accommodation: '제주 리조트 호텔',
-      transportation: '렌터카',
-      memo: '맛집 위주로 여행하고 싶어요.',
-    },
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    authorId: 'current_user_id',
-  };
-};
-
-// 폼 유효성 검증 함수
-export const validateTravelPlanForm = (
-  formData: TravelPlanFormData,
-): { isValid: boolean; errors: Record<string, string> } => {
-  const errors: Record<string, string> = {};
-
-  // 필수 필드 검증
-  if (!formData.title.trim()) {
-    errors.title = '여행 제목을 입력해주세요.';
-  }
-
-  if (!formData.destination.trim()) {
-    errors.destination = '여행지를 입력해주세요.';
-  }
-
-  if (!formData.startDate) {
-    errors.startDate = '여행 시작일을 선택해주세요.';
-  }
-
-  if (!formData.endDate) {
-    errors.endDate = '여행 종료일을 선택해주세요.';
-  }
-
-  if (formData.startDate && formData.endDate) {
-    const startDate = new Date(formData.startDate);
-    const endDate = new Date(formData.endDate);
-
-    if (startDate >= endDate) {
-      errors.endDate = '종료일은 시작일보다 늦어야 합니다.';
+      return travelPlans;
+    } catch (error) {
+      console.error('로컬스토리지 사용자 여행 계획 목록 조회 실패:', error);
+      return [];
     }
   }
+}
 
-  if (formData.budget < 0) {
-    errors.budget = '예산은 0원 이상이어야 합니다.';
-  }
+// 싱글톤 인스턴스 생성
+const travelPlanApiService = new TravelPlanApiService();
 
-  if (formData.peopleCount < 1) {
-    errors.peopleCount = '인원 수는 1명 이상이어야 합니다.';
-  }
-
-  if (formData.travelStyles.length === 0) {
-    errors.travelStyles = '여행 스타일을 하나 이상 선택해주세요.';
-  }
-
-  if (formData.dayPlans.length === 0) {
-    errors.dayPlans = '최소 하나의 일정을 추가해주세요.';
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
-};
+export default travelPlanApiService;

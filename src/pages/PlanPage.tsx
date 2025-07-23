@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import * as S from './PlanPage.style';
 import PlaceMap from '../components/PlaceMap';
+import AIRecommendationSection from '../components/AIRecommendationSection';
+import FeedStatusChanger from '../components/feed/FeedStatusChanger';
+import FeedStatusBadge from '../components/feed/FeedStatusBadge';
+import ReviewWriteModal from '../components/feed/ReviewWriteModal';
+import feedStatusService from '../services/feedStatusService';
+import { TravelStatus, FeedWithTravelStatus } from '../types/feed';
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -49,6 +55,21 @@ interface TravelPlan {
     category: string;
     distance: string;
   }>; // AI 추천 근처 관광지
+  // 새로운 AI 추천 시스템용 (비용 절약을 위해 한 번만 생성)
+  aiRecommendations?: {
+    recommendations: Array<{
+      name: string;
+      description: string;
+      category: string;
+      distance: string;
+      verified: boolean;
+      source: string;
+    }>;
+    generatedAt: string;
+    destination: string;
+    visitedPlaces: string[];
+    travelStyles: string[];
+  };
 }
 
 const PlanPage: React.FC = () => {
@@ -57,6 +78,27 @@ const PlanPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+
+  // 피드 상태 관리 state
+  const [feedStatus, setFeedStatus] = useState<TravelStatus>('recruiting');
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [currentUser] = useState('current-user'); // 현재 사용자 ID (실제로는 context에서 가져와야 함)
+  const [isAuthor, setIsAuthor] = useState(false);
+  const [reviewCompleted, setReviewCompleted] = useState(false);
+  const [userReviews, setUserReviews] = useState<any[]>([]);
+
+  // visitedPlaces를 useMemo로 최적화해서 불필요한 재렌더링 방지
+  const visitedPlaces = useMemo(() => {
+    if (!plan?.days) return [];
+    return plan.days.flatMap((day) =>
+      day.events.map((event) => event.location).filter(Boolean),
+    );
+  }, [plan?.days]);
+
+  // travelStyles도 useMemo로 최적화
+  const travelStyles = useMemo(() => {
+    return plan?.styleLabels || ['관광', '맛집'];
+  }, [plan?.styleLabels]);
 
   // 기본 mock 데이터
   const createDefaultPlan = (): TravelPlan => ({
@@ -159,18 +201,39 @@ const PlanPage: React.FC = () => {
   // 컴포넌트 마운트 시 여행 계획 로드
   useEffect(() => {
     const loadTravelPlan = () => {
+      let loadedPlan: TravelPlan | null = null;
+      let savedPlan: string | null = null;
+
       try {
-        // localStorage에서 저장된 계획 불러오기
-        const savedPlan = localStorage.getItem('currentTravelPlan');
+        // URL 파라미터에 따른 계획 로드 (우선순위: 개별 계획 > 현재 계획)
+        if (id && id !== 'undefined') {
+          // 1. URL 파라미터가 있으면 해당 개별 계획 로드
+          console.log('🔍 개별 여행 계획 로드 시도:', id);
+          savedPlan = localStorage.getItem(`plan_${id}`);
+
+          if (savedPlan) {
+            console.log('✅ 개별 계획 로드 성공:', id);
+          } else {
+            console.log('⚠️ 개별 계획 없음, 현재 계획으로 폴백:', id);
+            // 개별 계획이 없으면 현재 계획으로 폴백
+            savedPlan = localStorage.getItem('currentTravelPlan');
+          }
+        } else {
+          // 2. URL 파라미터가 없으면 현재 계획 로드
+          console.log('🔍 현재 여행 계획 로드');
+          savedPlan = localStorage.getItem('currentTravelPlan');
+        }
 
         if (savedPlan) {
           const parsedPlan = JSON.parse(savedPlan);
+          loadedPlan = parsedPlan;
           setPlan(parsedPlan);
           setIsLiked(parsedPlan.isLiked || false);
           setLikeCount(parsedPlan.likes || 0);
         } else {
           // 저장된 계획이 없으면 기본 계획 사용
           const defaultPlan = createDefaultPlan();
+          loadedPlan = defaultPlan;
           setPlan(defaultPlan);
           setIsLiked(defaultPlan.isLiked);
           setLikeCount(defaultPlan.likes);
@@ -179,16 +242,143 @@ const PlanPage: React.FC = () => {
         console.error('여행 계획 로드 중 오류:', error);
         // 오류 시 기본 계획 사용
         const defaultPlan = createDefaultPlan();
+        loadedPlan = defaultPlan;
         setPlan(defaultPlan);
         setIsLiked(defaultPlan.isLiked);
         setLikeCount(defaultPlan.likes);
       } finally {
+        // 피드 상태 정보 로드
+        try {
+          const planId = loadedPlan?.id || 'default';
+          const planNumericId =
+            typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
+          const feedId = parseInt(String(planNumericId)) || 1;
+
+          // 피드 상태 가져오기
+          const statusInfo = feedStatusService.getFeedStatus(feedId);
+          if (statusInfo) {
+            setFeedStatus(statusInfo);
+          }
+
+          // 후기 작성 완료 여부 확인
+          const hasReview = feedStatusService.hasReviewWritten(feedId);
+          setReviewCompleted(hasReview);
+
+          // 기존 후기 데이터 로드
+          const existingReviews = JSON.parse(
+            localStorage.getItem('travelReviews') || '[]',
+          );
+          const planReviews = existingReviews.filter(
+            (review: any) =>
+              review.feedId === feedId || review.planId === loadedPlan?.id,
+          );
+          setUserReviews(planReviews);
+
+          // 작성자 여부 확인
+          const isCurrentUserAuthor =
+            loadedPlan?.author?.id === currentUser ||
+            loadedPlan?.author?.name === '나' ||
+            loadedPlan?.author?.name === currentUser;
+          setIsAuthor(isCurrentUserAuthor);
+        } catch (statusError) {
+          console.error('피드 상태 로드 오류:', statusError);
+        }
+
         setLoading(false);
       }
     };
 
     loadTravelPlan();
   }, [id]);
+
+  // 피드 상태 변경 핸들러
+  const handleStatusChange = (feedId: number, newStatus: TravelStatus) => {
+    try {
+      const success = feedStatusService.updateFeedStatus(feedId, newStatus);
+      if (success) {
+        setFeedStatus(newStatus);
+
+        // 상태별 친근한 메시지
+        let message = '';
+        if (newStatus === 'recruiting') {
+          message = '👥 모집중으로 변경되었습니다!';
+        } else if (newStatus === 'traveling') {
+          message = '✈️ 즐거운 여행 되세요!';
+        } else if (newStatus === 'completed') {
+          message = '🎉 여행이 완료되었습니다! 후기를 작성해보세요.';
+        }
+
+        alert(message);
+      }
+    } catch (error) {
+      console.error('상태 변경 오류:', error);
+      alert('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 후기 작성 모달 열기
+  const handleOpenReviewModal = () => {
+    if (feedStatus !== 'completed') {
+      alert('여행이 완료된 후에 후기를 작성할 수 있습니다.');
+      return;
+    }
+
+    const planId = plan?.id || 'default';
+    const planNumericId =
+      typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
+    const feedId = parseInt(String(planNumericId)) || 1;
+
+    if (feedStatusService.hasReviewWritten(feedId)) {
+      alert('이미 후기를 작성한 여행입니다.');
+      return;
+    }
+
+    setReviewModalOpen(true);
+  };
+
+  // 후기 작성 완료 핸들러
+  const handleReviewSubmit = (reviewData: any) => {
+    try {
+      const planId = plan?.id || 'default';
+      const planNumericId =
+        typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
+      const feedId = parseInt(String(planNumericId)) || 1;
+
+      // 후기 데이터를 localStorage에 저장
+      const existingReviews = JSON.parse(
+        localStorage.getItem('travelReviews') || '[]',
+      );
+      const newReview = {
+        id: Date.now(),
+        feedId: feedId,
+        planId: plan?.id,
+        planTitle: plan?.title,
+        destination: plan?.destination,
+        ...reviewData,
+        createdAt: new Date().toISOString(),
+        author: {
+          id: currentUser,
+          name: plan?.author?.name || '나',
+          profileImage: plan?.author?.profileImage || '👤',
+        },
+      };
+      existingReviews.push(newReview);
+      localStorage.setItem('travelReviews', JSON.stringify(existingReviews));
+
+      // 후기 작성 완료 표시
+      feedStatusService.markReviewCompleted(feedId);
+
+      // 상태 업데이트
+      setReviewCompleted(true);
+      setUserReviews((prev) => [...prev, newReview]);
+      setReviewModalOpen(false);
+
+      alert('🌟 여행 후기가 작성되었습니다!');
+    } catch (error) {
+      console.error('후기 작성 오류:', error);
+      alert('후기 작성 중 오류가 발생했습니다.');
+    }
+  };
 
   // 로딩 중 표시
   if (loading) {
@@ -512,40 +702,27 @@ const PlanPage: React.FC = () => {
     ],
   };
 
-  // 카테고리별 색상 함수
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case '맛집':
-        return { bg: '#fff3e0', text: '#f57c00' }; // 오렌지 계열
-      case '액티비티':
-        return { bg: '#e8f5e8', text: '#2d5d2d' }; // 초록 계열
-      case '관광명소':
-        return { bg: '#e0e6ff', text: '#3682F8' }; // 파랑 계열
-      // 기존 카테고리들 (하위 호환성)
-      case 'food':
-        return { bg: '#fff3e0', text: '#f57c00' };
-      case 'nature':
-      case 'beach':
-        return { bg: '#e8f5e8', text: '#2d5d2d' };
-      case 'culture':
-      case 'tourism':
-        return { bg: '#e0e6ff', text: '#3682F8' };
-      case 'wellness':
-        return { bg: '#f3e5f5', text: '#7b1fa2' }; // 보라 계열
-      case 'transportation':
-        return { bg: '#e3f2fd', text: '#1976d2' }; // 연파랑 계열
-      case 'accommodation':
-        return { bg: '#f1f8e9', text: '#689f38' }; // 연초록 계열
-      case 'entertainment':
-        return { bg: '#fce4ec', text: '#c2185b' }; // 핑크 계열
-      default:
-        return { bg: '#f5f5f5', text: '#666' }; // 회색 계열
-    }
-  };
-
   return (
     <S.Container>
-      {/* 메인 정보 섹션 */}
+      {/* 상단 상태 표시 - 작성자만 */}
+      {isAuthor && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            zIndex: 10,
+          }}
+        >
+          <FeedStatusBadge
+            status={feedStatus}
+            size="medium"
+            showDescription={true}
+          />
+        </div>
+      )}
+
+      {/* 헤더 */}
       <S.MainInfo>
         <S.TripTitle>{plan.title}</S.TripTitle>
         <S.TripDate>
@@ -725,140 +902,113 @@ const PlanPage: React.FC = () => {
         ))}
       </S.Timeline>
 
-      {/* AI 추천 근처 관광지 */}
-      {plan.nearbyRecommendations && plan.nearbyRecommendations.length > 0 && (
-        <div
-          style={{
-            margin: '30px 40px',
-            padding: '25px',
-            backgroundColor: '#fafbfc',
-            borderRadius: '12px',
-            border: '1px solid #e9ecef',
-          }}
-        >
-          <h3
-            style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#333',
-              marginBottom: '15px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            🎯 AI 추천 근처 가볼만한 곳
-          </h3>
+      {/* AI 추천 근처 가볼만한 곳 */}
+      {plan && (
+        <AIRecommendationSection
+          planId={plan.id}
+          savedRecommendations={plan.aiRecommendations}
+          destination={plan.destination}
+          travelStyles={travelStyles}
+          visitedPlaces={visitedPlaces}
+        />
+      )}
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '15px',
-            }}
-          >
-            {plan.nearbyRecommendations.map((place: any, index: number) => (
-              <div
-                key={index}
-                style={{
-                  backgroundColor: 'white',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  border: '1px solid #e0e0e0',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 12px rgba(0,0,0,0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 2px 4px rgba(0,0,0,0.05)';
-                }}
-                onClick={() => {
-                  // 장소명으로 검색 (나중에 구글맵 연동 가능)
-                  window.open(
-                    `https://www.google.com/maps/search/${encodeURIComponent(place.name)}`,
-                    '_blank',
-                  );
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <h4
+      {/* 여행 후기 섹션 */}
+      {userReviews.length > 0 && (
+        <S.ReviewSection>
+          <S.SectionTitle>
+            <h2>🌟 여행 후기</h2>
+            <p>이 여행에 대한 후기를 확인해보세요!</p>
+          </S.SectionTitle>
+
+          <S.ReviewContainer>
+            {userReviews.map((review) => (
+              <S.ReviewCard key={review.id}>
+                <S.ReviewHeader>
+                  <div
                     style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#333',
-                      margin: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
                     }}
                   >
-                    {place.name}
-                  </h4>
-                  <span
+                    <div
+                      style={{
+                        fontSize: '24px',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: '#f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {review.author?.profileImage || '👤'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '16px' }}>
+                        {review.author?.name || '익명'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {new Date(review.createdAt).toLocaleDateString(
+                          'ko-KR',
+                          {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          },
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
                     style={{
-                      backgroundColor: getCategoryColor(place.category).bg,
-                      color: getCategoryColor(place.category).text,
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    {place.category}
-                  </span>
-                </div>
+                    {[...Array(5)].map((_, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          color: i < review.rating ? '#fbbf24' : '#e5e7eb',
+                          fontSize: '16px',
+                        }}
+                      >
+                        ⭐
+                      </span>
+                    ))}
+                    <span
+                      style={{
+                        marginLeft: '8px',
+                        fontSize: '14px',
+                        color: '#6b7280',
+                      }}
+                    >
+                      {review.rating}/5
+                    </span>
+                  </div>
+                </S.ReviewHeader>
 
-                <p
-                  style={{
-                    fontSize: '14px',
-                    color: '#666',
-                    lineHeight: '1.4',
-                    margin: '0 0 8px 0',
-                  }}
-                >
-                  {place.description}
-                </p>
+                <S.ReviewContent>
+                  <h3>{review.title}</h3>
+                  <p>{review.content}</p>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '13px',
-                    color: '#888',
-                  }}
-                >
-                  <span>📍</span>
-                  <span>{place.distance}</span>
-                </div>
-              </div>
+                  {review.selectedTags && review.selectedTags.length > 0 && (
+                    <S.ReviewTags>
+                      {review.selectedTags.map((tag: string, index: number) => (
+                        <S.ReviewTag key={index}>#{tag}</S.ReviewTag>
+                      ))}
+                    </S.ReviewTags>
+                  )}
+                </S.ReviewContent>
+              </S.ReviewCard>
             ))}
-          </div>
-
-          <p
-            style={{
-              fontSize: '12px',
-              color: '#666',
-              marginTop: '15px',
-              textAlign: 'center',
-              fontStyle: 'italic',
-            }}
-          >
-            💡 장소를 클릭하면 Google 지도에서 확인할 수 있습니다
-          </p>
-        </div>
+          </S.ReviewContainer>
+        </S.ReviewSection>
       )}
 
       {/* 작성자 정보 */}
@@ -906,11 +1056,130 @@ const PlanPage: React.FC = () => {
           <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
           <S.LikeText>좋아요 누른 사람을 보기</S.LikeText>
         </S.Likes>
-        <S.ShareButton>
-          <i className="ri-share-line"></i>
-          공유하기
-        </S.ShareButton>
+
+        {/* 버튼 그룹 */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* 작성자만 볼 수 있는 상태 관리 버튼 */}
+          {isAuthor && (
+            <>
+              {feedStatus === 'recruiting' && (
+                <button
+                  onClick={() => {
+                    const feedId = parseInt(
+                      String(plan?.id?.replace(/[^\d]/g, '') || '1'),
+                    );
+                    handleStatusChange(feedId, 'traveling');
+                  }}
+                  style={{
+                    backgroundColor: '#f97316',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  ✈️ 여행중
+                </button>
+              )}
+
+              {feedStatus === 'traveling' && (
+                <button
+                  onClick={() => {
+                    const feedId = parseInt(
+                      String(plan?.id?.replace(/[^\d]/g, '') || '1'),
+                    );
+                    handleStatusChange(feedId, 'completed');
+                  }}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  ✅ 여행완료
+                </button>
+              )}
+
+              {/* 후기 작성 버튼 - 여행완료 상태일 때만 */}
+              {feedStatus === 'completed' &&
+                (reviewCompleted ? (
+                  <button
+                    disabled
+                    style={{
+                      backgroundColor: '#9ca3af',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'not-allowed',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    ✅ 후기작성완료
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleOpenReviewModal}
+                    style={{
+                      backgroundColor: '#8b5cf6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    🌟 후기작성
+                  </button>
+                ))}
+            </>
+          )}
+
+          <S.ShareButton>
+            <i className="ri-share-line"></i>
+            공유하기
+          </S.ShareButton>
+        </div>
       </S.Footer>
+
+      {/* 후기 작성 모달 */}
+      {reviewModalOpen && plan && (
+        <ReviewWriteModal
+          isOpen={reviewModalOpen}
+          feedId={parseInt(String(plan.id?.replace(/[^\d]/g, '') || '1'))}
+          planId={plan.id}
+          destination={plan.destination}
+          onClose={() => setReviewModalOpen(false)}
+          onReviewSubmit={handleReviewSubmit}
+        />
+      )}
     </S.Container>
   );
 };

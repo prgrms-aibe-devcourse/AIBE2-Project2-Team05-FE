@@ -37,6 +37,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/signup", "/api/admin/login").permitAll()
                         .requestMatchers("/api/auth/**", "/api/auth/oauth/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
+                        .requestMatchers("/api/places/**").permitAll() // Places API 허용
+                        .requestMatchers("/api/travel-plans/**").permitAll() // 여행 계획 API 허용 (새로 추가)
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "GUIDE", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);

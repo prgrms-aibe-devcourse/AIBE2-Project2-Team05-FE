@@ -1,158 +1,100 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Feed, ReviewFormData, TravelReview } from '../../types/feed';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ReviewData } from '../../types/feed';
+import feedStatusService from '../../services/feedStatusService';
 
 interface ReviewWriteModalProps {
-  feed: Feed;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (reviewData: ReviewFormData) => Promise<void>;
+  feedId: number;
+  planId: string;
+  destination: string;
+  onReviewSubmit: (review: ReviewData) => void;
 }
 
 const ReviewWriteModal: React.FC<ReviewWriteModalProps> = ({
-  feed,
   isOpen,
   onClose,
-  onSubmit,
+  feedId,
+  planId,
+  destination,
+  onReviewSubmit,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [rating, setRating] = useState<number>(5);
+  const [title, setTitle] = useState<string>('');
+  const [content, setContent] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 폼 데이터 상태
-  const [formData, setFormData] = useState<ReviewFormData>({
-    title: '',
-    content: '',
-    images: [],
-    imageUrls: [],
-    rating: 5,
-    highlights: [''],
-    recommendations: [''],
-    expenses: {
-      accommodation: '',
-      food: '',
-      transportation: '',
-      activities: '',
-      shopping: '',
-      etc: '',
-    },
-  });
+  const availableTags = [
+    '힐링',
+    '맛집',
+    '자연',
+    '문화',
+    '액티비티',
+    '사진맛집',
+    '가성비',
+    '럭셔리',
+    '현지인추천',
+    '재방문의사',
+    '커플여행',
+    '친구여행',
+    '가족여행',
+    '혼행',
+    '교통편리',
+    '숙박만족',
+  ];
 
-  // 모달이 열리지 않았으면 렌더링하지 않음
-  if (!isOpen) return null;
-
-  // 입력 필드 변경 핸들러
-  const handleInputChange = (field: keyof ReviewFormData, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
   };
 
-  // 하이라이트 추가/삭제
-  const handleHighlightChange = (index: number, value: string) => {
-    const newHighlights = [...formData.highlights];
-    newHighlights[index] = value;
-    setFormData((prev) => ({ ...prev, highlights: newHighlights }));
-  };
-
-  const addHighlight = () => {
-    setFormData((prev) => ({
-      ...prev,
-      highlights: [...prev.highlights, ''],
-    }));
-  };
-
-  const removeHighlight = (index: number) => {
-    if (formData.highlights.length > 1) {
-      const newHighlights = formData.highlights.filter((_, i) => i !== index);
-      setFormData((prev) => ({ ...prev, highlights: newHighlights }));
-    }
-  };
-
-  // 추천사항 추가/삭제
-  const handleRecommendationChange = (index: number, value: string) => {
-    const newRecommendations = [...formData.recommendations];
-    newRecommendations[index] = value;
-    setFormData((prev) => ({ ...prev, recommendations: newRecommendations }));
-  };
-
-  const addRecommendation = () => {
-    setFormData((prev) => ({
-      ...prev,
-      recommendations: [...prev.recommendations, ''],
-    }));
-  };
-
-  const removeRecommendation = (index: number) => {
-    if (formData.recommendations.length > 1) {
-      const newRecommendations = formData.recommendations.filter(
-        (_, i) => i !== index,
-      );
-      setFormData((prev) => ({ ...prev, recommendations: newRecommendations }));
-    }
-  };
-
-  // 이미지 업로드 핸들러
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-
-    // 이미지 파일만 필터링
-    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
-
-    // 미리보기 URL 생성
-    const newImageUrls = imageFiles.map((file) => URL.createObjectURL(file));
-
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...imageFiles],
-      imageUrls: [...prev.imageUrls, ...newImageUrls],
-    }));
-  };
-
-  // 이미지 삭제
-  const removeImage = (index: number) => {
-    // URL 해제
-    URL.revokeObjectURL(formData.imageUrls[index]);
-
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-      imageUrls: prev.imageUrls.filter((_, i) => i !== index),
-    }));
-  };
-
-  // 별점 변경
-  const handleRatingChange = (rating: number) => {
-    setFormData((prev) => ({ ...prev, rating }));
-  };
-
-  // 지출 내역 변경
-  const handleExpenseChange = (
-    field: keyof ReviewFormData['expenses'],
-    value: string,
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      expenses: {
-        ...prev.expenses,
-        [field]: value,
-      },
-    }));
-  };
-
-  // 폼 제출
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.title.trim() || !formData.content.trim()) {
-      alert('제목과 내용을 모두 입력해주세요.');
+  const handleSubmit = async () => {
+    if (!title.trim() || !content.trim()) {
+      alert('제목과 내용을 모두 작성해주세요.');
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      setIsSubmitting(true);
-      await onSubmit(formData);
+      const reviewData: ReviewData = {
+        feedId,
+        planId,
+        rating,
+        title: title.trim(),
+        content: content.trim(),
+        images: [], // 이미지 업로드 기능은 추후 구현
+        tags: selectedTags,
+        createdAt: new Date().toISOString(),
+        destination,
+      };
+
+      // 리뷰 데이터를 localStorage에 저장
+      const existingReviewsStr = localStorage.getItem('travelReviews');
+      const existingReviews = existingReviewsStr
+        ? JSON.parse(existingReviewsStr)
+        : [];
+
+      existingReviews.push(reviewData);
+      localStorage.setItem('travelReviews', JSON.stringify(existingReviews));
+
+      // 피드에 후기 작성 완료 표시
+      feedStatusService.markReviewCompleted(feedId);
+
+      // 부모 컴포넌트에 알림
+      onReviewSubmit(reviewData);
+
+      console.log(`✅ 피드 ${feedId} 후기 작성 완료`);
+
+      // 모달 닫기
       onClose();
+
+      // 성공 메시지
+      alert('후기가 성공적으로 작성되었습니다! 🎉');
     } catch (error) {
       console.error('후기 작성 실패:', error);
       alert('후기 작성 중 오류가 발생했습니다.');
@@ -161,245 +103,126 @@ const ReviewWriteModal: React.FC<ReviewWriteModalProps> = ({
     }
   };
 
+  const handleClose = () => {
+    if (title || content || selectedTags.length > 0) {
+      const confirmed = window.confirm(
+        '작성 중인 내용이 있습니다. 정말 닫으시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <ModalTitle>✈️ 여행 후기 작성</ModalTitle>
-          <CloseButton onClick={onClose}>✕</CloseButton>
-        </ModalHeader>
+    <AnimatePresence>
+      <ModalOverlay
+        as={motion.div}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+      >
+        <ModalContent
+          as={motion.div}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ModalHeader>
+            <ModalTitle>🌟 여행 후기 작성</ModalTitle>
+            <CloseButton onClick={handleClose}>×</CloseButton>
+          </ModalHeader>
 
-        <TripInfo>
-          <TripTitle>{feed.caption}</TripTitle>
-          <TripMeta>작성자: {feed.author}</TripMeta>
-        </TripInfo>
+          <ModalBody>
+            {/* 목적지 정보 */}
+            <DestinationInfo>
+              📍 <strong>{destination}</strong> 여행은 어떠셨나요?
+            </DestinationInfo>
 
-        <form onSubmit={handleSubmit}>
-          <FormSection>
-            <SectionTitle>📝 후기 제목</SectionTitle>
-            <Input
-              type="text"
-              placeholder="이번 여행을 한 줄로 표현해보세요"
-              value={formData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              required
-            />
-          </FormSection>
-
-          <FormSection>
-            <SectionTitle>⭐ 전체 만족도</SectionTitle>
-            <StarRating>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  $filled={star <= formData.rating}
-                  onClick={() => handleRatingChange(star)}
-                >
-                  ★
-                </Star>
-              ))}
-              <RatingText>({formData.rating}/5)</RatingText>
-            </StarRating>
-          </FormSection>
-
-          <FormSection>
-            <SectionTitle>📸 여행 사진</SectionTitle>
-            <ImageUploadArea>
-              <UploadButton
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                📷 사진 추가
-              </UploadButton>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageUpload}
-                style={{ display: 'none' }}
-              />
-            </ImageUploadArea>
-
-            {formData.imageUrls.length > 0 && (
-              <ImagePreviewGrid>
-                {formData.imageUrls.map((url, index) => (
-                  <ImagePreview key={index}>
-                    <PreviewImage src={url} alt={`미리보기 ${index + 1}`} />
-                    <RemoveImageButton onClick={() => removeImage(index)}>
-                      ✕
-                    </RemoveImageButton>
-                  </ImagePreview>
+            {/* 별점 */}
+            <RatingSection>
+              <SectionTitle>전체적인 만족도</SectionTitle>
+              <StarRating>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    active={star <= rating}
+                    onClick={() => setRating(star)}
+                  >
+                    ⭐
+                  </Star>
                 ))}
-              </ImagePreviewGrid>
-            )}
-          </FormSection>
+                <RatingText>({rating}/5)</RatingText>
+              </StarRating>
+            </RatingSection>
 
-          <FormSection>
-            <SectionTitle>✨ 여행 하이라이트</SectionTitle>
-            <HelperText>
-              이번 여행에서 가장 기억에 남는 순간들을 알려주세요
-            </HelperText>
-            {formData.highlights.map((highlight, index) => (
-              <HighlightItem key={index}>
-                <Input
-                  type="text"
-                  placeholder={`하이라이트 ${index + 1}`}
-                  value={highlight}
-                  onChange={(e) => handleHighlightChange(index, e.target.value)}
-                />
-                {formData.highlights.length > 1 && (
-                  <RemoveButton
-                    type="button"
-                    onClick={() => removeHighlight(index)}
+            {/* 제목 */}
+            <InputSection>
+              <SectionTitle>후기 제목</SectionTitle>
+              <TitleInput
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="여행 후기의 제목을 작성해주세요"
+                maxLength={50}
+              />
+              <CharCount>{title.length}/50</CharCount>
+            </InputSection>
+
+            {/* 내용 */}
+            <InputSection>
+              <SectionTitle>후기 내용</SectionTitle>
+              <ContentTextarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="여행에서 느낀 점, 추천 포인트, 아쉬웠던 점 등을 자유롭게 작성해주세요"
+                maxLength={500}
+              />
+              <CharCount>{content.length}/500</CharCount>
+            </InputSection>
+
+            {/* 태그 */}
+            <TagSection>
+              <SectionTitle>여행 태그 (선택)</SectionTitle>
+              <TagGrid>
+                {availableTags.map((tag) => (
+                  <TagButton
+                    key={tag}
+                    selected={selectedTags.includes(tag)}
+                    onClick={() => handleTagToggle(tag)}
                   >
-                    ✕
-                  </RemoveButton>
-                )}
-              </HighlightItem>
-            ))}
-            <AddButton type="button" onClick={addHighlight}>
-              + 하이라이트 추가
-            </AddButton>
-          </FormSection>
+                    {tag}
+                  </TagButton>
+                ))}
+              </TagGrid>
+            </TagSection>
+          </ModalBody>
 
-          <FormSection>
-            <SectionTitle>💡 추천사항</SectionTitle>
-            <HelperText>
-              다른 여행자들에게 추천하고 싶은 것들을 적어보세요
-            </HelperText>
-            {formData.recommendations.map((recommendation, index) => (
-              <HighlightItem key={index}>
-                <Input
-                  type="text"
-                  placeholder={`추천사항 ${index + 1}`}
-                  value={recommendation}
-                  onChange={(e) =>
-                    handleRecommendationChange(index, e.target.value)
-                  }
-                />
-                {formData.recommendations.length > 1 && (
-                  <RemoveButton
-                    type="button"
-                    onClick={() => removeRecommendation(index)}
-                  >
-                    ✕
-                  </RemoveButton>
-                )}
-              </HighlightItem>
-            ))}
-            <AddButton type="button" onClick={addRecommendation}>
-              + 추천사항 추가
-            </AddButton>
-          </FormSection>
-
-          <FormSection>
-            <SectionTitle>📝 상세 후기</SectionTitle>
-            <Textarea
-              placeholder="여행의 자세한 경험과 느낌을 공유해주세요..."
-              value={formData.content}
-              onChange={(e) => handleInputChange('content', e.target.value)}
-              rows={6}
-              required
-            />
-          </FormSection>
-
-          <FormSection>
-            <SectionTitle>💰 실제 지출 내역 (선택사항)</SectionTitle>
-            <ExpenseGrid>
-              <ExpenseItem>
-                <ExpenseLabel>숙박비</ExpenseLabel>
-                <ExpenseInput
-                  type="number"
-                  placeholder="0"
-                  value={formData.expenses.accommodation}
-                  onChange={(e) =>
-                    handleExpenseChange('accommodation', e.target.value)
-                  }
-                />
-              </ExpenseItem>
-              <ExpenseItem>
-                <ExpenseLabel>식비</ExpenseLabel>
-                <ExpenseInput
-                  type="number"
-                  placeholder="0"
-                  value={formData.expenses.food}
-                  onChange={(e) => handleExpenseChange('food', e.target.value)}
-                />
-              </ExpenseItem>
-              <ExpenseItem>
-                <ExpenseLabel>교통비</ExpenseLabel>
-                <ExpenseInput
-                  type="number"
-                  placeholder="0"
-                  value={formData.expenses.transportation}
-                  onChange={(e) =>
-                    handleExpenseChange('transportation', e.target.value)
-                  }
-                />
-              </ExpenseItem>
-              <ExpenseItem>
-                <ExpenseLabel>액티비티</ExpenseLabel>
-                <ExpenseInput
-                  type="number"
-                  placeholder="0"
-                  value={formData.expenses.activities}
-                  onChange={(e) =>
-                    handleExpenseChange('activities', e.target.value)
-                  }
-                />
-              </ExpenseItem>
-              <ExpenseItem>
-                <ExpenseLabel>쇼핑</ExpenseLabel>
-                <ExpenseInput
-                  type="number"
-                  placeholder="0"
-                  value={formData.expenses.shopping}
-                  onChange={(e) =>
-                    handleExpenseChange('shopping', e.target.value)
-                  }
-                />
-              </ExpenseItem>
-              <ExpenseItem>
-                <ExpenseLabel>기타</ExpenseLabel>
-                <ExpenseInput
-                  type="number"
-                  placeholder="0"
-                  value={formData.expenses.etc}
-                  onChange={(e) => handleExpenseChange('etc', e.target.value)}
-                />
-              </ExpenseItem>
-            </ExpenseGrid>
-          </FormSection>
-
-          <ButtonContainer>
-            <CancelButton
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
+          <ModalFooter>
+            <CancelButton onClick={handleClose}>취소</CancelButton>
+            <SubmitButton
+              onClick={handleSubmit}
+              disabled={isSubmitting || !title.trim() || !content.trim()}
             >
-              취소
-            </CancelButton>
-            <SubmitButton type="submit" disabled={isSubmitting}>
               {isSubmitting ? '작성 중...' : '후기 작성 완료'}
             </SubmitButton>
-          </ButtonContainer>
-        </form>
-      </ModalContent>
-    </ModalOverlay>
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    </AnimatePresence>
   );
 };
 
-export default ReviewWriteModal;
-
-// 스타일 컴포넌트들
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -409,12 +232,12 @@ const ModalOverlay = styled.div`
 
 const ModalContent = styled.div`
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 `;
 
 const ModalHeader = styled.div`
@@ -423,16 +246,12 @@ const ModalHeader = styled.div`
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e9ecef;
-  position: sticky;
-  top: 0;
-  background: white;
-  border-radius: 12px 12px 0 0;
 `;
 
 const ModalTitle = styled.h2`
   margin: 0;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   color: #333;
 `;
 
@@ -441,77 +260,38 @@ const CloseButton = styled.button`
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
   padding: 0;
+  color: #999;
 
   &:hover {
     color: #333;
   }
 `;
 
-const TripInfo = styled.div`
-  padding: 20px 24px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+const ModalBody = styled.div`
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 140px);
 `;
 
-const TripTitle = styled.h3`
-  margin: 0 0 8px 0;
+const DestinationInfo = styled.div`
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
   font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  color: #495057;
 `;
 
-const TripMeta = styled.p`
-  margin: 0;
-  font-size: 14px;
-  color: #666;
+const RatingSection = styled.div`
+  margin-bottom: 24px;
 `;
 
-const FormSection = styled.div`
-  padding: 20px 24px;
-  border-bottom: 1px solid #f1f3f4;
-`;
-
-const SectionTitle = styled.h4`
+const SectionTitle = styled.h3`
   margin: 0 0 12px 0;
   font-size: 16px;
   font-weight: 600;
   color: #333;
-`;
-
-const HelperText = styled.p`
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #666;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: #3682f8;
-  }
-`;
-
-const Textarea = styled.textarea`
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  resize: vertical;
-  font-family: inherit;
-
-  &:focus {
-    outline: none;
-    border-color: #3682f8;
-  }
 `;
 
 const StarRating = styled.div`
@@ -520,189 +300,132 @@ const StarRating = styled.div`
   gap: 4px;
 `;
 
-const Star = styled.span<{ $filled: boolean }>`
-  font-size: 24px;
-  color: ${({ $filled }) => ($filled ? '#FFD700' : '#ddd')};
+const Star = styled.button<{ active: boolean }>`
+  background: none;
+  border: none;
+  font-size: 28px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  padding: 0;
+  opacity: ${(props) => (props.active ? 1 : 0.3)};
+  transition: opacity 0.2s ease;
 
   &:hover {
-    color: #ffd700;
+    opacity: 1;
   }
 `;
 
 const RatingText = styled.span`
   margin-left: 8px;
-  font-size: 14px;
-  color: #666;
+  font-weight: 600;
+  color: #495057;
 `;
 
-const ImageUploadArea = styled.div`
-  margin-bottom: 16px;
+const InputSection = styled.div`
+  margin-bottom: 24px;
 `;
 
-const UploadButton = styled.button`
-  background: #f8f9fa;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  padding: 20px;
+const TitleInput = styled.input`
   width: 100%;
-  cursor: pointer;
-  font-size: 14px;
-  color: #666;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #3682f8;
-    color: #3682f8;
-  }
-`;
-
-const ImagePreviewGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
-`;
-
-const ImagePreview = styled.div`
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-`;
-
-const PreviewImage = styled.img`
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-`;
-
-const RemoveImageButton = styled.button`
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  font-size: 12px;
-
-  &:hover {
-    background: rgba(0, 0, 0, 0.9);
-  }
-`;
-
-const HighlightItem = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: center;
-`;
-
-const RemoveButton = styled.button`
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 12px;
-
-  &:hover {
-    background: #dc2626;
-  }
-`;
-
-const AddButton = styled.button`
-  background: #3682f8;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-
-  &:hover {
-    background: #2563eb;
-  }
-`;
-
-const ExpenseGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-`;
-
-const ExpenseItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const ExpenseLabel = styled.label`
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-`;
-
-const ExpenseInput = styled.input`
-  padding: 8px;
+  padding: 12px 16px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 16px;
 
   &:focus {
     outline: none;
-    border-color: #3682f8;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 `;
 
-const ButtonContainer = styled.div`
+const ContentTextarea = styled.textarea`
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  min-height: 120px;
+  resize: vertical;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const CharCount = styled.div`
+  text-align: right;
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+`;
+
+const TagSection = styled.div`
+  margin-bottom: 24px;
+`;
+
+const TagGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+`;
+
+const TagButton = styled.button<{ selected: boolean }>`
+  padding: 8px 12px;
+  border: 1px solid ${(props) => (props.selected ? '#3b82f6' : '#ddd')};
+  background-color: ${(props) => (props.selected ? '#3b82f6' : 'white')};
+  color: ${(props) => (props.selected ? 'white' : '#333')};
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3b82f6;
+    background-color: ${(props) => (props.selected ? '#2563eb' : '#f0f7ff')};
+  }
+`;
+
+const ModalFooter = styled.div`
   display: flex;
+  justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
   border-top: 1px solid #e9ecef;
 `;
 
 const CancelButton = styled.button`
-  flex: 1;
-  padding: 12px;
-  background: #f8f9fa;
-  color: #666;
+  padding: 10px 20px;
   border: 1px solid #ddd;
+  background-color: white;
+  color: #666;
   border-radius: 8px;
-  font-size: 14px;
   cursor: pointer;
 
-  &:hover:not(:disabled) {
-    background: #e9ecef;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  &:hover {
+    background-color: #f8f9fa;
   }
 `;
 
 const SubmitButton = styled.button`
-  flex: 1;
-  padding: 12px;
-  background: #3682f8;
-  color: white;
+  padding: 10px 20px;
   border: none;
+  background-color: #3b82f6;
+  color: white;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
+  font-weight: 600;
 
   &:hover:not(:disabled) {
-    background: #2563eb;
+    background-color: #2563eb;
   }
 
   &:disabled {
-    opacity: 0.6;
+    background-color: #9ca3af;
     cursor: not-allowed;
   }
 `;
+
+export default ReviewWriteModal;

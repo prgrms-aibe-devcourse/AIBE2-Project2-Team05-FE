@@ -359,3 +359,85 @@ export const ShareButton = styled.button`
     font-size: 16px;
   }
 `;
+
+// 후기 섹션 스타일
+export const ReviewSection = styled.section`
+  margin: 40px 40px;
+  padding: 20px 0;
+  border-top: 1px solid #e5e7eb;
+`;
+
+export const SectionTitle = styled.div`
+  margin-bottom: 24px;
+  text-align: center;
+
+  h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    font-size: 16px;
+    color: #6b7280;
+    margin: 0;
+  }
+`;
+
+export const ReviewContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+export const ReviewCard = styled.div`
+  background-color: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+export const ReviewHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+export const ReviewContent = styled.div`
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+  }
+
+  p {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+  }
+`;
+
+export const ReviewTags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+export const ReviewTag = styled.span`
+  background-color: #e0e7ff;
+  color: #3730a3;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+`;

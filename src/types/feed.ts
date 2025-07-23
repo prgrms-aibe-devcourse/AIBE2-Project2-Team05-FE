@@ -1,108 +1,78 @@
-// 피드 상태 타입 정의
-export type FeedStatus = 'recruiting' | 'matched' | 'traveling' | 'completed';
+// 피드 여행 상태 관리를 위한 타입 정의
 
-// 피드 상태별 한국어 라벨
-export const FEED_STATUS_LABELS: Record<FeedStatus, string> = {
-  recruiting: '모집중',
-  matched: '매칭완료',
-  traveling: '여행중',
-  completed: '여행완료', // '후기완료'에서 '여행완료'로 변경
-};
+export type TravelStatus = 'recruiting' | 'traveling' | 'completed';
 
-// 피드 상태별 색상 (UI에서 사용)
-export const FEED_STATUS_COLORS: Record<FeedStatus, string> = {
-  recruiting: '#3682F8', // 파란색
-  matched: '#FFA500', // 주황색
-  traveling: '#32CD32', // 초록색
-  completed: '#9B59B6', // 보라색
-};
-
-// 후기 데이터 인터페이스 (확장)
-export interface TravelReview {
-  id: string;
-  feedId: number;
-  authorId: string;
-  authorName: string;
-  title: string;
-  content: string;
-  images: string[];
-  rating?: number; // 1-5 별점
-  highlights: string[]; // 여행 하이라이트
-  recommendations: string[]; // 추천 사항
-  expenses?: {
-    // 실제 지출 내역
-    accommodation: number;
-    food: number;
-    transportation: number;
-    activities: number;
-    shopping: number;
-    etc: number;
-    total: number;
-  };
-  createdAt: string;
-  updatedAt?: string;
+export interface TravelStatusInfo {
+  status: TravelStatus;
+  statusLabel: string;
+  color: string;
+  backgroundColor: string;
+  icon: string;
+  description: string;
 }
 
-// 피드 타입 정의 (기존 인터페이스 확장)
-export interface Feed {
+export interface FeedWithTravelStatus {
   id: number;
   author: string;
   avatar: string;
   image: string;
   likes: number;
   caption: string;
-  type?: string;
+  type: string;
+  createdAt: string;
+  travelType: 'created' | 'joined';
   planId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  status?: FeedStatus; // 새로 추가된 상태 필드
-  participants?: string[]; // 여행 참여자 목록
-  maxParticipants?: number; // 최대 참여자 수
-  review?: TravelReview; // 후기 데이터 (상태가 completed일 때)
+  travelStatus: TravelStatus;
+  statusUpdatedAt?: string;
+  completedDate?: string;
+  reviewWritten?: boolean;
+  startDate?: string;
+  endDate?: string;
 }
 
-// 상태 변경 요청 인터페이스
-export interface StatusChangeRequest {
+export interface TravelStatusHistory {
   feedId: number;
-  newStatus: FeedStatus;
-  userId: string;
+  status: TravelStatus;
+  updatedAt: string;
+  note?: string;
 }
 
-// 후기 작성 요청 인터페이스
-export interface ReviewCreateRequest {
+export interface ReviewData {
   feedId: number;
+  planId: string;
+  rating: number;
   title: string;
   content: string;
   images: string[];
-  rating?: number;
-  highlights: string[];
-  recommendations: string[];
-  expenses?: TravelReview['expenses'];
+  tags: string[];
+  createdAt: string;
+  destination: string;
 }
 
-// 후기 작성 폼 데이터
-export interface ReviewFormData {
-  title: string;
-  content: string;
-  images: File[];
-  imageUrls: string[]; // 미리보기용 URL
-  rating: number;
-  highlights: string[];
-  recommendations: string[];
-  expenses: {
-    accommodation: string;
-    food: string;
-    transportation: string;
-    activities: string;
-    shopping: string;
-    etc: string;
-  };
-}
-
-// 후기 작성 인터페이스 (기존)
-export interface ReviewData {
-  feedId: number;
-  reviewText: string;
-  reviewImages: string[];
-  rating?: number;
-}
+// 여행 상태별 정보 맵
+export const TRAVEL_STATUS_MAP: Record<TravelStatus, TravelStatusInfo> = {
+  recruiting: {
+    status: 'recruiting',
+    statusLabel: '모집중',
+    color: '#3B82F6',
+    backgroundColor: '#DBEAFE',
+    icon: '👥',
+    description: '여행 메이트를 모집하고 있어요',
+  },
+  traveling: {
+    status: 'traveling',
+    statusLabel: '여행중',
+    color: '#F59E0B',
+    backgroundColor: '#FEF3C7',
+    icon: '✈️',
+    description: '현재 여행을 즐기고 있어요',
+  },
+  completed: {
+    status: 'completed',
+    statusLabel: '여행완료',
+    color: '#10B981',
+    backgroundColor: '#D1FAE5',
+    icon: '✅',
+    description: '여행이 완료되었어요',
+  },
+};
