@@ -1,0 +1,561 @@
+================================================================================
+                    TravelMate Travel Plan API 명세서 v2.0
+================================================================================
+
+★ 여행 계획 작성 → 프로필 피드 + 매칭 서비스 + 메인 피드 통합 등록 시스템 ★
+
+================================================================================
+                              핵심 비즈니스 로직
+================================================================================
+
+📝 여행 계획 작성 (1개 API 호출)
+    ↓
+🔀 백엔드에서 자동으로 3곳에 동시 등록:
+    ├─ 👤 개인 프로필 피드 (ProfileFeed - 전체 상세 정보)
+    ├─ 🤝 매칭 서비스 (MatchingPost - 매칭용 간소화 정보)  
+    └─ 📱 메인 피드 (MainFeed - 소셜 피드용 요약 정보)
+
+================================================================================
+                                  데이터 모델
+================================================================================
+
+1. TravelPlan (마스터 여행 계획 - 원본 데이터)
+--------------------------------------------------------------------------------
+{
+  "id": "string (UUID)",
+  "title": "제주도 3박 4일 힐링 여행",
+  "destination": "제주도",
+  "startDate": "2024-03-15",
+  "endDate": "2024-03-18", 
+  "budget": 80,
+  "peopleCount": 2,
+  "period": "4일",
+  "travelStyles": ["relaxation", "food", "nature"],
+  "accommodation": "pension",
+  "transportation": "car",
+  "extraMemo": "렌터카로 돌아보는 제주도 여행",
+  "author": {
+    "id": "user-uuid",
+    "name": "김여행",
+    "profileImage": "👤"
+  },
+  "dayPlans": [
+    {
+      "id": "day-uuid-1",
+      "dayNumber": 1,
+      "date": "2024-03-15",
+      "scheduleItems": [
+        {
+          "id": "schedule-uuid-1",
+          "time": "10:00",
+          "place": "제주공항",
+          "activity": "도착",
+          "memo": "렌터카 픽업",
+          "cost": 0
+        },
+        {
+          "id": "schedule-uuid-2", 
+          "time": "14:00",
+          "place": "성산일출봉",
+          "activity": "등반",
+          "memo": "일출봉 등반 및 사진 촬영",
+          "cost": 1
+        }
+      ]
+    }
+  ],
+  "matchingInfo": {
+    "isEnabled": true,
+    "preferredGender": "any",
+    "preferredAge": "20s",
+    "preferredLanguage": "korean", 
+    "memo": "함께 힐링하실 분 구해요!"
+  },
+  "aiRecommendations": {
+    "hashtags": ["#제주성산일출봉투어", "#제주힐링여행", "#제주렌터카여행"],
+    "nearbyPlaces": [
+      {
+        "name": "성산포항 해물탕집",
+        "description": "신선한 제주 바다 해산물",
+        "category": "맛집",
+        "distance": "성산일출봉에서 도보 10분"
+      }
+    ]
+  },
+  "representativeImage": "https://places.googleapis.com/v1/places/.../media?key=...",
+  "createdAt": "2024-01-15T09:30:00Z",
+  "updatedAt": "2024-01-15T09:30:00Z"
+}
+
+2. ProfileFeed (프로필 페이지용 피드 데이터)
+--------------------------------------------------------------------------------
+{
+  "id": 12345,
+  "planId": "travel-plan-uuid",
+  "author": "김여행",
+  "avatar": "👤",
+  "image": "https://places.googleapis.com/v1/places/.../media?key=...",
+  "likes": 0,
+  "caption": "제주도 4일 여행 계획을 세웠어요! 🏖️\n제주도 3박 4일 힐링 여행\n📅 2024-03-15 ~ 2024-03-18\n💰 예산: 80만원\n👥 인원: 2명",
+  "type": "travel-plan",
+  "createdAt": "2024-01-15T09:30:00Z"
+}
+
+3. MatchingPost (매칭 서비스용 간소화 데이터)
+--------------------------------------------------------------------------------
+{
+  "id": 12345,
+  "planId": "travel-plan-uuid", 
+  "userId": "user-uuid",
+  "userName": "김여행",
+  "userAvatar": "👤",
+  "title": "제주도 3박 4일 힐링 여행",
+  "destination": "제주도",
+  "startDate": "2024-03-15",
+  "endDate": "2024-03-18",
+  "period": "4일",
+  "budget": "80만원",
+  "currentPeople": 1,
+  "maxPeople": 2,
+  "preferences": {
+    "gender": "any",
+    "age": "20s", 
+    "language": "korean",
+    "memo": "함께 힐링하실 분 구해요!"
+  },
+  "styles": ["relaxation", "food", "nature"],
+  "accommodation": "pension",
+  "transportation": "car",
+  "image": "https://places.googleapis.com/v1/places/.../media?key=...",
+  "likes": 0,
+  "views": 0,
+  "status": "recruiting",
+  "tags": ["#제주도", "#힐링", "#펜션"],
+  "createdAt": "2024-01-15T09:30:00Z"
+}
+
+4. MainFeed (메인 피드용 요약 데이터)
+--------------------------------------------------------------------------------
+{
+  "id": 12345,
+  "type": "travel-plan",
+  "planId": "travel-plan-uuid",
+  "author": {
+    "id": "user-uuid",
+    "name": "김여행",
+    "avatar": "👤"
+  },
+  "title": "제주도 3박 4일 힐링 여행",
+  "destination": "제주도",
+  "image": "https://places.googleapis.com/v1/places/.../media?key=...",
+  "caption": "제주도에서 힐링 여행 계획했어요! 🌊 함께 가실 분 구해요~",
+  "hashtags": ["#제주성산일출봉투어", "#제주힐링여행", "#제주렌터카여행"],
+  "socialStats": {
+    "likes": 15,
+    "comments": 3,
+    "shares": 2,
+    "views": 120
+  },
+  "matchingEnabled": true,
+  "availableSlots": 1,
+  "createdAt": "2024-01-15T09:30:00Z"
+}
+
+================================================================================
+                              통합 등록 API
+================================================================================
+
+★★★ 핵심 API: 여행 계획 생성 (3곳 동시 등록) ★★★
+
+POST /api/travel-plans/create-with-feeds
+
+요청 본문:
+--------------------------------------------------------------------------------
+{
+  "title": "제주도 3박 4일 힐링 여행",
+  "destination": "제주도", 
+  "startDate": "2024-03-15",
+  "endDate": "2024-03-18",
+  "budget": 80,
+  "peopleCount": 2,
+  "travelStyles": ["relaxation", "food", "nature"],
+  "accommodation": "pension",
+  "transportation": "car",
+  "extraMemo": "렌터카로 돌아보는 제주도 여행",
+  "dayPlans": [
+    {
+      "dayNumber": 1,
+      "date": "2024-03-15", 
+      "scheduleItems": [
+        {
+          "time": "10:00",
+          "place": "제주공항",
+          "activity": "도착",
+          "memo": "렌터카 픽업",
+          "cost": 0
+        },
+        {
+          "time": "14:00",
+          "place": "성산일출봉", 
+          "activity": "등반",
+          "memo": "일출봉 등반 및 사진 촬영",
+          "cost": 1
+        }
+      ]
+    }
+  ],
+  "matchingInfo": {
+    "isEnabled": true,
+    "preferredGender": "any",
+    "preferredAge": "20s",
+    "preferredLanguage": "korean",
+    "memo": "함께 힐링하실 분 구해요!"
+  }
+}
+
+응답 (3곳 등록 결과):
+--------------------------------------------------------------------------------
+{
+  "success": true,
+  "message": "여행 계획이 성공적으로 생성되고 모든 서비스에 등록되었습니다",
+  "data": {
+    "travelPlan": {
+      "id": "travel-plan-uuid",
+      "title": "제주도 3박 4일 힐링 여행",
+      "aiRecommendations": {
+        "hashtags": ["#제주성산일출봉투어", "#제주힐링여행"],
+        "nearbyPlaces": [...]
+      },
+      "representativeImage": "https://places.googleapis.com/v1/places/.../media"
+    },
+    "registrations": {
+      "profileFeed": {
+        "id": 12345,
+        "message": "프로필 피드에 등록됨",
+        "url": "/api/users/{userId}/profile-feeds/12345"
+      },
+      "matchingPost": {
+        "id": 12345,
+        "message": "매칭 서비스에 등록됨", 
+        "url": "/api/matching-posts/12345",
+        "status": "recruiting"
+      },
+      "mainFeed": {
+        "id": 12345,
+        "message": "메인 피드에 등록됨",
+        "url": "/api/main-feeds/12345",
+        "visibility": "public"
+      }
+    },
+    "aiAnalysis": {
+      "landmarkAnalysis": {
+        "original": "제주도",
+        "representative": "성산일출봉",
+        "confidence": 0.95
+      },
+      "imageSearch": {
+        "success": true,
+        "imageUrl": "https://places.googleapis.com/v1/places/.../media"
+      },
+      "hashtagGeneration": {
+        "count": 5,
+        "hashtags": ["#제주성산일출봉투어", "#제주힐링여행", "#제주렌터카여행", "#제주자연체험", "#제주맛집탐방"]
+      },
+      "nearbyRecommendations": {
+        "count": 9,
+        "categories": {
+          "맛집": 3,
+          "액티비티": 3, 
+          "관광명소": 3
+        }
+      }
+    }
+  },
+  "createdAt": "2024-01-15T09:30:00Z"
+}
+
+================================================================================
+                               개별 서비스 API
+================================================================================
+
+1. 프로필 피드 API
+================================================================================
+
+프로필 피드 목록 조회:
+GET /api/users/{userId}/profile-feeds?page=0&size=12
+
+응답:
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": 12345,
+        "type": "travel-plan",
+        "planId": "travel-plan-uuid",
+        "author": "김여행",
+        "avatar": "👤",
+        "image": "https://places.googleapis.com/v1/places/.../media",
+        "likes": 15,
+        "caption": "제주도 4일 여행 계획...",
+        "createdAt": "2024-01-15T09:30:00Z"
+      }
+    ],
+    "totalElements": 8,
+    "postsCount": 8
+  }
+}
+
+프로필 피드 삭제:
+DELETE /api/users/{userId}/profile-feeds/{feedId}
+
+응답:
+{
+  "success": true,
+  "message": "피드가 삭제되었습니다",
+  "data": {
+    "deletedFeedId": 12345,
+    "cascadeDeleted": {
+      "matchingPost": true,
+      "mainFeed": true,
+      "travelPlan": false
+    }
+  }
+}
+
+2. 매칭 서비스 API
+================================================================================
+
+매칭 게시물 목록 조회:
+GET /api/matching-posts?page=0&size=20&destination=제주도&status=recruiting&sort=createdAt,desc
+
+쿼리 파라미터:
+- destination: 목적지 필터
+- status: 모집 상태 (recruiting|full|completed|cancelled)
+- startDate: 시작일 필터
+- styles: 여행 스타일 필터 (배열)
+- maxPeople: 최대 인원수 필터
+- budget: 예산 범위 필터
+
+응답:
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": 12345,
+        "title": "제주도 3박 4일 힐링 여행",
+        "destination": "제주도",
+        "startDate": "2024-03-15",
+        "endDate": "2024-03-18",
+        "period": "4일",
+        "budget": "80만원",
+        "currentPeople": 1,
+        "maxPeople": 2,
+        "userName": "김여행",
+        "userAvatar": "👤",
+        "image": "https://places.googleapis.com/v1/places/.../media",
+        "preferences": {
+          "gender": "any",
+          "age": "20s",
+          "language": "korean",
+          "memo": "함께 힐링하실 분 구해요!"
+        },
+        "styles": ["relaxation", "food", "nature"],
+        "likes": 5,
+        "views": 45,
+        "status": "recruiting",
+        "tags": ["#제주도", "#힐링", "#펜션"],
+        "createdAt": "2024-01-15T09:30:00Z"
+      }
+    ],
+    "totalElements": 25,
+    "totalPages": 2
+  }
+}
+
+매칭 신청:
+POST /api/matching-posts/{postId}/apply
+
+요청 본문:
+{
+  "message": "제주도 여행 함께하고 싶습니다! 20대 여성이고 힐링 여행 좋아해요 😊",
+  "userProfile": {
+    "age": "20s", 
+    "gender": "female",
+    "interests": ["healing", "food", "photography"],
+    "travelExperience": "intermediate"
+  }
+}
+
+3. 메인 피드 API
+================================================================================
+
+메인 피드 목록 조회 (무한 스크롤):
+GET /api/main-feeds?page=0&size=10&sort=createdAt,desc
+
+응답:
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": 12345,
+        "type": "travel-plan",
+        "author": {
+          "id": "user-uuid",
+          "name": "김여행", 
+          "avatar": "👤"
+        },
+        "title": "제주도 3박 4일 힐링 여행",
+        "destination": "제주도",
+        "image": "https://places.googleapis.com/v1/places/.../media",
+        "caption": "제주도에서 힐링 여행 계획했어요! 🌊 함께 가실 분 구해요~",
+        "hashtags": ["#제주성산일출봉투어", "#제주힐링여행"],
+        "socialStats": {
+          "likes": 15,
+          "comments": 3,
+          "shares": 2,
+          "views": 120
+        },
+        "matchingInfo": {
+          "enabled": true,
+          "availableSlots": 1,
+          "totalSlots": 2
+        },
+        "createdAt": "2024-01-15T09:30:00Z"
+      }
+    ],
+    "hasNext": true,
+    "totalElements": 150
+  }
+}
+
+메인 피드 상호작용:
+POST /api/main-feeds/{feedId}/like
+POST /api/main-feeds/{feedId}/comment  
+POST /api/main-feeds/{feedId}/share
+POST /api/main-feeds/{feedId}/view
+
+================================================================================
+                           AI 서비스 통합 API
+================================================================================
+
+대표 이미지 분석 및 생성:
+POST /api/ai/generate-representative-image
+
+요청 본문:
+{
+  "destination": "교토"
+}
+
+응답:
+{
+  "success": true,
+  "data": {
+    "analysis": {
+      "original": "교토",
+      "representativeLandmark": "금각사",
+      "confidence": 0.98,
+      "reasoning": "교토의 가장 상징적이고 유명한 랜드마크"
+    },
+    "imageSearch": {
+      "success": true,
+      "searchQuery": "금각사",
+      "imageUrl": "https://places.googleapis.com/v1/places/.../media",
+      "fallbackUsed": false
+    },
+    "processingTime": "2.3s"
+  }
+}
+
+================================================================================
+                                연동 플로우
+================================================================================
+
+여행 계획 작성부터 피드 노출까지:
+
+// 프론트엔드에서 여행 계획 작성
+const response = await fetch('/api/travel-plans/create-with-feeds', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify(travelPlanData)
+});
+
+// 백엔드 처리 순서:
+// 1. 여행 계획 원본 저장 (travel_plans 테이블)
+// 2. OpenAI로 대표 랜드마크 분석
+// 3. Google Places로 대표 이미지 검색  
+// 4. AI로 해시태그 5개 생성
+// 5. AI로 근처 추천장소 9개 생성
+// 6. 프로필 피드 데이터 생성 및 저장 (profile_feeds 테이블)
+// 7. 매칭 포스트 데이터 생성 및 저장 (matching_posts 테이블)
+// 8. 메인 피드 데이터 생성 및 저장 (main_feeds 테이블)
+// 9. 통합 응답 반환
+
+const result = await response.json();
+console.log('등록 완료:', result.data.registrations);
+
+// 이후 각 서비스에서 개별 조회 가능:
+// - GET /api/users/{userId}/profile-feeds (프로필 페이지)
+// - GET /api/matching-posts (매칭 서비스)  
+// - GET /api/main-feeds (메인 피드)
+
+================================================================================
+                           데이터베이스 테이블 관계
+================================================================================
+
+-- 마스터 여행 계획 테이블
+travel_plans (id, title, destination, start_date, end_date, user_id, ...)
+
+-- 프로필 피드 테이블  
+profile_feeds (id, plan_id, user_id, image_url, caption, likes, ...)
+
+-- 매칭 포스트 테이블
+matching_posts (id, plan_id, user_id, current_people, max_people, status, ...)
+
+-- 메인 피드 테이블
+main_feeds (id, plan_id, user_id, type, likes, comments, shares, views, ...)
+
+-- AI 추천 결과 테이블
+ai_recommendations (id, plan_id, hashtags, nearby_places, representative_image, ...)
+
+-- 외래키 관계:
+-- profile_feeds.plan_id → travel_plans.id
+-- matching_posts.plan_id → travel_plans.id  
+-- main_feeds.plan_id → travel_plans.id
+-- ai_recommendations.plan_id → travel_plans.id
+
+================================================================================
+                              주요 고려사항
+================================================================================
+
+1. 데이터 일관성
+- 하나의 여행 계획 삭제 시 모든 연관 데이터 CASCADE 삭제
+- 트랜잭션으로 3곳 동시 등록 보장
+- 일부 서비스 등록 실패 시 전체 롤백
+
+2. 성능 최적화  
+- AI 분석은 비동기로 처리 후 결과 업데이트
+- 이미지 검색 결과 캐싱
+- 피드 조회 시 페이징 필수
+
+3. 에러 처리
+- AI 서비스 실패 시 기본값으로 처리
+- Google Places API 제한 시 fallback 이미지
+- 부분 성공/실패 상태 명시
+
+================================================================================
+                                    메모
+================================================================================
+
+작성일: 2024-01-15
+버전: v2.0 (통합 등록 시스템)
+최종 수정: 2024-01-15
+
+핵심: 하나의 여행 계획 작성으로 3곳(프로필 피드, 매칭 서비스, 메인 피드)에 자동 등록되는 통합 시스템
+
+================================================================================ 
