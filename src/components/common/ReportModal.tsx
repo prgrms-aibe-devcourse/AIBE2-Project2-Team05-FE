@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { createReport, searchUsers } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext'; // AuthContext 추가
 
 // 사용자 검색 결과 타입을 정의합니다.
 interface SearchUser {
@@ -30,6 +31,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
   onClose, 
   reportedUserId 
 }) => {
+  // AuthContext에서 현재 사용자 정보 가져오기
+  const { user: currentUser } = useAuth();
+  
   // 모달 내부에서 관리할 상태들
   const [reportType, setReportType] = useState(''); // 선택된 신고 유형
   const [description, setDescription] = useState(''); // 신고 상세 설명
@@ -109,7 +113,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
     onClose();
   };
 
-  // 사용자 검색 함수
+  // 사용자 검색 함수 - 현재 사용자 제외
   const handleSearch = async (keyword: string) => {
     setSearchKeyword(keyword);
     
@@ -121,7 +125,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
     setIsSearching(true);
     try {
       const results = await searchUsers(keyword.trim());
-      setSearchResults(results);
+      
+      // 현재 로그인한 사용자를 검색 결과에서 제외
+      const filteredResults = results.filter(user => {
+        // 현재 사용자가 없거나, 현재 사용자와 다른 사용자인 경우만 포함
+        return !currentUser || user.email !== currentUser.email;
+      });
+      
+      setSearchResults(filteredResults);
     } catch (error) {
       console.error('사용자 검색 중 오류:', error);
       setSearchResults([]);
@@ -157,7 +168,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
                   <SearchInput
                     type="text"
                     value={searchKeyword}
-                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
                     placeholder="닉네임으로 사용자를 검색하세요 (2글자 이상)"
                     disabled={isSubmitting}
                   />
