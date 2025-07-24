@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { deleteUser } from '../services/api';
 import ReportModal from '../components/common/ReportModal';
+import PasswordChangeModal from '../components/common/PasswordChangeModal';
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -44,6 +45,9 @@ const MyPage = () => {
   
   // 신고하기 모달 관련 상태
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  
+  // 비밀번호 변경 모달 관련 상태
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -193,6 +197,14 @@ const MyPage = () => {
   // 신고하기 모달 닫기
   const handleCloseReportModal = () => {
     setIsReportModalOpen(false);
+  };
+  
+  const handleOpenPasswordModal = () => {
+    setIsPasswordModalOpen(true);
+  };
+  
+  const handleClosePasswordModal = () => {
+    setIsPasswordModalOpen(false);
   };
 
   return (
@@ -380,32 +392,7 @@ const MyPage = () => {
                   disabled
                 />
               </FormGroup>
-              <FormRow>
-                <FormGroup>
-                  <FormLabel htmlFor="new-password">새 비밀번호</FormLabel>
-                  <FormControl
-                    type="password"
-                    id="new-password"
-                    placeholder="새 비밀번호"
-                  />
-                </FormGroup>
-                <FormGroup>
-                  <FormLabel htmlFor="confirm-password">
-                    새 비밀번호 확인
-                  </FormLabel>
-                  <FormControl
-                    type="password"
-                    id="confirm-password"
-                    placeholder="새 비밀번호 확인"
-                  />
-                </FormGroup>
-              </FormRow>
-              <AccountButtonContainer>
-                <LogoutButton onClick={logout}>로그아웃</LogoutButton>
-                <ReportButton onClick={handleOpenReportModal}>
-                  신고하기
-                </ReportButton>
-              </AccountButtonContainer>
+
             </Section>
 
             <ButtonSection>
@@ -415,11 +402,24 @@ const MyPage = () => {
               </BtnSave>
             </ButtonSection>
 
-            <WithdrawalSection>
-              <DestructiveButton onClick={handleDeleteAccount}>
-                회원 탈퇴
-              </DestructiveButton>
-            </WithdrawalSection>
+            <Divider />
+
+            <AccountButtonContainer>
+              <LeftButtonGroup>
+                <PasswordChangeButton onClick={handleOpenPasswordModal}>
+                  🔒 비밀번호 변경
+                </PasswordChangeButton>
+                <LogoutButton onClick={logout}>로그아웃</LogoutButton>
+                <ReportButton onClick={handleOpenReportModal}>
+                  신고하기
+                </ReportButton>
+              </LeftButtonGroup>
+              <RightButtonGroup>
+                <DestructiveButton onClick={handleDeleteAccount}>
+                  회원 탈퇴
+                </DestructiveButton>
+              </RightButtonGroup>
+            </AccountButtonContainer>
           </>
         )}
 
@@ -479,6 +479,12 @@ const MyPage = () => {
       <ReportModal
         isOpen={isReportModalOpen}
         onClose={handleCloseReportModal}
+      />
+      
+      {/* 비밀번호 변경 모달 */}
+      <PasswordChangeModal
+        isOpen={isPasswordModalOpen}
+        onClose={handleClosePasswordModal}
       />
     </motion.div>
   );
@@ -700,6 +706,10 @@ const LogoutButton = styled(ActionButton)`
   background-color: transparent;
   border: 1px solid #adb5bd; // 차분한 회색 테두리
   color: #495057; // 조금 더 진한 회색 글씨
+  height: 40px; // 고정 높이 설정
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: #f1f3f5; // 마우스 올렸을 때의 배경색
@@ -711,9 +721,28 @@ const ReportButton = styled(ActionButton)`
   background-color: transparent;
   border: 1px solid #f39c12; // 주황색 테두리
   color: #f39c12; // 주황색 글씨
+  height: 40px; // 고정 높이 설정
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: rgba(243, 156, 18, 0.1); // 마우스 올렸을 때의 배경색
+  }
+`;
+
+// ActionButton을 기반으로 비밀번호 변경 버튼 스타일을 정의합니다.
+const PasswordChangeButton = styled(ActionButton)`
+  background-color: transparent;
+  border: 1px solid #3498db; // 파란색 테두리
+  color: #3498db; // 파란색 글씨
+  height: 40px; // 고정 높이 설정
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(52, 152, 219, 0.1); // 마우스 올렸을 때의 배경색
   }
 `;
 
@@ -730,8 +759,29 @@ const DestructiveButton = styled(ActionButton)`
 // 나머지 컴포넌트들을 정의합니다.
 const AccountButtonContainer = styled.div`
   display: flex;
-  gap: 10px;
+  justify-content: space-between; // 왼쪽과 오른쪽 버튼 그룹을 멀리 분리
+  align-items: center;
   margin-top: 20px; // 입력 필드와의 간격 조정
+`;
+
+const LeftButtonGroup = styled.div`
+  display: flex;
+  gap: 10px; // 왼쪽 버튼들 사이의 간격
+`;
+
+const RightButtonGroup = styled.div`
+  display: flex;
+  gap: 10px; // 오른쪽 버튼들 사이의 간격
+`;
+
+// 구분선 컴포넌트
+const Divider = styled.hr`
+  border: none;
+  height: 4px;
+  background: #e1e5e9;
+  margin: 30px 0;
+  width: 100%;
+  border-radius: 1px;
 `;
 
 const WithdrawalSection = styled.div`

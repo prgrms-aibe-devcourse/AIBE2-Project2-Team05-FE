@@ -85,5 +85,23 @@ export const createReport = async (reportData: {
   }
 };
 
+// 6. 비밀번호 변경 API 함수
+// 사용자가 비밀번호를 변경할 때 호출됩니다.
+export const changePassword = async (passwordData: {
+  currentPassword: string;  // 현재 비밀번호
+  newPassword: string;      // 새 비밀번호
+  confirmPassword?: string; // 새 비밀번호 확인 (선택적)
+}) => {
+  try {
+    // PUT 요청을 백엔드 '/api/user/change-password' 엔드포인트로 보냅니다.
+    const response = await api.put('/api/user/change-password', passwordData);
+    return response.data;
+  } catch (error) {
+    // 에러가 발생하면 콘솔에 출력하고 다시 던집니다.
+    console.error('비밀번호 변경 중 오류:', error);
+    throw error;
+  }
+};
+
 // 5. 생성하고 설정한 api 인스턴스를 다른 파일에서 사용할 수 있도록 내보냅니다.
 export default api;
