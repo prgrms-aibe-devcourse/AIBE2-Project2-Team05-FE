@@ -25,7 +25,6 @@ import MyPage from './pages/MyPage';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import Layout from './components/layout/Layout';
-import SearchPage from './pages/SearchPage';
 import NotificationPage from './pages/NotificationPage';
 import ReviewPage from './pages/ReviewPage';
 import ReportManagementPage from './pages/ReportManagementPage';
@@ -78,7 +77,6 @@ function App() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/mypage" element={<MyPage />} />
-                <Route path="/search" element={<SearchPage />} />
                 <Route path="/notifications" element={<NotificationPage />} />
                 <Route path="/review" element={<ReviewPage />} />
                 <Route path="/report" element={<ReportManagementPage />} />

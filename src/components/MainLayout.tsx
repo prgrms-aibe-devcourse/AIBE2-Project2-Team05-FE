@@ -27,7 +27,6 @@ const MainLayout = () => {
     '/match/recommend',
     '/chat',
     '/mypage',
-    '/search',
     '/notifications',
     '/profile',
   ];

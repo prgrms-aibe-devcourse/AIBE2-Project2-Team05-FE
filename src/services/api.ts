@@ -36,5 +36,54 @@ api.interceptors.request.use(
   },
 );
 
-// 3. 생성하고 설정한 api 인스턴스를 다른 파일에서 사용할 수 있도록 내보냅니다.
+// ======= 사용자 관련 API 함수들 =======
+
+// 3. 회원탈퇴 API 함수
+// 사용자가 회원탈퇴를 요청할 때 호출됩니다.
+export const deleteUser = async () => {
+  try {
+    // DELETE 요청을 백엔드 '/api/user/delete' 엔드포인트로 보냅니다.
+    // 토큰은 인터셉터에서 자동으로 헤더에 추가됩니다.
+    const response = await api.delete('/api/user/delete');
+    return response.data;
+  } catch (error) {
+    // 에러가 발생하면 콘솔에 출력하고 다시 던집니다.
+    console.error('회원탈퇴 요청 중 오류:', error);
+    throw error;
+  }
+};
+
+// 4. 사용자 검색 API 함수
+// 닉네임으로 사용자를 검색할 때 호출됩니다.
+export const searchUsers = async (keyword: string) => {
+  try {
+    // GET 요청을 백엔드 '/api/user/search' 엔드포인트로 보냅니다.
+    const response = await api.get(`/api/user/search?keyword=${encodeURIComponent(keyword)}`);
+    return response.data;
+  } catch (error) {
+    // 에러가 발생하면 콘솔에 출력하고 다시 던집니다.
+    console.error('사용자 검색 중 오류:', error);
+    throw error;
+  }
+};
+
+// 5. 신고하기 API 함수
+// 다른 사용자를 신고할 때 호출됩니다.
+export const createReport = async (reportData: {
+  reportedUserId: number;  // 신고당하는 사용자의 ID
+  reportType: string;      // 신고 유형 (예: '욕설', '스팸', '부적절한 내용' 등)
+  description: string;     // 신고 상세 설명
+}) => {
+  try {
+    // POST 요청을 백엔드 '/api/report' 엔드포인트로 보냅니다.
+    const response = await api.post('/api/report', reportData);
+    return response.data;
+  } catch (error) {
+    // 에러가 발생하면 콘솔에 출력하고 다시 던집니다.
+    console.error('신고 요청 중 오류:', error);
+    throw error;
+  }
+};
+
+// 5. 생성하고 설정한 api 인스턴스를 다른 파일에서 사용할 수 있도록 내보냅니다.
 export default api;

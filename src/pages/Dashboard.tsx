@@ -665,7 +665,7 @@ const Dashboard: React.FC = () => {
                 <RecentInfo>
                   <RecentName>{getReportTypeText(report.reportType)}</RecentName>
                   <RecentDetail>
-                    신고자: {report.reporter.nickname} → 대상: {report.reportedUser.nickname}
+                    신고자: {report.reporter?.nickname || '알 수 없음'} → 대상: {report.reportedUser?.nickname || '알 수 없음'}
                   </RecentDetail>
                   <RecentDetail style={{ fontSize: '12px', marginTop: '2px' }}>
                     {new Date(report.createdAt).toLocaleString()}

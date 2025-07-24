@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { deleteUser } from '../services/api';
+import ReportModal from '../components/common/ReportModal';
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -39,6 +41,9 @@ const MyPage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'feeds'>('profile');
   const [myFeeds, setMyFeeds] = useState<Feed[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 신고하기 모달 관련 상태
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -149,6 +154,45 @@ const MyPage = () => {
       }
       window.location.href = '/plan';
     }
+  };
+
+  // 회원탈퇴 처리 함수
+  const handleDeleteAccount = async () => {
+    // 사용자에게 한 번 더 확인받기
+    const isConfirmed = window.confirm(
+      '정말로 회원탈퇴를 하시겠습니까?\n\n탈퇴 시 모든 데이터가 삭제되며, 복구할 수 없습니다.'
+    );
+
+    if (!isConfirmed) {
+      return; // 사용자가 취소를 선택한 경우
+    }
+
+    try {
+      // 백엔드 API 호출하여 회원탈퇴 진행
+      await deleteUser();
+      
+      // 성공 메시지 표시
+      alert('회원탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.');
+      
+      // 로그아웃 처리 (토큰 삭제 등)
+      logout();
+      
+      // 메인 페이지로 이동
+      window.location.href = '/';
+    } catch (error) {
+      console.error('회원탈퇴 중 오류:', error);
+      alert('회원탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 신고하기 모달 열기
+  const handleOpenReportModal = () => {
+    setIsReportModalOpen(true);
+  };
+
+  // 신고하기 모달 닫기
+  const handleCloseReportModal = () => {
+    setIsReportModalOpen(false);
   };
 
   return (
@@ -358,9 +402,9 @@ const MyPage = () => {
               </FormRow>
               <AccountButtonContainer>
                 <LogoutButton onClick={logout}>로그아웃</LogoutButton>
-                <Link to="/report">
-                  <ReportButton>신고하기</ReportButton>
-                </Link>
+                <ReportButton onClick={handleOpenReportModal}>
+                  신고하기
+                </ReportButton>
               </AccountButtonContainer>
             </Section>
 
@@ -372,7 +416,9 @@ const MyPage = () => {
             </ButtonSection>
 
             <WithdrawalSection>
-              <DestructiveButton>회원 탈퇴</DestructiveButton>
+              <DestructiveButton onClick={handleDeleteAccount}>
+                회원 탈퇴
+              </DestructiveButton>
             </WithdrawalSection>
           </>
         )}
@@ -428,6 +474,12 @@ const MyPage = () => {
           </FeedsSection>
         )}
       </MainContent>
+
+      {/* 신고하기 모달 */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={handleCloseReportModal}
+      />
     </motion.div>
   );
 };
