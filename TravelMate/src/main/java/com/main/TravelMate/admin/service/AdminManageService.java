@@ -4,6 +4,7 @@ import com.main.TravelMate.admin.dto.ManageFeedRequest;
 import com.main.TravelMate.admin.dto.ManageMatchingRequest;
 import com.main.TravelMate.admin.dto.ManageReportRequest;
 import com.main.TravelMate.admin.dto.ManageUserRequest;
+import com.main.TravelMate.admin.dto.ManagedTravelFeedDto;
 import com.main.TravelMate.admin.entity.*;
 import com.main.TravelMate.admin.repository.*;
 import com.main.TravelMate.feed.dto.AdminFeedDto;
@@ -14,6 +15,7 @@ import com.main.TravelMate.matching.entity.MatchingRequest;
 import com.main.TravelMate.matching.repository.MatchingRequestRepository;
 import com.main.TravelMate.report.entity.Report;
 import com.main.TravelMate.report.repository.ReportRepository;
+import com.main.TravelMate.user.domain.UserStatus;
 import com.main.TravelMate.user.repository.UserRepository;
 import com.main.TravelMate.user.entity.User;
 import jakarta.persistence.EntityNotFoundException;
@@ -45,6 +47,14 @@ public class AdminManageService {
         Admin admin = adminRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new IllegalArgumentException("관리자 정보 없음"));
 
+        // 1. User 테이블의 status 업데이트 (우선순위 높음)
+        UserStatus userStatus = convertToUserStatus(request.getStatus());
+        if (userStatus != null) {
+            user.setStatus(userStatus);
+            userRepository.save(user);
+        }
+
+        // 2. ManagedUser 테이블에도 기록 (부가 정보 및 로그용)
         ManagedUser managed = managedUserRepository.findByUserId(user.getId())
                 .orElse(new ManagedUser());
 
@@ -55,6 +65,7 @@ public class AdminManageService {
         managed.setUpdatedAt(LocalDateTime.now());
         managedUserRepository.save(managed);
 
+        // 3. 관리자 액션 로그 기록
         AdminActionLog log = AdminActionLog.builder()
                 .admin(admin)
                 .actionType("USER_" + request.getStatus())
@@ -66,6 +77,28 @@ public class AdminManageService {
         adminActionLogRepository.save(log);
     }
 
+    /**
+     * 관리자 요청의 status 문자열을 UserStatus ENUM으로 변환
+     * @param status 관리자가 설정한 상태 문자열
+     * @return 대응되는 UserStatus ENUM 값
+     */
+    private UserStatus convertToUserStatus(String status) {
+        if (status == null) return null;
+        
+        switch (status.toUpperCase()) {
+            case "ACTIVE":
+                return UserStatus.ACTIVE;
+            case "BLOCKED":
+            case "BANNED":
+                return UserStatus.BANNED;
+            case "INACTIVE":
+            case "DELETED_BY_ADMIN":
+                return UserStatus.INACTIVE;
+            default:
+                // 알 수 없는 상태는 null 반환 (User 테이블 업데이트 안 함)
+                return null;
+        }
+    }
 
 
     @Transactional
@@ -156,18 +189,85 @@ public class AdminManageService {
         return userRepository.findAll(); // 사용자 전체 조회
     }
 
+    public List<ManagedUser> getManagedUsers() {
+        // 삭제된 사용자의 managed_user 레코드 정리
+        cleanupDeletedUserRecords();
+        return managedUserRepository.findAllWithValidUsers(); // 삭제되지 않은 사용자만 조회
+    }
+    
+    /**
+     * 삭제된 사용자의 managed_user 레코드를 정리하는 메서드
+     */
+    @Transactional
+    public void cleanupDeletedUserRecords() {
+        List<ManagedUser> allManagedUsers = managedUserRepository.findAll();
+        
+        for (ManagedUser managedUser : allManagedUsers) {
+            if (managedUser.getUser() == null) {
+                // User가 null인 경우 (삭제된 사용자) 레코드 삭제
+                managedUserRepository.delete(managedUser);
+                System.out.println("삭제된 사용자의 managed_user 레코드 정리: ID " + managedUser.getId());
+            }
+        }
+    }
+
     public List<AdminFeedDto> getAllFeeds() {
         return travelFeedRepository.findAll().stream()
                 .map(AdminFeedDto::new)
                 .toList();
     }
 
+    // 관리된 피드 조회 메서드 추가 (DTO 사용하여 LAZY 로딩 문제 해결)
+    @Transactional
+    public List<ManagedTravelFeedDto> getManagedFeeds() {
+        // 삭제된 피드의 managed_travel_feed 레코드 정리
+        cleanupDeletedFeedRecords();
+        
+        List<ManagedTravelFeed> managedFeeds = managedTravelFeedRepository.findAll();
+        
+        return managedFeeds.stream()
+                .filter(managedFeed -> managedFeed.getTravelFeed() != null) // null 체크 추가
+                .map(managedFeed -> {
+                    try {
+                        // LAZY 로딩된 연관 엔티티들을 강제로 로드
+                        managedFeed.getTravelFeed().getUser().getNickname(); // User 정보 로드
+                        managedFeed.getAdmin().getName(); // Admin 정보 로드
+                        
+                        return new ManagedTravelFeedDto(managedFeed);
+                    } catch (Exception e) {
+                        // 로딩 중 오류가 발생하면 해당 레코드 제외
+                        System.out.println("피드 데이터 로딩 오류: " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(dto -> dto != null) // null 값 제거
+                .toList();
+    }
+    
+    /**
+     * 삭제된 피드의 managed_travel_feed 레코드를 정리하는 메서드
+     */
+    @Transactional
+    public void cleanupDeletedFeedRecords() {
+        List<ManagedTravelFeed> allManagedFeeds = managedTravelFeedRepository.findAll();
+        
+        for (ManagedTravelFeed managedFeed : allManagedFeeds) {
+            if (managedFeed.getTravelFeed() == null) {
+                // TravelFeed가 null인 경우 (삭제된 피드) 레코드 삭제
+                managedTravelFeedRepository.delete(managedFeed);
+                System.out.println("삭제된 피드의 managed_travel_feed 레코드 정리: ID " + managedFeed.getId());
+            }
+        }
+    }
+
     public List<Report> getAllReports() {
-        return reportRepository.findAll();
+        // JOIN FETCH를 사용하여 User 정보를 함께 로드
+        return reportRepository.findAllWithUsers();
     }
 
     public Report getReportDetail(Long reportId) {
-        return reportRepository.findById(reportId)
+        // JOIN FETCH를 사용하여 User 정보를 함께 로드
+        return reportRepository.findByIdWithUsers(reportId)
                 .orElseThrow(() -> new EntityNotFoundException("신고를 찾을 수 없습니다."));
     }
 }

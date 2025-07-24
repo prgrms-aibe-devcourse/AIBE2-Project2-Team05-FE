@@ -28,6 +28,7 @@ public class ReportService {
         report.setReportedUser(reported);
         report.setReportType(request.getReportType());
         report.setDescription(request.getDescription());
+        report.setStatus("PENDING"); // 신고 상태를 명시적으로 설정
 
         reportRepository.save(report);
     }

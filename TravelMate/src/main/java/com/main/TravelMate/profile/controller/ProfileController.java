@@ -12,6 +12,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -118,6 +130,51 @@ public class ProfileController {
     public ResponseEntity<String> follow(@PathVariable Long targetId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+    // 프로필 이미지 업로드 API
+    @PostMapping("/upload-image")
+    public ResponseEntity<String> uploadProfileImage(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("image") MultipartFile image) {
+        try {
+            String imageUrl = profileService.uploadProfileImage(userDetails.getUser().getId(), image);
+            return ResponseEntity.ok(imageUrl);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("이미지 업로드 실패: " + e.getMessage());
+        }
+    }
+
+    // 이미지 파일 서빙 API
+    @GetMapping("/images/profile/{filename}")
+    public ResponseEntity<Resource> serveImage(@PathVariable String filename) {
+        try {
+            Path filePath = Paths.get("uploads/profile-images/" + filename);
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                // 파일 확장자에 따라 적절한 Content-Type 설정
+                String contentType = "image/jpeg"; // 기본값
+                if (filename.toLowerCase().endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (filename.toLowerCase().endsWith(".gif")) {
+                    contentType = "image/gif";
+                } else if (filename.toLowerCase().endsWith(".webp")) {
+                    contentType = "image/webp";
+                }
+                
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/follow/{targetId}")
+    public ResponseEntity<String> follow(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                         @PathVariable Long targetId) {
         profileService.follow(userDetails.getUser().getId(), targetId);
         return ResponseEntity.ok("팔로우 성공");
     }
@@ -126,6 +183,8 @@ public class ProfileController {
     public ResponseEntity<String> unfollow(@PathVariable Long targetId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+    public ResponseEntity<String> unfollow(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                           @PathVariable Long targetId) {
         profileService.unfollow(userDetails.getUser().getId(), targetId);
         return ResponseEntity.ok("언팔로우 성공");
     }
