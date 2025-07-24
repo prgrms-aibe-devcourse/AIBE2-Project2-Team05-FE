@@ -5,13 +5,13 @@ import PlaceDetailModal from './PlaceDetailModal';
 import { AIRecommendationData } from '../types/plan';
 import openaiService from '../services/openaiApi';
 
-// 추천 장소 타입 정의
-interface RecommendedPlace {
+// 추천 장소 타입 정의 (로컬 인터페이스)
+interface LocalRecommendedPlace {
   name: string;
   description: string;
   category: string;
-  distance: string;
-  verified: boolean;
+  distance?: string;
+  verified?: boolean;
   source?: string;
 }
 
@@ -30,9 +30,9 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
   travelStyles,
   visitedPlaces,
 }) => {
-  const [recommendations, setRecommendations] = useState<RecommendedPlace[]>(
-    [],
-  );
+  const [recommendations, setRecommendations] = useState<
+    LocalRecommendedPlace[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,8 +132,8 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
       if (aiRecommendations && aiRecommendations.length > 0) {
         console.log('✅ AI 추천 생성 성공:', aiRecommendations.length, '개');
 
-        // RecommendedPlace 형식으로 변환
-        const formattedRecommendations: RecommendedPlace[] =
+        // LocalRecommendedPlace 형식으로 변환
+        const formattedRecommendations: LocalRecommendedPlace[] =
           aiRecommendations.map((rec, index) => ({
             name: rec.name,
             description: rec.description,
@@ -211,18 +211,127 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
     setSelectedPlace(null);
   };
 
-  // 카테고리별 색상
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case '맛집':
-        return '#FF6B6B';
-      case '액티비티':
-        return '#4ECDC4';
-      case '관광명소':
-        return '#45B7D1';
-      default:
-        return '#95A5A6';
+  // 카테고리별 아이콘과 색상
+  const getCategoryStyle = (category: string) => {
+    const categoryLower = category.toLowerCase();
+
+    // 영어/한글 카테고리 매핑
+    if (
+      categoryLower.includes('restaurant') ||
+      categoryLower.includes('맛집') ||
+      categoryLower.includes('food')
+    ) {
+      return {
+        icon: '🍽️',
+        background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+        textColor: '#FFFFFF',
+        borderColor: '#FF6B6B',
+      };
     }
+    if (
+      categoryLower.includes('activity') ||
+      categoryLower.includes('액티비티') ||
+      categoryLower.includes('sport')
+    ) {
+      return {
+        icon: '🏃‍♀️',
+        background: 'linear-gradient(135deg, #4ECDC4, #44A08D)',
+        textColor: '#FFFFFF',
+        borderColor: '#4ECDC4',
+      };
+    }
+    if (
+      categoryLower.includes('attraction') ||
+      categoryLower.includes('관광') ||
+      categoryLower.includes('tourist')
+    ) {
+      return {
+        icon: '🏛️',
+        background: 'linear-gradient(135deg, #45B7D1, #3682F8)',
+        textColor: '#FFFFFF',
+        borderColor: '#45B7D1',
+      };
+    }
+    if (
+      categoryLower.includes('shopping') ||
+      categoryLower.includes('쇼핑') ||
+      categoryLower.includes('mall')
+    ) {
+      return {
+        icon: '🛍️',
+        background: 'linear-gradient(135deg, #9B59B6, #8E44AD)',
+        textColor: '#FFFFFF',
+        borderColor: '#9B59B6',
+      };
+    }
+    if (
+      categoryLower.includes('nature') ||
+      categoryLower.includes('자연') ||
+      categoryLower.includes('park')
+    ) {
+      return {
+        icon: '🌲',
+        background: 'linear-gradient(135deg, #27AE60, #2ECC71)',
+        textColor: '#FFFFFF',
+        borderColor: '#27AE60',
+      };
+    }
+    if (
+      categoryLower.includes('entertainment') ||
+      categoryLower.includes('엔터') ||
+      categoryLower.includes('club')
+    ) {
+      return {
+        icon: '🎭',
+        background: 'linear-gradient(135deg, #E91E63, #F06292)',
+        textColor: '#FFFFFF',
+        borderColor: '#E91E63',
+      };
+    }
+    if (
+      categoryLower.includes('culture') ||
+      categoryLower.includes('문화') ||
+      categoryLower.includes('museum')
+    ) {
+      return {
+        icon: '🎨',
+        background: 'linear-gradient(135deg, #F39C12, #E67E22)',
+        textColor: '#FFFFFF',
+        borderColor: '#F39C12',
+      };
+    }
+    if (
+      categoryLower.includes('hotel') ||
+      categoryLower.includes('숙박') ||
+      categoryLower.includes('accommodation')
+    ) {
+      return {
+        icon: '🏨',
+        background: 'linear-gradient(135deg, #34495E, #2C3E50)',
+        textColor: '#FFFFFF',
+        borderColor: '#34495E',
+      };
+    }
+    if (
+      categoryLower.includes('cafe') ||
+      categoryLower.includes('카페') ||
+      categoryLower.includes('coffee')
+    ) {
+      return {
+        icon: '☕',
+        background: 'linear-gradient(135deg, #8D4004, #A0522D)',
+        textColor: '#FFFFFF',
+        borderColor: '#8D4004',
+      };
+    }
+
+    // 기본 카테고리
+    return {
+      icon: '📍',
+      background: 'linear-gradient(135deg, #95A5A6, #7F8C8D)',
+      textColor: '#FFFFFF',
+      borderColor: '#95A5A6',
+    };
   };
 
   // 추천이 없는 경우의 렌더링
@@ -284,14 +393,19 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
                 >
                   <PlaceHeader>
                     <PlaceName>{place.name}</PlaceName>
-                    <CategoryBadge color={getCategoryColor(place.category)}>
+                    <CategoryBadge
+                      categoryStyle={getCategoryStyle(place.category)}
+                    >
+                      <CategoryIcon>
+                        {getCategoryStyle(place.category).icon}
+                      </CategoryIcon>
                       {place.category}
                     </CategoryBadge>
                   </PlaceHeader>
                   <PlaceDescription>{place.description}</PlaceDescription>
                   <PlaceFooter>
                     <Distance>📍 {place.distance}</Distance>
-                    <VerificationBadge verified={place.verified}>
+                    <VerificationBadge $verified={place.verified || false}>
                       {place.verified ? '✅ 실제 장소' : '❓ 확인 중'}
                     </VerificationBadge>
                   </PlaceFooter>
@@ -446,14 +560,39 @@ const PlaceName = styled.h3`
   line-height: 1.3;
 `;
 
-const CategoryBadge = styled.span<{ color: string }>`
-  background-color: ${(props) => props.color};
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
+interface CategoryStyle {
+  icon: string;
+  background: string;
+  textColor: string;
+  borderColor: string;
+}
+
+const CategoryBadge = styled.span<{ categoryStyle: CategoryStyle }>`
+  background: ${(props) => props.categoryStyle.background};
+  color: ${(props) => props.categoryStyle.textColor};
+  border: 2px solid ${(props) => props.categoryStyle.borderColor};
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   z-index: 1;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const CategoryIcon = styled.span`
+  font-size: 14px;
+  line-height: 1;
 `;
 
 const PlaceDescription = styled.p`
@@ -480,16 +619,16 @@ const Distance = styled.span`
   font-weight: 500;
 `;
 
-const VerificationBadge = styled.span<{ verified: boolean }>`
+const VerificationBadge = styled.span<{ $verified: boolean }>`
   background: ${(props) =>
-    props.verified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
-  color: ${(props) => (props.verified ? '#059669' : '#EF4444')};
+    props.$verified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
+  color: ${(props) => (props.$verified ? '#059669' : '#EF4444')};
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   border: ${(props) =>
-    props.verified
+    props.$verified
       ? '1px solid rgba(16, 185, 129, 0.2)'
       : '1px solid rgba(239, 68, 68, 0.2)'};
 `;

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import * as S from './PlanPage.style';
 import PlaceMap from '../components/PlaceMap';
 import AIRecommendationSection from '../components/AIRecommendationSection';
 import FeedStatusChanger from '../components/feed/FeedStatusChanger';
 import FeedStatusBadge from '../components/feed/FeedStatusBadge';
 import ReviewWriteModal from '../components/feed/ReviewWriteModal';
+import PlaceDetailModal from '../components/PlaceDetailModal';
 import feedStatusService from '../services/feedStatusService';
+import openaiService from '../services/openaiApi';
 import { TravelStatus, FeedWithTravelStatus } from '../types/feed';
+import { useAuth } from '../contexts/AuthContext';
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -20,6 +23,10 @@ interface TravelEvent {
   tags: string[];
   price: string;
   category: string;
+  categoryIcon?: string; // 카테고리 아이콘
+  categoryBackground?: string; // 카테고리 배경색
+  categoryTextColor?: string; // 카테고리 텍스트 색상
+  categoryBorderColor?: string; // 카테고리 테두리 색상
 }
 
 interface TravelDay {
@@ -72,8 +79,116 @@ interface TravelPlan {
   };
 }
 
-const PlanPage: React.FC = () => {
-  const { id } = useParams();
+interface PlanPageProps {
+  planId?: string;
+  isModal?: boolean;
+}
+
+// 날짜 계산 헬퍼 함수
+const calculateDays = (startDate: string, endDate: string): number => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return diffDays;
+};
+
+// 여행 스타일별 이모티콘 매핑
+const getStyleEmoji = (style: string): string => {
+  const styleMap: { [key: string]: string } = {
+    계획적: '📋',
+    즉흥적: '🎲',
+    '관광 중심': '🏛️',
+    관광: '🏛️',
+    '휴양 중심': '🏖️',
+    휴양: '🏖️',
+    맛집: '🍽️',
+    '맛집 탐방': '🍽️',
+    액티비티: '🏃',
+    '액티비티 위주': '🏃',
+    쇼핑: '🛍️',
+    '쇼핑 위주': '🛍️',
+    '문화 체험': '🎭',
+    문화: '🎭',
+    자연: '🌲',
+    '자연 탐방': '🌲',
+    힐링: '🧘',
+    모던: '🏙️',
+    전통: '🏯',
+    예술: '🎨',
+    사진: '📸',
+    '사진 촬영': '📸',
+    축제: '🎉',
+    '축제 참여': '🎉',
+    야경: '🌃',
+    '야경 감상': '🌃',
+    도보: '🚶',
+    '도보 여행': '🚶',
+    드라이브: '🚗',
+    가족: '👨‍👩‍👧‍👦',
+    '가족 여행': '👨‍👩‍👧‍👦',
+    친구: '👥',
+    '친구와 함께': '👥',
+    혼자: '🚶‍♂️',
+    '혼자 여행': '🚶‍♂️',
+    커플: '💑',
+    '커플 여행': '💑',
+    로맨틱: '💕',
+    모험: '🗺️',
+    모험적: '🗺️',
+  };
+
+  return styleMap[style] || '✨';
+};
+
+// 백엔드 schedules를 TravelDay 형식으로 변환
+const convertSchedulesToDays = (
+  schedules: any,
+  startDate: string,
+): TravelDay[] => {
+  if (!schedules || Object.keys(schedules).length === 0) {
+    return [];
+  }
+
+  return Object.entries(schedules)
+    .map(([day, daySchedule], index) => ({
+      id: `day${index + 1}`,
+      dayNumber: index + 1,
+      date: day,
+      events: Array.isArray(daySchedule)
+        ? daySchedule.map((item: any, eventIndex: number) => ({
+            id: `event${index + 1}-${eventIndex + 1}`,
+            time: item.time || '',
+            title: item.place || item.activity || '일정',
+            location: item.place || '',
+            description: item.memo || '',
+            imageUrl: '',
+            tags: [],
+            price:
+              item.cost && item.cost > 0
+                ? `${Math.ceil(item.cost / 10000)}만원`
+                : '무료',
+            category: item.category || 'activity', // 백엔드에서 받은 카테고리 사용
+            categoryIcon: item.categoryIcon || '📍', // 카테고리 아이콘
+            categoryBackground:
+              item.categoryBackground ||
+              'linear-gradient(135deg, #45B7D1, #3682F8)', // 카테고리 배경
+            categoryTextColor: item.categoryTextColor || '#FFFFFF', // 카테고리 텍스트 색상
+            categoryBorderColor: item.categoryBorderColor || '#45B7D1', // 카테고리 테두리 색상
+          }))
+        : [],
+    }))
+    .filter((day) => day.events.length > 0); // 🎯 빈 일정을 가진 day는 제거
+};
+
+const PlanPage: React.FC<PlanPageProps> = ({
+  planId: propPlanId,
+  isModal = false,
+}) => {
+  const { id: paramId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth(); // 현재 로그인한 사용자 정보
+  const id = propPlanId || paramId; // props로 받은 planId 우선 사용
   const [plan, setPlan] = useState<TravelPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -82,10 +197,21 @@ const PlanPage: React.FC = () => {
   // 피드 상태 관리 state
   const [feedStatus, setFeedStatus] = useState<TravelStatus>('recruiting');
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [currentUser] = useState('current-user'); // 현재 사용자 ID (실제로는 context에서 가져와야 함)
+  const [destinationModalOpen, setDestinationModalOpen] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<string>('');
   const [isAuthor, setIsAuthor] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [reviewCompleted, setReviewCompleted] = useState(false);
   const [userReviews, setUserReviews] = useState<any[]>([]);
+
+  // 목적지 카테고리 상태
+  const [destinationCategory, setDestinationCategory] = useState<{
+    category: string;
+    icon: string;
+    background: string;
+    textColor: string;
+    borderColor: string;
+  } | null>(null);
 
   // visitedPlaces를 useMemo로 최적화해서 불필요한 재렌더링 방지
   const visitedPlaces = useMemo(() => {
@@ -200,43 +326,149 @@ const PlanPage: React.FC = () => {
 
   // 컴포넌트 마운트 시 여행 계획 로드
   useEffect(() => {
-    const loadTravelPlan = () => {
+    const loadTravelPlan = async () => {
       let loadedPlan: TravelPlan | null = null;
-      let savedPlan: string | null = null;
 
       try {
-        // URL 파라미터에 따른 계획 로드 (우선순위: 개별 계획 > 현재 계획)
         if (id && id !== 'undefined') {
-          // 1. URL 파라미터가 있으면 해당 개별 계획 로드
-          console.log('🔍 개별 여행 계획 로드 시도:', id);
-          savedPlan = localStorage.getItem(`plan_${id}`);
+          // 백엔드에서 직접 데이터 로드
+          console.log('🔍 백엔드에서 여행 계획 로드 시도:', id);
 
-          if (savedPlan) {
-            console.log('✅ 개별 계획 로드 성공:', id);
-          } else {
-            console.log('⚠️ 개별 계획 없음, 현재 계획으로 폴백:', id);
-            // 개별 계획이 없으면 현재 계획으로 폴백
-            savedPlan = localStorage.getItem('currentTravelPlan');
+          try {
+            const response = await fetch(
+              `http://localhost:8080/api/plan/${id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                  'Content-Type': 'application/json',
+                },
+              },
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('✅ 백엔드 데이터 로드 성공:', data);
+
+              // 백엔드 데이터를 TravelPlan 형식으로 변환
+              console.log('📊 백엔드 원본 데이터:', data);
+              console.log(
+                '📍 nearbyRecommendations:',
+                data.nearbyRecommendations,
+              );
+
+              // schedules가 문자열이면 파싱
+              let parsedSchedules = {};
+              if (data.schedules) {
+                try {
+                  parsedSchedules =
+                    typeof data.schedules === 'string'
+                      ? JSON.parse(data.schedules)
+                      : data.schedules;
+                  console.log('📅 파싱된 schedules:', parsedSchedules);
+                } catch (e) {
+                  console.error('❌ schedules 파싱 실패:', e);
+                }
+              }
+
+              loadedPlan = {
+                id: data.planId || data.id,
+                title: data.title,
+                startDate: data.startDate,
+                endDate: data.endDate,
+                destination: data.location || data.destination,
+                budget: data.budget?.toString() || '0',
+                people:
+                  data.numberOfPeople?.toString() ||
+                  data.people?.toString() ||
+                  '0',
+                period: `${calculateDays(data.startDate, data.endDate)}일`,
+                days: convertSchedulesToDays(parsedSchedules, data.startDate),
+                likes: 0,
+                likedUsers: [],
+                isLiked: false,
+                author: {
+                  id: data.authorId || 'user',
+                  name: data.authorNickname || '사용자',
+                  profileImage: data.authorProfileImage || '👤',
+                },
+                styleLabels: data.interests ? [data.interests] : [],
+                aiHashtags: data.aiHashtags ? JSON.parse(data.aiHashtags) : [],
+                nearbyRecommendations: data.nearbyRecommendations
+                  ? JSON.parse(data.nearbyRecommendations)
+                  : [],
+                // AI 추천 데이터 추가
+                aiRecommendations: (() => {
+                  try {
+                    if (
+                      data.nearbyRecommendations &&
+                      data.nearbyRecommendations !== '[]'
+                    ) {
+                      const recommendations = JSON.parse(
+                        data.nearbyRecommendations,
+                      );
+                      if (
+                        Array.isArray(recommendations) &&
+                        recommendations.length > 0
+                      ) {
+                        return {
+                          planId: data.planId || data.id,
+                          recommendations: recommendations,
+                          generatedAt: new Date().toISOString(),
+                          destination: data.location || data.destination,
+                          visitedPlaces: [],
+                          travelStyles: data.interests ? [data.interests] : [],
+                        };
+                      }
+                    }
+                  } catch (e) {
+                    console.error('AI 추천 데이터 파싱 실패:', e);
+                  }
+                  return undefined;
+                })(),
+              };
+
+              setPlan(loadedPlan);
+              setIsLiked(false);
+              setLikeCount(0);
+            } else {
+              throw new Error('Failed to load plan');
+            }
+          } catch (error) {
+            console.error('❌ 백엔드 로드 실패:', error);
+            // 폴백: localStorage 체크
+            const savedPlan = localStorage.getItem('currentTravelPlan');
+            if (savedPlan) {
+              const parsedPlan = JSON.parse(savedPlan);
+              loadedPlan = parsedPlan;
+              setPlan(parsedPlan);
+              setIsLiked(parsedPlan.isLiked || false);
+              setLikeCount(parsedPlan.likes || 0);
+            } else {
+              // 기본 계획 사용
+              const defaultPlan = createDefaultPlan();
+              loadedPlan = defaultPlan;
+              setPlan(defaultPlan);
+              setIsLiked(defaultPlan.isLiked);
+              setLikeCount(defaultPlan.likes);
+            }
           }
         } else {
-          // 2. URL 파라미터가 없으면 현재 계획 로드
-          console.log('🔍 현재 여행 계획 로드');
-          savedPlan = localStorage.getItem('currentTravelPlan');
-        }
-
-        if (savedPlan) {
-          const parsedPlan = JSON.parse(savedPlan);
-          loadedPlan = parsedPlan;
-          setPlan(parsedPlan);
-          setIsLiked(parsedPlan.isLiked || false);
-          setLikeCount(parsedPlan.likes || 0);
-        } else {
-          // 저장된 계획이 없으면 기본 계획 사용
-          const defaultPlan = createDefaultPlan();
-          loadedPlan = defaultPlan;
-          setPlan(defaultPlan);
-          setIsLiked(defaultPlan.isLiked);
-          setLikeCount(defaultPlan.likes);
+          // URL 파라미터가 없으면 localStorage 체크
+          const savedPlan = localStorage.getItem('currentTravelPlan');
+          if (savedPlan) {
+            const parsedPlan = JSON.parse(savedPlan);
+            loadedPlan = parsedPlan;
+            setPlan(parsedPlan);
+            setIsLiked(parsedPlan.isLiked || false);
+            setLikeCount(parsedPlan.likes || 0);
+          } else {
+            // 기본 계획 사용
+            const defaultPlan = createDefaultPlan();
+            loadedPlan = defaultPlan;
+            setPlan(defaultPlan);
+            setIsLiked(defaultPlan.isLiked);
+            setLikeCount(defaultPlan.likes);
+          }
         }
       } catch (error) {
         console.error('여행 계획 로드 중 오류:', error);
@@ -274,11 +506,22 @@ const PlanPage: React.FC = () => {
           );
           setUserReviews(planReviews);
 
-          // 작성자 여부 확인
+          // 작성자 여부 확인 (로그인한 사용자와 비교)
           const isCurrentUserAuthor =
-            loadedPlan?.author?.id === currentUser ||
+            loadedPlan?.author?.id === user?.email ||
             loadedPlan?.author?.name === '나' ||
-            loadedPlan?.author?.name === currentUser;
+            loadedPlan?.author?.name === user?.nickname ||
+            loadedPlan?.author?.id === 'user' || // 기본 사용자 ID
+            !loadedPlan?.author?.id; // 작성자 정보가 없으면 현재 사용자로 간주
+
+          console.log('🔍 작성자 확인 디버깅:', {
+            loadedPlanAuthorId: loadedPlan?.author?.id,
+            loadedPlanAuthorName: loadedPlan?.author?.name,
+            userEmail: user?.email,
+            userNickname: user?.nickname,
+            isCurrentUserAuthor,
+          });
+
           setIsAuthor(isCurrentUserAuthor);
         } catch (statusError) {
           console.error('피드 상태 로드 오류:', statusError);
@@ -290,6 +533,34 @@ const PlanPage: React.FC = () => {
 
     loadTravelPlan();
   }, [id]);
+
+  // 목적지 카테고리 분류
+  useEffect(() => {
+    const classifyDestination = async () => {
+      if (plan?.destination) {
+        try {
+          console.log('🏷️ 목적지 카테고리 분류 시작:', plan.destination);
+          const categoryInfo = await openaiService.classifyDestinationCategory(
+            plan.destination,
+          );
+          setDestinationCategory(categoryInfo);
+          console.log('✅ 목적지 카테고리 분류 완료:', categoryInfo);
+        } catch (error) {
+          console.error('❌ 목적지 카테고리 분류 실패:', error);
+          // 실패 시 기본 카테고리 설정
+          setDestinationCategory({
+            category: '관광',
+            icon: '📍',
+            background: 'linear-gradient(135deg, #45B7D1, #3682F8)',
+            textColor: '#FFFFFF',
+            borderColor: '#45B7D1',
+          });
+        }
+      }
+    };
+
+    classifyDestination();
+  }, [plan?.destination]);
 
   // 피드 상태 변경 핸들러
   const handleStatusChange = (feedId: number, newStatus: TravelStatus) => {
@@ -357,9 +628,9 @@ const PlanPage: React.FC = () => {
         ...reviewData,
         createdAt: new Date().toISOString(),
         author: {
-          id: currentUser,
-          name: plan?.author?.name || '나',
-          profileImage: plan?.author?.profileImage || '👤',
+          id: user?.email || 'unknown',
+          name: user?.nickname || '나',
+          profileImage: '👤',
         },
       };
       existingReviews.push(newReview);
@@ -377,6 +648,87 @@ const PlanPage: React.FC = () => {
     } catch (error) {
       console.error('후기 작성 오류:', error);
       alert('후기 작성 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 여행 계획 삭제 함수
+  const handleDeletePlan = async () => {
+    if (!plan?.id || !user) {
+      alert('삭제할 수 없습니다.');
+      return;
+    }
+
+    // 삭제 확인
+    if (
+      !window.confirm(
+        '정말로 이 여행 계획을 삭제하시겠습니까?\n삭제된 계획은 복구할 수 없습니다.',
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      console.log('🗑️ 여행 계획 삭제 시도:', plan.id);
+
+      // 백엔드 API 호출 - 상태를 DELETED로 변경
+      const response = await fetch(
+        `http://localhost:8080/api/plan/${plan.id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (response.ok) {
+        console.log('✅ 여행 계획 삭제 성공');
+        alert('여행 계획이 삭제되었습니다.');
+
+        // 피드 페이지로 이동
+        if (isModal) {
+          window.location.reload(); // 모달인 경우 페이지 새로고침
+        } else {
+          navigate('/feed'); // 일반 페이지인 경우 피드로 이동
+        }
+      } else {
+        throw new Error('삭제 요청 실패');
+      }
+    } catch (error) {
+      console.error('❌ 여행 계획 삭제 실패:', error);
+      alert('삭제에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // 장소 클릭 핸들러
+  const handlePlaceClick = (placeName: string) => {
+    if (placeName && placeName.trim()) {
+      setSelectedPlace(placeName);
+      setDestinationModalOpen(true);
+    }
+  };
+
+  // 24시간 형식을 12시간 AM/PM 형식으로 변환
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24 || time24.trim() === '') return '';
+
+    try {
+      const [hours, minutes] = time24.split(':').map(Number);
+      if (isNaN(hours) || isNaN(minutes)) return time24;
+
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+      const formattedMinutes = minutes.toString().padStart(2, '0');
+
+      return `${hours12}:${formattedMinutes} ${period}`;
+    } catch (error) {
+      console.error('시간 형식 변환 오류:', error);
+      return time24;
     }
   };
 
@@ -639,9 +991,9 @@ const PlanPage: React.FC = () => {
     author: {
       id: 'author1',
       name: '여행러버',
-      profileImage: '/images/author.jpg',
+      profileImage: '/api/placeholder/40/40',
     },
-    styleLabels: ['힐링', '휴양', '모던'],
+    styleLabels: ['힐링', '휴양', '모던'], // 여행 스타일은 유지
     aiHashtags: ['#제주도여행', '#힐링여행', '#모던여행'],
     nearbyRecommendations: [
       {
@@ -704,8 +1056,8 @@ const PlanPage: React.FC = () => {
 
   return (
     <S.Container>
-      {/* 상단 상태 표시 - 작성자만 */}
-      {isAuthor && (
+      {/* 상단 상태 표시 */}
+      {feedStatus && (
         <div
           style={{
             position: 'absolute',
@@ -739,114 +1091,144 @@ const PlanPage: React.FC = () => {
             <S.CardValue>{plan.destination}</S.CardValue>
           </S.SummaryCard>
           <S.SummaryCard>
-            <S.CardTitle>예산</S.CardTitle>
-            <S.CardValue>{plan.budget}</S.CardValue>
+            <S.CardTitle>총 예상 비용</S.CardTitle>
+            <S.CardValue>
+              {!plan.budget || String(plan.budget) === '0'
+                ? '무료'
+                : `${plan.budget}만원`}
+            </S.CardValue>
           </S.SummaryCard>
           <S.SummaryCard>
-            <S.CardTitle>인원</S.CardTitle>
+            <S.CardTitle>여행 인원</S.CardTitle>
             <S.CardValue>{plan.people}</S.CardValue>
           </S.SummaryCard>
         </S.SummaryCards>
 
+        {/* 소개글 섹션 */}
+        {(plan as any).extraMemo && (plan as any).extraMemo.trim() && (
+          <S.IntroSection>
+            <S.IntroTitle>
+              <i className="ri-article-line"></i>
+              여행 소개
+            </S.IntroTitle>
+            <S.IntroContent>{(plan as any).extraMemo}</S.IntroContent>
+          </S.IntroSection>
+        )}
+
         {/* 여행 스타일 표시 */}
         {plan.styleLabels && plan.styleLabels.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
+          <div style={{ marginTop: '30px' }}>
             <h3
               style={{
-                fontSize: '16px',
+                fontSize: '18px',
                 fontWeight: '600',
                 color: '#333',
-                marginBottom: '10px',
+                marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}
             >
-              🎨 여행 스타일
+              Travel Style
             </h3>
             <div
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: '8px',
+                gap: '12px',
               }}
             >
-              {plan.styleLabels.map((style: string, index: number) => (
-                <span
-                  key={index}
-                  style={{
-                    backgroundColor: '#f0f2ff',
-                    color: '#3682F8',
-                    padding: '6px 12px',
-                    borderRadius: '16px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: '1px solid #e0e6ff',
-                  }}
-                >
-                  {style}
-                </span>
-              ))}
+              {plan.styleLabels
+                .flatMap((styleGroup: string) =>
+                  styleGroup
+                    .split(',')
+                    .map((style) => style.trim())
+                    .filter((style) => style.length > 0),
+                )
+                .map((style: string, index: number) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: '#ffffff',
+                      border: '2px solid #3682F8',
+                      borderRadius: '24px',
+                      padding: '10px 20px',
+                      transition: 'all 0.2s',
+                      cursor: 'default',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f0f2ff';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow =
+                        '0 4px 12px rgba(54, 130, 248, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <span style={{ fontSize: '20px' }}>
+                      {getStyleEmoji(style)}
+                    </span>
+                    <span
+                      style={{
+                        color: '#3682F8',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                      }}
+                    >
+                      {style}
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
         )}
 
         {/* AI 추천 해시태그 */}
         {plan.aiHashtags && plan.aiHashtags.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
+          <div style={{ marginTop: '30px' }}>
             <h3
               style={{
-                fontSize: '16px',
+                fontSize: '18px',
                 fontWeight: '600',
                 color: '#333',
-                marginBottom: '10px',
+                marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}
             >
-              🤖 AI 추천 해시태그
+              🤖 AI Recommended Hashtags
             </h3>
             <div
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: '8px',
+                gap: '10px',
               }}
             >
               {plan.aiHashtags.map((hashtag: string, index: number) => (
                 <span
                   key={index}
                   style={{
-                    backgroundColor: '#e8f5e8',
-                    color: '#2d5d2d',
-                    padding: '6px 12px',
-                    borderRadius: '16px',
+                    backgroundColor: '#e8f5ff',
+                    color: '#0052cc',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
                     fontSize: '14px',
                     fontWeight: '500',
-                    border: '1px solid #c3e6c3',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => {
-                    // 해시태그 클릭 시 클립보드에 복사
-                    navigator.clipboard?.writeText(hashtag);
-                    alert('해시태그가 복사되었습니다! 📋');
+                    border: '1px solid #d0e6ff',
                   }}
                 >
                   {hashtag}
                 </span>
               ))}
             </div>
-            <p
-              style={{
-                fontSize: '12px',
-                color: '#666',
-                marginTop: '8px',
-                fontStyle: 'italic',
-              }}
-            >
-              💡 해시태그를 클릭하면 복사됩니다
-            </p>
           </div>
         )}
       </S.MainInfo>
@@ -856,43 +1238,92 @@ const PlanPage: React.FC = () => {
         {plan.days.map((day) => (
           <S.DaySection key={day.id}>
             <S.DayMarker>
-              <S.DayCircle>{day.dayNumber}</S.DayCircle>
+              <S.DayCircle>
+                <i className="ri-calendar-line"></i>
+              </S.DayCircle>
               <div>
-                <S.DayTitle>
-                  {day.dayNumber === 1
-                    ? '첫째 날'
-                    : day.dayNumber === 2
-                      ? '둘째 날'
-                      : day.dayNumber === 3
-                        ? '셋째 날'
-                        : `${day.dayNumber}일째`}
-                </S.DayTitle>
-                <S.DayDate>{day.date}</S.DayDate>
+                <S.DayTitle>Day {day.dayNumber}</S.DayTitle>
               </div>
             </S.DayMarker>
 
             <S.TimelineEvents>
               {day.events.map((event) => (
                 <S.Event key={event.id}>
-                  <S.EventTime>{event.time}</S.EventTime>
-                  <S.EventTitle>{event.title}</S.EventTitle>
-                  <S.EventLocation>
-                    <i className="ri-map-pin-line"></i>
-                    {event.location}
-                  </S.EventLocation>
+                  <S.EventTime>{formatTime12Hour(event.time)}</S.EventTime>
 
-                  <S.EventDescription>{event.description}</S.EventDescription>
-                  <S.EventTags>
-                    {event.tags.map((tag, index) => (
-                      <S.Tag key={index}>{tag}</S.Tag>
-                    ))}
-                    <S.PriceTag>{event.price}</S.PriceTag>
-                  </S.EventTags>
+                  {/* 장소명, 카테고리, 금액을 개선된 레이아웃으로 배치 */}
+                  <S.EventHeader>
+                    {/* 장소 정보 그룹 */}
+                    <S.PlaceInfo>
+                      {/* 제목과 위치가 같으면 하나만 표시, 다르면 둘 다 표시 */}
+                      {event.title === event.location ? (
+                        <S.EventTitle
+                          onClick={() => handlePlaceClick(event.title)}
+                        >
+                          <i className="ri-map-pin-line"></i> {event.title}
+                        </S.EventTitle>
+                      ) : (
+                        <>
+                          <S.EventTitle
+                            onClick={() => handlePlaceClick(event.title)}
+                          >
+                            <i className="ri-map-pin-line"></i> {event.title}
+                          </S.EventTitle>
+                          <S.EventLocation>
+                            <span
+                              onClick={() => handlePlaceClick(event.location)}
+                            >
+                              <i className="ri-map-pin-line"></i>{' '}
+                              {event.location}
+                            </span>
+                          </S.EventLocation>
+                        </>
+                      )}
+                    </S.PlaceInfo>
+
+                    {/* 카테고리와 금액을 자연스럽게 배치 */}
+                    <S.EventInfo>
+                      {/* 카테고리 배지 */}
+                      {event.categoryIcon && (
+                        <S.CategoryBadge
+                          categoryStyle={{
+                            icon: event.categoryIcon,
+                            background:
+                              event.categoryBackground ||
+                              'linear-gradient(135deg, #45B7D1, #3682F8)',
+                            textColor: event.categoryTextColor || '#FFFFFF',
+                            borderColor: event.categoryBorderColor || '#45B7D1',
+                          }}
+                        >
+                          <S.CategoryIcon>{event.categoryIcon}</S.CategoryIcon>
+                          {event.category}
+                        </S.CategoryBadge>
+                      )}
+                      {/* 금액 */}
+                      <S.PriceTag>{event.price}</S.PriceTag>
+                    </S.EventInfo>
+                  </S.EventHeader>
+
+                  {/* 상세설명 */}
+                  {event.description && (
+                    <S.EventDescription>
+                      <strong>상세설명:</strong> {event.description}
+                    </S.EventDescription>
+                  )}
+
+                  {/* 태그들 (금액은 이미 위에 표시됨) */}
+                  {event.tags && event.tags.length > 0 && (
+                    <S.EventTags>
+                      {event.tags.map((tag, index) => (
+                        <S.Tag key={index}>{tag}</S.Tag>
+                      ))}
+                    </S.EventTags>
+                  )}
 
                   {/* 장소가 있으면 카카오맵으로 위치 표시 */}
                   {event.location && (
-                    <div style={{ marginTop: '15px' }}>
-                      <PlaceMap placeName={event.location} height="180px" />
+                    <div style={{ marginTop: '20px' }}>
+                      <PlaceMap placeName={event.location} height="300px" />
                     </div>
                   )}
                 </S.Event>
@@ -1040,8 +1471,14 @@ const PlanPage: React.FC = () => {
           <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
             {plan.author.name}
           </div>
-          <div style={{ fontSize: '14px', color: '#666' }}>
-            여행 계획 작성자
+          <div
+            style={{
+              fontSize: '14px',
+              color: isAuthor ? '#3682F8' : '#666',
+              fontWeight: isAuthor ? '500' : 'normal',
+            }}
+          >
+            {isAuthor ? '여행계획 리더' : '여행참여자'}
           </div>
         </div>
       </div>
@@ -1059,6 +1496,53 @@ const PlanPage: React.FC = () => {
 
         {/* 버튼 그룹 */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* 삭제 버튼 - 작성자에게만 표시 */}
+          {isAuthor && (
+            <button
+              onClick={handleDeletePlan}
+              disabled={isDeleting}
+              style={{
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                opacity: isDeleting ? 0.6 : 1,
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!isDeleting) {
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isDeleting) {
+                  e.currentTarget.style.backgroundColor = '#ef4444';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
+            >
+              <i
+                className={
+                  isDeleting ? 'ri-loader-4-line' : 'ri-delete-bin-line'
+                }
+                style={{
+                  fontSize: '16px',
+                  animation: isDeleting ? 'spin 1s linear infinite' : 'none',
+                }}
+              ></i>
+              {isDeleting ? '삭제 중' : '삭제'}
+            </button>
+          )}
+
           {/* 작성자만 볼 수 있는 상태 관리 버튼 */}
           {isAuthor && (
             <>
@@ -1085,7 +1569,7 @@ const PlanPage: React.FC = () => {
                     gap: '4px',
                   }}
                 >
-                  ✈️ 여행중
+                  ✈️ 여행 시작하기
                 </button>
               )}
 
@@ -1112,7 +1596,7 @@ const PlanPage: React.FC = () => {
                     gap: '4px',
                   }}
                 >
-                  ✅ 여행완료
+                  ✅ 여행 완료하기
                 </button>
               )}
 
@@ -1178,6 +1662,19 @@ const PlanPage: React.FC = () => {
           destination={plan.destination}
           onClose={() => setReviewModalOpen(false)}
           onReviewSubmit={handleReviewSubmit}
+        />
+      )}
+
+      {/* 목적지/장소 상세 정보 모달 */}
+      {destinationModalOpen && plan && (
+        <PlaceDetailModal
+          isOpen={destinationModalOpen}
+          onClose={() => {
+            setDestinationModalOpen(false);
+            setSelectedPlace('');
+          }}
+          placeName={selectedPlace || plan.destination}
+          region={plan.destination}
         />
       )}
     </S.Container>

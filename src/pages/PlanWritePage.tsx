@@ -57,8 +57,24 @@ const PlanWritePage: React.FC = () => {
 
   // 현재 활성 탭
   const [activeTab, setActiveTab] = useState('day1');
-  const [days] = useState(['day1', 'day2', 'day3']); // 기본 3일
   const [isLoading, setIsLoading] = useState(false);
+
+  // 여행 기간에 따라 동적으로 days 생성하는 함수
+  const calculateDaysArray = (
+    startDate?: string,
+    endDate?: string,
+  ): string[] => {
+    if (!startDate || !endDate) {
+      return ['day1']; // 기본값
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return Array.from({ length: diffDays }, (_, i) => `day${i + 1}`);
+  };
 
   // 폼 데이터 상태
   const [formData, setFormData] = useState<FormData>({
@@ -83,6 +99,53 @@ const PlanWritePage: React.FC = () => {
     transportation: '',
     extraMemo: '',
   });
+
+  // 수동으로 관리하는 days 배열 상태 (초기값: day1만)
+  const [days, setDays] = useState<string[]>(['day1']);
+
+  // Day 추가 함수
+  const addDay = () => {
+    const nextDayNumber = days.length + 1;
+    const nextDay = `day${nextDayNumber}`;
+
+    setDays((prev) => [...prev, nextDay]);
+
+    // 새로운 day에 빈 스케줄 배열 추가
+    setFormData((prev) => ({
+      ...prev,
+      schedules: {
+        ...prev.schedules,
+        [nextDay]: [],
+      },
+    }));
+
+    // 새로 추가된 day로 탭 이동
+    setActiveTab(nextDay);
+  };
+
+  // Day 삭제 함수 (day1은 삭제 불가)
+  const removeDay = (dayToRemove: string) => {
+    if (dayToRemove === 'day1' || days.length <= 1) {
+      return; // day1이거나 마지막 하나 남은 day는 삭제 불가
+    }
+
+    setDays((prev) => prev.filter((day) => day !== dayToRemove));
+
+    // 스케줄에서도 해당 day 제거
+    setFormData((prev) => {
+      const newSchedules = { ...prev.schedules };
+      delete newSchedules[dayToRemove];
+      return {
+        ...prev,
+        schedules: newSchedules,
+      };
+    });
+
+    // 삭제된 day가 현재 활성 탭이면 day1로 이동
+    if (activeTab === dayToRemove) {
+      setActiveTab('day1');
+    }
+  };
 
   // 입력 핸들러
   const handleInputChange = (
@@ -486,9 +549,12 @@ const PlanWritePage: React.FC = () => {
           destination: formData.destination,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          period: calculateDays(formData.startDate, formData.endDate),
-          budget: `${formData.budget}만원`,
-          people: `${formData.people}명`,
+          period: calculateDays(
+            formData.startDate,
+            formData.endDate,
+          ).toString(),
+          budget: `${formData.budget}`,
+          people: `${formData.people}`,
           styles: formData.styles,
           styleLabels: getStyleLabels(formData.styles),
           matchingInfo: formData.matchingEnabled
@@ -504,6 +570,8 @@ const PlanWritePage: React.FC = () => {
           aiHashtags: planData.aiHashtags,
           nearbyRecommendations: planData.nearbyRecommendations,
           imageUrl: destinationImageUrl,
+          accommodationInfo: formData.accommodation,
+          transportationInfo: formData.transportation,
         };
 
         // 백엔드 API 호출
@@ -521,6 +589,11 @@ const PlanWritePage: React.FC = () => {
         );
 
         console.log('🎉 백엔드와 로컬스토리지 모두 저장 완료');
+
+        // 저장 성공 후 프로필 페이지로 이동하여 새로운 피드 확인
+        setTimeout(() => {
+          navigate('/profile');
+        }, 1500);
       } catch (backendError) {
         console.error('❌ 백엔드 저장 실패, 로컬스토리지 폴백:', backendError);
 
@@ -865,6 +938,21 @@ const PlanWritePage: React.FC = () => {
                 />
               </S.FormGroup>
             </S.FormCol>
+            <S.FormCol $span={12}>
+              <S.FormGroup>
+                <S.Label htmlFor="extraMemo">
+                  <S.LabelIcon>📖</S.LabelIcon>
+                  소개글
+                </S.Label>
+                <S.Textarea
+                  id="extraMemo"
+                  name="extraMemo"
+                  value={formData.extraMemo}
+                  onChange={handleInputChange}
+                  placeholder="여행 계획에 대한 소개글을 작성해주세요"
+                />
+              </S.FormGroup>
+            </S.FormCol>
             <S.FormCol $span={6}>
               <S.FormGroup>
                 <S.Label htmlFor="startDate">
@@ -1007,10 +1095,33 @@ const PlanWritePage: React.FC = () => {
                 $active={activeTab === day}
                 onClick={() => setActiveTab(day)}
               >
-                {getTabTitle(day)}
+                <span>{getTabTitle(day)}</span>
+                {day !== 'day1' && days.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation(); // 탭 클릭 이벤트 방지
+                      removeDay(day);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'inherit',
+                      fontSize: '12px',
+                      marginLeft: '8px',
+                      cursor: 'pointer',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
+                    onMouseOut={(e) => (e.currentTarget.style.opacity = '0.7')}
+                  >
+                    <i className="ri-close-line"></i>
+                  </button>
+                )}
               </S.Tab>
             ))}
-            <S.Tab>
+            <S.Tab onClick={addDay}>
               <i className="ri-add-line"></i>
             </S.Tab>
           </S.Tabs>
@@ -1281,21 +1392,6 @@ const PlanWritePage: React.FC = () => {
                   value={formData.transportation}
                   onChange={handleInputChange}
                   placeholder="교통수단 정보를 입력하세요"
-                />
-              </S.FormGroup>
-            </S.FormCol>
-            <S.FormCol $span={12}>
-              <S.FormGroup>
-                <S.Label htmlFor="extraMemo">
-                  <S.LabelIcon>📝</S.LabelIcon>
-                  기타 메모
-                </S.Label>
-                <S.Textarea
-                  id="extraMemo"
-                  name="extraMemo"
-                  value={formData.extraMemo}
-                  onChange={handleInputChange}
-                  placeholder="기타 메모를 입력하세요"
                 />
               </S.FormGroup>
             </S.FormCol>

@@ -124,7 +124,9 @@ const NearbyRecommendations: React.FC<NearbyRecommendationsProps> = ({
               <Title>
                 🗺️ {destination} 근처 추천 장소
                 {recommendations.length > 0 && (
-                  <Badge verified={recommendations.some((r) => r.verified)}>
+                  <Badge
+                    $verified={recommendations.some((r) => r.verified || false)}
+                  >
                     {recommendations.filter((r) => r.verified).length > 0
                       ? `실제 검증된 ${recommendations.length}개 장소`
                       : `${recommendations.length}개 장소`}
@@ -283,9 +285,9 @@ const Title = styled.h2`
   flex-wrap: wrap;
 `;
 
-const Badge = styled.span<{ verified: boolean }>`
+const Badge = styled.span<{ $verified: boolean }>`
   background: ${(props) =>
-    props.verified ? 'rgba(16, 185, 129, 0.9)' : 'rgba(255, 255, 255, 0.2)'};
+    props.$verified ? 'rgba(16, 185, 129, 0.9)' : 'rgba(255, 255, 255, 0.2)'};
   color: white;
   padding: 4px 12px;
   border-radius: 12px;

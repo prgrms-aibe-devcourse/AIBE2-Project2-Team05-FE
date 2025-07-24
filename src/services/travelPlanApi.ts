@@ -1,47 +1,10 @@
 // 백엔드 여행 계획 API 서비스
-import axios from 'axios';
+import api from './api'; // ✅ 인증 토큰이 포함된 api 사용
 
 // API 베이스 URL
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
-const API_PREFIX = '/api/travel-plans';
+const API_PREFIX = '/api/plan';
 
-// Axios 인스턴스 생성
-const travelPlanApi = axios.create({
-  baseURL: BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// 요청/응답 인터셉터
-travelPlanApi.interceptors.request.use(
-  (config) => {
-    console.log(
-      `🚀 API 요청: ${config.method?.toUpperCase()} ${config.url}`,
-      config.data,
-    );
-    return config;
-  },
-  (error) => {
-    console.error('❌ API 요청 오류:', error);
-    return Promise.reject(error);
-  },
-);
-
-travelPlanApi.interceptors.response.use(
-  (response) => {
-    console.log(`✅ API 응답: ${response.config.url}`, response.data);
-    return response;
-  },
-  (error) => {
-    console.error(
-      `❌ API 응답 오류: ${error.config?.url}`,
-      error.response?.data || error.message,
-    );
-    return Promise.reject(error);
-  },
-);
+// ✅ api.ts에서 인터셉터가 이미 설정되어 있으므로 제거
 
 // 타입 정의
 export interface TravelPlanData {
@@ -71,6 +34,9 @@ export interface TravelPlanData {
   aiHashtags?: string[];
   nearbyRecommendations?: RecommendedPlace[];
   imageUrl?: string;
+  accommodationInfo?: string;
+  transportationInfo?: string;
+  extraMemo?: string;
 }
 
 export interface ScheduleItem {
@@ -103,6 +69,44 @@ export interface TravelPlanResponse extends TravelPlanData {
  */
 class TravelPlanApiService {
   /**
+   * 토큰 상태 정리 및 검증
+   */
+  private validateTokens() {
+    const token = localStorage.getItem('token');
+    const accessToken = localStorage.getItem('accessToken');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    console.log('🔍 토큰 상태 검증:', {
+      hasToken: !!token,
+      hasAccessToken: !!accessToken,
+      user: user,
+      tokenCount: [token, accessToken].filter(Boolean).length,
+    });
+
+    // 토큰이 두 개 이상 있으면 경고
+    if (token && accessToken && token !== accessToken) {
+      console.warn('⚠️ 중복 토큰 발견 - 정리 권장:', {
+        tokenEmail: this.decodeTokenEmail(token),
+        accessTokenEmail: this.decodeTokenEmail(accessToken),
+        currentUserEmail: user.email,
+      });
+    }
+
+    return { token, accessToken, user };
+  }
+
+  /**
+   * JWT 토큰에서 이메일 추출 (디버깅용)
+   */
+  private decodeTokenEmail(token: string): string {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.sub || 'unknown';
+    } catch (e) {
+      return 'invalid-token';
+    }
+  }
+  /**
    * 여행 계획 저장 (생성 또는 업데이트)
    */
   async saveTravelPlan(
@@ -110,20 +114,108 @@ class TravelPlanApiService {
   ): Promise<TravelPlanResponse> {
     try {
       console.log('💾 여행 계획 저장 시작:', travelPlan.title);
+      console.log('🤝 매칭 자동 활성화: true (여행메이트 찾기 가능)');
 
-      const response = await travelPlanApi.post<TravelPlanResponse>(
+      // ✅ 토큰 상태 검증
+      const tokenState = this.validateTokens();
+
+      // ✅ 요청 데이터 미리보기
+      const requestData = {
+        title: travelPlan.title,
+        location: travelPlan.destination,
+        startDate: travelPlan.startDate,
+        endDate: travelPlan.endDate,
+        description: `${travelPlan.title} 여행 계획`,
+        interests: Array.isArray(travelPlan.styleLabels)
+          ? travelPlan.styleLabels.join(',')
+          : travelPlan.styles?.join(',') || '',
+        numberOfPeople: parseInt(travelPlan.people) || 1,
+        budget: parseInt(travelPlan.budget) || 0,
+        preferredGender: travelPlan.matchingInfo?.preferredGender || '상관없음',
+        preferredAgeRange: travelPlan.matchingInfo?.preferredAge || '상관없음',
+        preferredLanguage:
+          travelPlan.matchingInfo?.preferredLanguage || '한국어',
+        matchingNote: travelPlan.matchingInfo?.matchingMemo || '',
+        accommodationInfo: travelPlan.accommodationInfo || '',
+        transportationInfo: travelPlan.transportationInfo || '',
+        extraMemo: travelPlan.extraMemo || '',
+        matchingEnabled: true, // ✅ 여행계획 생성 시 매칭 기본 활성화
+        days: [], // ✅ 백엔드 필수 필드 추가 (현재는 빈 배열로 전송)
+        // ✅ Google Places & OpenAI API 결과 포함
+        styles: JSON.stringify(travelPlan.styles || []),
+        styleLabels: JSON.stringify(travelPlan.styleLabels || []),
+        schedules: JSON.stringify(travelPlan.schedules || []),
+        aiHashtags: JSON.stringify(travelPlan.aiHashtags || []),
+        nearbyRecommendations: JSON.stringify(
+          travelPlan.nearbyRecommendations || [],
+        ),
+        imageUrl: travelPlan.imageUrl || '',
+      };
+
+      console.log('📤 백엔드로 전송할 데이터:', {
+        title: requestData.title,
+        location: requestData.location,
+        numberOfPeople: requestData.numberOfPeople,
+        budget: requestData.budget,
+        matchingEnabled: requestData.matchingEnabled,
+        hasAiHashtags: !!travelPlan.aiHashtags?.length,
+        hasNearbyRecommendations: !!travelPlan.nearbyRecommendations?.length,
+        hasImageUrl: !!travelPlan.imageUrl,
+      });
+
+      console.log('🚀 백엔드 API 호출 시작 - POST', API_PREFIX);
+
+      const response = await api.post<TravelPlanResponse>(
         API_PREFIX,
-        {
-          ...travelPlan,
-          // matchingInfo가 있으면 활성화된 것으로 간주
-          matchingInfo: travelPlan.matchingInfo || null,
-        },
+        requestData,
       );
 
+      console.log('✅ 백엔드 API 응답 수신 성공!');
+      console.log('📋 응답 데이터:', response.data);
       console.log('✅ 여행 계획 저장 완료:', response.data.planId);
       return response.data;
     } catch (error: any) {
       console.error('❌ 여행 계획 저장 실패:', error);
+
+      // ✅ 매우 상세한 오류 정보 로그
+      console.error('🔍 오류 상세 정보:', {
+        name: error.name,
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        code: error.code,
+        hasResponse: !!error.response,
+        isNetworkError: error.code === 'NETWORK_ERROR' || !error.response,
+        config: {
+          method: error.config?.method,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          fullURL: error.config
+            ? `${error.config.baseURL}${error.config.url}`
+            : 'unknown',
+          headers: error.config?.headers,
+        },
+      });
+
+      // ✅ 토큰 만료 체크
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error('🚫 인증 실패 - 토큰 문제 가능성 높음:', {
+          status: error.response.status,
+          currentTokens: {
+            token: localStorage.getItem('token') ? 'exists' : 'none',
+            accessToken: localStorage.getItem('accessToken')
+              ? 'exists'
+              : 'none',
+          },
+          authHeader: error.config?.headers?.Authorization
+            ? 'present'
+            : 'missing',
+        });
+
+        alert('❌ 인증이 만료되었습니다. 다시 로그인해주세요.');
+        throw new Error('인증 실패: 다시 로그인이 필요합니다.');
+      }
 
       // 네트워크 오류 등으로 백엔드 연결 실패 시 로컬스토리지 폴백
       if (!error.response || error.code === 'NETWORK_ERROR') {
@@ -144,8 +236,8 @@ class TravelPlanApiService {
     try {
       console.log('📋 여행 계획 조회 시작:', planId);
 
-      const response = await travelPlanApi.get<TravelPlanResponse>(
-        `${API_PREFIX}/${planId}`,
+      const response = await api.get<TravelPlanResponse>(
+        `${API_PREFIX}/by-plan-id/${planId}`,
       );
 
       console.log('✅ 여행 계획 조회 완료:', response.data.title);
@@ -176,7 +268,7 @@ class TravelPlanApiService {
     try {
       console.log('📋 사용자 여행 계획 목록 조회:', userId);
 
-      const response = await travelPlanApi.get<TravelPlanResponse[]>(
+      const response = await api.get<TravelPlanResponse[]>(
         `${API_PREFIX}?userId=${encodeURIComponent(userId)}`,
       );
 
@@ -205,7 +297,7 @@ class TravelPlanApiService {
     try {
       console.log('🎯 매칭 여행 계획 목록 조회');
 
-      const response = await travelPlanApi.get<TravelPlanResponse[]>(
+      const response = await api.get<TravelPlanResponse[]>(
         `${API_PREFIX}/matching`,
       );
 
@@ -228,7 +320,7 @@ class TravelPlanApiService {
     try {
       console.log('🗑️ 여행 계획 삭제:', planId);
 
-      await travelPlanApi.delete(
+      await api.delete(
         `${API_PREFIX}/${planId}?userId=${encodeURIComponent(userId)}`,
       );
 
@@ -252,7 +344,7 @@ class TravelPlanApiService {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await travelPlanApi.get(`${API_PREFIX}/health`);
+      await api.get(`${API_PREFIX}/health`);
       return true;
     } catch (error) {
       console.warn('⚠️ 백엔드 API 연결 실패');

@@ -52,9 +52,18 @@ export const generateMockUserProfile = (
   };
 };
 
-// 정교한 피드 데이터 생성
+// 정교한 피드 데이터 생성 - 사용자별로 구분
 export const generateMockUserFeeds = (userId: string): UserFeed[] => {
-  // 실제로는 백엔드에서 이미 권한별로 분류된 데이터를 받을 예정
+  console.log('🔄 Mock 피드 생성 for userId:', userId);
+
+  // ⚠️ 임시: 사용자별로 구분하기 위해 특정 조건에서만 Mock 데이터 반환
+  // 실제로는 백엔드에서 사용자별 피드를 제대로 받아와야 함
+
+  // 'test' 계정에만 Mock 데이터 제공, 다른 계정은 빈 배열
+  if (userId !== 'test@test.com') {
+    console.log('📭 다른 사용자 계정 - 빈 피드 반환');
+    return []; // test 계정 외에는 빈 배열 반환
+  }
 
   // 현재 사용자가 실제로 만든 여행들 (localStorage에서 가져오기)
   const currentUserCreatedTrips: UserFeed[] = [];

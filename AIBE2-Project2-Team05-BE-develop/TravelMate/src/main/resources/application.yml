@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:mysql://travelmate.cd0m2au6cgqt.ap-southeast-2.rds.amazonaws.com:3306/travelmate
+    username: admin
+    password: teamsomac123!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+jwt:
+  secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=
+  expiration: 3600000 # 1시간
+
+# Google Places API 설정
+google:
+  places:
+    api:
+      # API 키 직접 설정 (개발용)
+      key: AIzaSyCDdmyQ1ZMwjj7iorE7uUZzJHwp387zSOU
+
+# OpenAI API 설정 (장소 카테고리 분류용)
+openai:
+  api:
+    # API 키 설정 (환경변수 OPENAI_API_KEY로도 설정 가능)
+    key: ${OPENAI_API_KEY:}
+
+# 로깅 설정 추가
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.main.TravelMate.common.security: DEBUG

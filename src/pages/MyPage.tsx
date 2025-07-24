@@ -3,24 +3,15 @@ import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+// 프로필 API 추가
+import profileApiService from '../services/profileApi';
+import { FeedWithTravelStatus } from '../types/feed';
 
 const pageVariants = {
   initial: { opacity: 0 },
   in: { opacity: 1 },
   out: { opacity: 0 },
 };
-
-interface Feed {
-  id: number;
-  author: string;
-  avatar: string;
-  image: string;
-  likes: number;
-  caption: string;
-  type?: string;
-  planId?: string;
-  createdAt?: string;
-}
 
 interface UserProfile {
   name: string;
@@ -35,10 +26,9 @@ interface UserProfile {
 }
 
 const MyPage = () => {
-  const { logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'feeds'>('profile');
-  const [myFeeds, setMyFeeds] = useState<Feed[]>([]);
+  const { logout, updateUser, user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -53,40 +43,93 @@ const MyPage = () => {
     travelStyles: ['계획적인 여행', '관광 중심'],
   });
 
-  // 프로필 데이터 로드
+  // 프로필 데이터 로드 - 백엔드에서 실제 사용자 정보 가져오기
   useEffect(() => {
-    const loadProfile = () => {
-      try {
-        const savedProfile = localStorage.getItem('userProfile');
-        if (savedProfile) {
-          const parsed = JSON.parse(savedProfile);
-          setProfileData((prev) => ({ ...prev, ...parsed }));
+    const loadProfile = async () => {
+      if (!user?.email) {
+        console.log('🔍 사용자 정보 없음, 로딩 중...');
+        return;
+      }
+
+      setLoading(true);
+      console.log('🔄 프로필 데이터 로드 시작 - 사용자:', user.email);
+
+      // ✅ 사용자가 변경되었을 때 이전 사용자의 localStorage 데이터 정리
+      const storedProfile = localStorage.getItem('userProfile');
+      if (storedProfile) {
+        try {
+          const parsed = JSON.parse(storedProfile);
+          if (parsed.email && parsed.email !== user.email) {
+            console.log(
+              '🧹 다른 사용자의 데이터 정리:',
+              parsed.email,
+              '→',
+              user.email,
+            );
+            localStorage.removeItem('userProfile');
+            localStorage.removeItem('currentTravelPlan');
+          }
+        } catch (e) {
+          console.warn('localStorage 파싱 오류, 정리:', e);
+          localStorage.removeItem('userProfile');
         }
+      }
+
+      try {
+        // ✅ 백엔드에서 현재 로그인된 사용자의 실제 프로필 정보 가져오기
+        const profileResponse: any = await profileApiService.getMyProfile();
+        console.log('✅ 백엔드에서 프로필 로드 성공:', profileResponse);
+
+        // 백엔드 데이터로 상태 업데이트
+        setProfileData({
+          name: profileResponse.realName || '',
+          nickname: profileResponse.nickname || '',
+          age: profileResponse.age ? profileResponse.age.toString() : '',
+          gender: profileResponse.gender || '남성',
+          bio: profileResponse.bio || '',
+          username: profileResponse.nickname || 'Traveler',
+          profileImage: profileResponse.profileImage || '👤',
+          preferredDestinations: profileResponse.preferredDestinations
+            ? profileResponse.preferredDestinations.split(',').filter(Boolean)
+            : ['유럽'],
+          travelStyles: profileResponse.travelStyle
+            ? profileResponse.travelStyle.split(',').filter(Boolean)
+            : ['계획적인 여행', '관광 중심'],
+        });
+
+        // 백업용으로 localStorage에도 저장 (이메일 포함)
+        localStorage.setItem(
+          'userProfile',
+          JSON.stringify({
+            email: user.email, // ✅ 현재 사용자 이메일 추가
+            name: profileResponse.realName,
+            nickname: profileResponse.nickname,
+            age: profileResponse.age?.toString(),
+            gender: profileResponse.gender,
+            bio: profileResponse.bio,
+          }),
+        );
       } catch (error) {
-        console.error('프로필 로드 중 오류:', error);
+        console.error('❌ 백엔드 프로필 로드 실패:', error);
+
+        // 백엔드 실패 시에만 localStorage 백업 사용
+        try {
+          const savedProfile = localStorage.getItem('userProfile');
+          if (savedProfile) {
+            const parsed = JSON.parse(savedProfile);
+            console.log('📦 localStorage 백업 사용:', parsed);
+            setProfileData((prev) => ({ ...prev, ...parsed }));
+          }
+        } catch (localError) {
+          console.error('localStorage 읽기 실패:', localError);
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     loadProfile();
-  }, []);
-
-  // 내 피드 목록 로드
-  useEffect(() => {
-    const loadMyFeeds = () => {
-      try {
-        const savedFeeds = localStorage.getItem('myFeeds');
-        if (savedFeeds) {
-          setMyFeeds(JSON.parse(savedFeeds));
-        }
-      } catch (error) {
-        console.error('피드 로드 중 오류:', error);
-      }
-    };
-
-    if (activeTab === 'feeds') {
-      loadMyFeeds();
-    }
-  }, [activeTab]);
+  }, [user?.email]); // user.email이 변경될 때마다 다시 로드
 
   // 프로필 데이터 변경 핸들러
   const handleInputChange = (field: keyof UserProfile, value: string) => {
@@ -126,21 +169,58 @@ const MyPage = () => {
     setIsSaving(true);
 
     try {
-      // localStorage에 프로필 정보 저장
-      localStorage.setItem('userProfile', JSON.stringify(profileData));
+      // ✅ 백엔드 API로 프로필 업데이트
+      await profileApiService.updateProfile({
+        nickname: profileData.nickname.trim(),
+        realName: profileData.name,
+        age: profileData.age ? parseInt(profileData.age) : 0,
+        gender: profileData.gender,
+        bio: profileData.bio,
+        // TODO: 선호 여행지와 여행 스타일을 문자열로 변환
+        preferredDestinations: profileData.preferredDestinations.join(','),
+        travelStyle: profileData.travelStyles.join(','),
+      });
+
+      // localStorage에도 저장 (로컬 캐시용, 현재 사용자 이메일 포함)
+      localStorage.setItem(
+        'userProfile',
+        JSON.stringify({
+          ...profileData,
+          email: user?.email, // ✅ 현재 사용자 이메일 추가
+        }),
+      );
+
+      // ✅ AuthContext의 사용자 정보도 업데이트 (프로필 페이지 실시간 반영)
+      updateUser({
+        nickname: profileData.nickname.trim(),
+      });
 
       // 성공 메시지
-      alert('프로필이 성공적으로 저장되었습니다! ✅');
+      alert(
+        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
+      );
+
+      console.log('💾 프로필 업데이트 완료:', {
+        nickname: profileData.nickname,
+        realName: profileData.name,
+        bio: profileData.bio,
+      });
     } catch (error) {
-      console.error('프로필 저장 중 오류:', error);
-      alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('❌ 프로필 저장 중 오류:', error);
+      alert(
+        '프로필 저장 중 오류가 발생했습니다.\n\n' +
+          (error instanceof Error
+            ? error.message
+            : '네트워크 오류가 발생했습니다.') +
+          '\n\n다시 시도해주세요.',
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   // 피드 클릭 시 여행 계획 페이지로 이동
-  const handleFeedClick = (feed: Feed) => {
+  const handleFeedClick = (feed: FeedWithTravelStatus) => {
     if (feed.type === 'travel-plan' && feed.planId) {
       // 해당 계획을 currentTravelPlan으로 설정
       const planData = localStorage.getItem(`plan_${feed.planId}`);
@@ -150,6 +230,48 @@ const MyPage = () => {
       window.location.href = '/plan';
     }
   };
+
+  // 계정 탈퇴 함수
+  const handleAccountDeletion = () => {
+    if (
+      window.confirm('정말로 회원 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.')
+    ) {
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('currentTravelPlan'); // 현재 여행 계획 데이터도 삭제
+      alert('회원 탈퇴가 완료되었습니다. 감사합니다!');
+      logout(); // 로그아웃 후 홈으로 이동
+      window.location.href = '/';
+    }
+  };
+
+  // 로딩 중일 때 로딩 화면 표시
+  if (loading) {
+    return (
+      <motion.div
+        initial="initial"
+        animate="in"
+        exit="out"
+        variants={pageVariants}
+        transition={{ duration: 0.5 }}
+      >
+        <MainContent>
+          <PageTitle>마이페이지</PageTitle>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '200px',
+              fontSize: '18px',
+              color: '#666',
+            }}
+          >
+            🔄 프로필 정보를 불러오는 중...
+          </div>
+        </MainContent>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -162,271 +284,125 @@ const MyPage = () => {
       <MainContent>
         <PageTitle>마이페이지</PageTitle>
 
-        {/* 탭 메뉴 */}
-        <TabContainer>
-          <TabButton
-            $active={activeTab === 'profile'}
-            onClick={() => setActiveTab('profile')}
-          >
-            📝 프로필 설정
-          </TabButton>
-          <TabButton
-            $active={activeTab === 'feeds'}
-            onClick={() => setActiveTab('feeds')}
-          >
-            📋 내 피드 ({myFeeds.length})
-          </TabButton>
-        </TabContainer>
+        {/* 프로필 설정 */}
+        <ProfileSection>
+          <ProfilePhoto>
+            <div style={{ fontSize: '60px' }}>{profileData.profileImage}</div>
+            <PhotoUploadButton>📷 사진 변경</PhotoUploadButton>
+          </ProfilePhoto>
 
-        {/* 프로필 설정 탭 */}
-        {activeTab === 'profile' && (
-          <>
-            <ProfileSection>
-              <ProfilePhoto>
-                <PhotoUpload>
-                  <span>📷</span>
-                  <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
-                </PhotoUpload>
-                <UploadButton>사진 업로드</UploadButton>
-              </ProfilePhoto>
+          <InputGroup>
+            <Label>이름</Label>
+            <Input
+              type="text"
+              value={profileData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="실명을 입력해주세요"
+            />
+          </InputGroup>
 
-              <BasicInfo>
-                <SectionTitle>기본 정보</SectionTitle>
-                <FormRow>
-                  <FormGroup>
-                    <FormLabel htmlFor="name">이름</FormLabel>
-                    <FormControl
-                      type="text"
-                      id="name"
-                      placeholder="실명을 입력하세요"
-                      value={profileData.name}
-                      onChange={(e) =>
-                        handleInputChange('name', e.target.value)
-                      }
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <FormLabel htmlFor="nickname">닉네임</FormLabel>
-                    <FormControl
-                      type="text"
-                      id="nickname"
-                      placeholder="사용할 닉네임을 입력하세요"
-                      value={profileData.nickname}
-                      onChange={(e) =>
-                        handleInputChange('nickname', e.target.value)
-                      }
-                    />
-                  </FormGroup>
-                </FormRow>
-                <FormRow>
-                  <FormGroup>
-                    <FormLabel htmlFor="age">나이</FormLabel>
-                    <FormControl
-                      type="number"
-                      id="age"
-                      placeholder="만 나이를 입력하세요"
-                      value={profileData.age}
-                      onChange={(e) => handleInputChange('age', e.target.value)}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <FormLabel>성별</FormLabel>
-                    <RadioGroup>
-                      <label>
-                        <input
-                          type="radio"
-                          name="gender"
-                          checked={profileData.gender === '남성'}
-                          onChange={() => handleInputChange('gender', '남성')}
-                        />{' '}
-                        남성
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          name="gender"
-                          checked={profileData.gender === '여성'}
-                          onChange={() => handleInputChange('gender', '여성')}
-                        />{' '}
-                        여성
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          name="gender"
-                          checked={profileData.gender === '기타'}
-                          onChange={() => handleInputChange('gender', '기타')}
-                        />{' '}
-                        기타
-                      </label>
-                    </RadioGroup>
-                  </FormGroup>
-                </FormRow>
-              </BasicInfo>
-            </ProfileSection>
+          <InputGroup>
+            <Label>닉네임*</Label>
+            <Input
+              type="text"
+              value={profileData.nickname}
+              onChange={(e) => handleInputChange('nickname', e.target.value)}
+              placeholder="사용할 닉네임을 입력해주세요"
+            />
+          </InputGroup>
 
-            <PreferenceSection>
-              <SectionTitle>여행 선호도</SectionTitle>
-              <FormGroup>
-                <FormLabel>선호 여행지</FormLabel>
-                <TagsContainer>
-                  {['유럽', '동남아시아', '일본', '미국/캐나다'].map(
-                    (destination) => (
-                      <Tag
-                        key={destination}
-                        className={
-                          profileData.preferredDestinations.includes(
-                            destination,
-                          )
-                            ? 'selected'
-                            : ''
-                        }
-                        onClick={() => toggleDestination(destination)}
-                      >
-                        {destination}
-                      </Tag>
-                    ),
-                  )}
-                </TagsContainer>
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>여행 스타일</FormLabel>
-                <CheckboxGroup>
-                  {[
-                    '계획적인 여행',
-                    '즉흥적인 여행',
-                    '관광 중심',
-                    '휴식 중심',
-                  ].map((style) => (
-                    <label key={style}>
-                      <input
-                        type="checkbox"
-                        checked={profileData.travelStyles.includes(style)}
-                        onChange={() => toggleTravelStyle(style)}
-                      />{' '}
-                      {style}
-                    </label>
-                  ))}
-                </CheckboxGroup>
-              </FormGroup>
-            </PreferenceSection>
+          <InputGroup>
+            <Label>나이</Label>
+            <Input
+              type="text"
+              value={profileData.age}
+              onChange={(e) => handleInputChange('age', e.target.value)}
+              placeholder="나이를 입력해주세요"
+            />
+          </InputGroup>
 
-            <Section>
-              <SectionTitle>자기소개</SectionTitle>
-              <FormGroup>
-                <FormLabel htmlFor="bio">나에 대한 소개</FormLabel>
-                <TextareaControl
-                  id="bio"
-                  rows={4}
-                  placeholder="여행 동반자에게 자신을 소개해보세요."
-                  value={profileData.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                />
-              </FormGroup>
-            </Section>
+          <InputGroup>
+            <Label>성별</Label>
+            <Select
+              value={profileData.gender}
+              onChange={(e) => handleInputChange('gender', e.target.value)}
+            >
+              <option value="남성">남성</option>
+              <option value="여성">여성</option>
+              <option value="기타">기타</option>
+            </Select>
+          </InputGroup>
 
-            <Section>
-              <SectionTitle>계정 설정</SectionTitle>
-              <FormGroup>
-                <FormLabel htmlFor="username">아이디 (변경 불가)</FormLabel>
-                <FormControl
-                  type="text"
-                  id="username"
-                  value={profileData.username}
-                  disabled
-                />
-              </FormGroup>
-              <FormRow>
-                <FormGroup>
-                  <FormLabel htmlFor="new-password">새 비밀번호</FormLabel>
-                  <FormControl
-                    type="password"
-                    id="new-password"
-                    placeholder="새 비밀번호"
-                  />
-                </FormGroup>
-                <FormGroup>
-                  <FormLabel htmlFor="confirm-password">
-                    새 비밀번호 확인
-                  </FormLabel>
-                  <FormControl
-                    type="password"
-                    id="confirm-password"
-                    placeholder="새 비밀번호 확인"
-                  />
-                </FormGroup>
-              </FormRow>
-              <AccountButtonContainer>
-                <LogoutButton onClick={logout}>로그아웃</LogoutButton>
-                <Link to="/report">
-                  <ReportButton>신고하기</ReportButton>
-                </Link>
-              </AccountButtonContainer>
-            </Section>
+          <InputGroup>
+            <Label>자기소개</Label>
+            <TextArea
+              value={profileData.bio}
+              onChange={(e) => handleInputChange('bio', e.target.value)}
+              placeholder="자신을 소개해주세요"
+              rows={4}
+            />
+          </InputGroup>
+        </ProfileSection>
 
-            <ButtonSection>
-              <BtnCancel>취소</BtnCancel>
-              <BtnSave onClick={handleSaveProfile} disabled={isSaving}>
-                {isSaving ? '저장 중...' : '저장하기'}
-              </BtnSave>
-            </ButtonSection>
-
-            <WithdrawalSection>
-              <DestructiveButton>회원 탈퇴</DestructiveButton>
-            </WithdrawalSection>
-          </>
-        )}
-
-        {/* 내 피드 탭 */}
-        {activeTab === 'feeds' && (
-          <FeedsSection>
-            {myFeeds.length > 0 ? (
-              <FeedGrid>
-                {myFeeds.map((feed) => (
-                  <FeedCard key={feed.id} onClick={() => handleFeedClick(feed)}>
-                    <FeedHeader>
-                      <FeedAuthor>
-                        <span>{feed.avatar}</span>
-                        <span>{feed.author}</span>
-                      </FeedAuthor>
-                      <FeedDate>
-                        {feed.createdAt
-                          ? new Date(feed.createdAt).toLocaleDateString('ko-KR')
-                          : '방금 전'}
-                      </FeedDate>
-                    </FeedHeader>
-
-                    {feed.type === 'travel-plan' && (
-                      <FeedBadge>✈️ 여행 계획</FeedBadge>
+        <PreferenceSection>
+          <SectionTitle>여행 선호도</SectionTitle>
+          <CheckboxSection>
+            <CheckboxLabel>선호 여행지</CheckboxLabel>
+            <CheckboxGrid>
+              {['유럽', '아시아', '미주', '오세아니아', '아프리카', '국내'].map(
+                (destination) => (
+                  <CheckboxItem
+                    key={destination}
+                    $checked={profileData.preferredDestinations.includes(
+                      destination,
                     )}
+                    onClick={() => toggleDestination(destination)}
+                  >
+                    {destination}
+                  </CheckboxItem>
+                ),
+              )}
+            </CheckboxGrid>
+          </CheckboxSection>
 
-                    <FeedContent>
-                      <FeedCaption>{feed.caption}</FeedCaption>
-                    </FeedContent>
+          <CheckboxSection>
+            <CheckboxLabel>여행 스타일</CheckboxLabel>
+            <CheckboxGrid>
+              {[
+                '계획적인 여행',
+                '즉흥적인 여행',
+                '관광 중심',
+                '휴양 중심',
+                '액티비티',
+                '맛집 탐방',
+              ].map((style) => (
+                <CheckboxItem
+                  key={style}
+                  $checked={profileData.travelStyles.includes(style)}
+                  onClick={() => toggleTravelStyle(style)}
+                >
+                  {style}
+                </CheckboxItem>
+              ))}
+            </CheckboxGrid>
+          </CheckboxSection>
+        </PreferenceSection>
 
-                    <FeedFooter>
-                      <FeedLikeSection>❤️ {feed.likes}</FeedLikeSection>
-                      <FeedActionSection>
-                        <FeedActionBtn>📱 공유</FeedActionBtn>
-                        <FeedActionBtn>📝 수정</FeedActionBtn>
-                      </FeedActionSection>
-                    </FeedFooter>
-                  </FeedCard>
-                ))}
-              </FeedGrid>
-            ) : (
-              <EmptyMessage>
-                <div style={{ fontSize: '48px', marginBottom: '20px' }}>✈️</div>
-                <div>아직 작성한 여행 계획이 없습니다.</div>
-                <div style={{ marginTop: '20px' }}>
-                  <Link to="/plan/write">
-                    <CreateBtn>첫 여행 계획 만들기</CreateBtn>
-                  </Link>
-                </div>
-              </EmptyMessage>
-            )}
-          </FeedsSection>
-        )}
+        <ButtonSection>
+          <BtnSave onClick={handleSaveProfile} disabled={isSaving}>
+            {isSaving ? '저장 중...' : '💾 프로필 저장'}
+          </BtnSave>
+          <BtnLogout onClick={logout}>🚪 로그아웃</BtnLogout>
+        </ButtonSection>
+
+        {/* 계정 탈퇴 섹션 */}
+        <WithdrawalSection>
+          <h3>⚠️ 위험 영역</h3>
+          <p>계정을 탈퇴하면 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
+          <DestructiveButton onClick={handleAccountDeletion}>
+            회원 탈퇴
+          </DestructiveButton>
+        </WithdrawalSection>
       </MainContent>
     </motion.div>
   );
@@ -475,31 +451,7 @@ const ProfilePhoto = styled.div`
   text-align: center;
 `;
 
-const PhotoUpload = styled.div`
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background-color: #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: 3px dashed #ccc;
-  margin-bottom: 15px;
-
-  span {
-    font-size: 48px;
-    color: #aaa;
-  }
-`;
-
-const PhotoUploadText = styled.p`
-  font-size: 14px;
-  color: #888;
-`;
-
-const UploadButton = styled.button`
+const PhotoUploadButton = styled.button`
   background-color: #3498db;
   color: white;
   border: none;
@@ -508,31 +460,21 @@ const UploadButton = styled.button`
   cursor: pointer;
   font-size: 16px;
   width: 100%;
+  margin-top: 15px;
 `;
 
-const BasicInfo = styled.div`
-  flex-grow: 1;
-`;
-
-const FormRow = styled.div`
-  display: flex;
-  gap: 20px;
+const InputGroup = styled.div`
   margin-bottom: 20px;
 `;
 
-const FormGroup = styled.div`
-  flex: 1;
-  margin-bottom: 20px;
-`;
-
-const FormLabel = styled.label`
+const Label = styled.label`
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
   color: #555;
 `;
 
-const FormControl = styled.input`
+const Input = styled.input`
   width: 100%;
   padding: 12px 15px;
   border: 1px solid #ddd;
@@ -540,20 +482,23 @@ const FormControl = styled.input`
   font-size: 16px;
 `;
 
-const RadioGroup = styled.div`
-  display: flex;
-  gap: 20px;
-  align-items: center;
+const Select = styled.select`
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: white;
+`;
 
-  label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-  }
-
-  input {
-    margin-right: 8px;
-  }
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  min-height: 120px;
+  resize: vertical;
 `;
 
 const PreferenceSection = styled(Section)`
@@ -562,50 +507,38 @@ const PreferenceSection = styled(Section)`
   border-radius: 12px;
 `;
 
-const TagsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+const CheckboxSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const CheckboxLabel = styled.h3`
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  color: #333;
+`;
+
+const CheckboxGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 `;
 
-const Tag = styled.div`
-  background-color: #e0f2fe;
-  color: #3498db;
-  padding: 8px 15px;
+const CheckboxItem = styled.div<{ $checked: boolean }>`
+  background-color: ${(props) => (props.$checked ? '#3498db' : '#e0f2fe')};
+  color: ${(props) => (props.$checked ? 'white' : '#3498db')};
+  padding: 10px 15px;
   border-radius: 20px;
   font-size: 14px;
+  font-weight: 500;
+  text-align: center;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 
-  &.selected {
+  &:hover {
     background-color: #3498db;
     color: white;
   }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-
-  label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-  }
-
-  input {
-    margin-right: 8px;
-  }
-`;
-
-const TextareaControl = styled.textarea`
-  width: 100%;
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-  min-height: 120px;
-  resize: vertical;
 `;
 
 const ButtonSection = styled.div`
@@ -626,18 +559,22 @@ const Btn = styled.button`
 `;
 
 // 2. Btn을 상속받는 버튼들을 정의합니다.
-const BtnCancel = styled(Btn)`
-  background-color: #f1f1f1;
-  color: #666;
-`;
-
 const BtnSave = styled(Btn)`
   background-color: #3498db;
   color: white;
 `;
 
+const BtnLogout = styled(Btn)`
+  background-color: #ef4444;
+  color: white;
+
+  &:hover {
+    background-color: #d73a49;
+  }
+`;
+
 // '취소' 버튼 스타일을 기반으로 작은 액션 버튼 스타일을 새로 정의합니다.
-const ActionButton = styled(BtnCancel)`
+const ActionButton = styled(BtnSave)`
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 500;
@@ -827,4 +764,18 @@ const EmptyMessage = styled.div`
 const CreateBtn = styled(BtnSave)`
   padding: 12px 30px;
   font-size: 16px;
+`;
+
+const LoadingMessage = styled.p`
+  text-align: center;
+  padding: 20px;
+  color: #888;
+  font-size: 18px;
+`;
+
+const ErrorMessage = styled.p`
+  text-align: center;
+  padding: 20px;
+  color: #ef4444;
+  font-size: 18px;
 `;

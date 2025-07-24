@@ -179,9 +179,7 @@ const MatchPage: React.FC = () => {
                 `${plan.destination} 여행을 함께할 메이트를 찾습니다!`,
             },
             styles: plan.styleLabels || plan.styles || [],
-            image:
-              plan.imageUrl ||
-              'https://source.unsplash.com/800x600/?travel,korea',
+            image: plan.imageUrl || '/default-place-image.jpg',
             likes: 0,
             views: 0,
             status: 'recruiting', // 모집중

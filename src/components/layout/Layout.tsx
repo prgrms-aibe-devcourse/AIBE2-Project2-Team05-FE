@@ -25,7 +25,8 @@ const Layout = () => {
 export default Layout;
 
 const MainContent = styled.main<{ showSidebar: boolean }>`
-  margin-left: ${(props) => (props.showSidebar ? '220px' : '0')};
+  margin-left: ${(props) =>
+    props.showSidebar ? '215px' : '0'}; /* 사이드바 200px + 여백 15px */
   min-height: 100vh;
   transition: all 0.3s ease;
 `;

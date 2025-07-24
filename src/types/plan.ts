@@ -71,6 +71,8 @@ export interface RecommendedPlace {
   rating: number;
   imageUrl?: string;
   tags: string[];
+  distance?: string; // 거리 정보
+  verified?: boolean; // 검증 여부
 }
 
 // AI 추천 데이터

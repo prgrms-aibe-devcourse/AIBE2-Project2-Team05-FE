@@ -228,20 +228,14 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                       alt={placeDetails.name}
                       onError={(e) => {
                         console.warn(
-                          '🖼️ 구글 플레이스 이미지 로드 실패, Unsplash로 폴백:',
+                          '🖼️ Google Places 이미지 로드 실패, 기본 이미지 사용:',
                           (e.target as HTMLImageElement).src,
                         );
-                        // 이미지 로드 실패 시 여러 단계 폴백
+                        // Google Places 이미지 실패 시 기본 이미지만 사용
                         const img = e.target as HTMLImageElement;
-                        if (img.src.includes('unsplash')) {
-                          // Unsplash도 실패한 경우 최종 폴백
-                          img.src = `https://via.placeholder.com/600x400/3682F8/FFFFFF?text=${encodeURIComponent(placeDetails.name)}`;
-                          console.warn(
-                            '🖼️ Unsplash도 실패, 플레이스홀더 이미지 사용',
-                          );
-                        } else {
-                          // 구글 이미지 실패 시 Unsplash로 폴백
-                          img.src = `https://source.unsplash.com/600x400/?travel,korea,${encodeURIComponent(placeDetails.name)}`;
+                        if (!img.src.includes('default-place-image.jpg')) {
+                          img.src = '/default-place-image.jpg';
+                          console.warn('🖼️ 기본 이미지로 변경');
                         }
                       }}
                     />
@@ -261,14 +255,10 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                               console.warn('🖼️ 썸네일 이미지 로드 실패');
                               const img = e.target as HTMLImageElement;
                               if (
-                                img.src.includes('unsplash') ||
-                                img.src.includes('placeholder')
+                                !img.src.includes('default-place-image.jpg')
                               ) {
-                                // 이미 폴백된 경우 기본 이미지
-                                img.src = `https://via.placeholder.com/150x100/3682F8/FFFFFF?text=No+Image`;
-                              } else {
-                                // 첫 번째 폴백
-                                img.src = `https://source.unsplash.com/150x100/?travel,korea`;
+                                // Google Places 썸네일 실패 시 기본 이미지 사용
+                                img.src = '/default-place-image.jpg';
                               }
                             }}
                           />
