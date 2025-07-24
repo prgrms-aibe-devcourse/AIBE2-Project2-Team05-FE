@@ -72,8 +72,55 @@ interface TravelPlan {
   };
 }
 
-const PlanPage: React.FC = () => {
-  const { id } = useParams();
+interface PlanPageProps {
+  planId?: string;
+  isModal?: boolean;
+}
+
+// 날짜 계산 헬퍼 함수
+const calculateDays = (startDate: string, endDate: string): number => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays + 1; // 당일치기도 1일로 계산
+};
+
+// 백엔드 schedules를 TravelDay 형식으로 변환
+const convertSchedulesToDays = (
+  schedules: any,
+  startDate: string,
+): TravelDay[] => {
+  if (!schedules || Object.keys(schedules).length === 0) {
+    return [];
+  }
+
+  return Object.entries(schedules).map(([day, daySchedule], index) => ({
+    id: `day${index + 1}`,
+    dayNumber: index + 1,
+    date: day,
+    events: Array.isArray(daySchedule)
+      ? daySchedule.map((item: any, eventIndex: number) => ({
+          id: `event${index + 1}-${eventIndex + 1}`,
+          time: item.time || '',
+          title: item.place || item.activity || '일정',
+          location: item.place || '',
+          description: item.memo || '',
+          imageUrl: '',
+          tags: [],
+          price: item.cost || '0',
+          category: 'activity',
+        }))
+      : [],
+  }));
+};
+
+const PlanPage: React.FC<PlanPageProps> = ({
+  planId: propPlanId,
+  isModal = false,
+}) => {
+  const { id: paramId } = useParams();
+  const id = propPlanId || paramId; // props로 받은 planId 우선 사용
   const [plan, setPlan] = useState<TravelPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -200,43 +247,116 @@ const PlanPage: React.FC = () => {
 
   // 컴포넌트 마운트 시 여행 계획 로드
   useEffect(() => {
-    const loadTravelPlan = () => {
+    const loadTravelPlan = async () => {
       let loadedPlan: TravelPlan | null = null;
-      let savedPlan: string | null = null;
 
       try {
-        // URL 파라미터에 따른 계획 로드 (우선순위: 개별 계획 > 현재 계획)
         if (id && id !== 'undefined') {
-          // 1. URL 파라미터가 있으면 해당 개별 계획 로드
-          console.log('🔍 개별 여행 계획 로드 시도:', id);
-          savedPlan = localStorage.getItem(`plan_${id}`);
+          // 백엔드에서 직접 데이터 로드
+          console.log('🔍 백엔드에서 여행 계획 로드 시도:', id);
 
-          if (savedPlan) {
-            console.log('✅ 개별 계획 로드 성공:', id);
-          } else {
-            console.log('⚠️ 개별 계획 없음, 현재 계획으로 폴백:', id);
-            // 개별 계획이 없으면 현재 계획으로 폴백
-            savedPlan = localStorage.getItem('currentTravelPlan');
+          try {
+            const response = await fetch(
+              `http://localhost:8080/api/plan/by-plan-id/${id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                  'Content-Type': 'application/json',
+                },
+              },
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('✅ 백엔드 데이터 로드 성공:', data);
+
+              // 백엔드 데이터를 TravelPlan 형식으로 변환
+              console.log('📊 백엔드 원본 데이터:', data);
+
+              // schedules가 문자열이면 파싱
+              let parsedSchedules = {};
+              if (data.schedules) {
+                try {
+                  parsedSchedules =
+                    typeof data.schedules === 'string'
+                      ? JSON.parse(data.schedules)
+                      : data.schedules;
+                  console.log('📅 파싱된 schedules:', parsedSchedules);
+                } catch (e) {
+                  console.error('❌ schedules 파싱 실패:', e);
+                }
+              }
+
+              loadedPlan = {
+                id: data.planId || data.id,
+                title: data.title,
+                startDate: data.startDate,
+                endDate: data.endDate,
+                destination: data.location || data.destination,
+                budget: data.budget?.toString() || '0',
+                people:
+                  data.numberOfPeople?.toString() ||
+                  data.people?.toString() ||
+                  '0',
+                period: `${calculateDays(data.startDate, data.endDate)}일`,
+                days: convertSchedulesToDays(parsedSchedules, data.startDate),
+                likes: 0,
+                likedUsers: [],
+                isLiked: false,
+                author: {
+                  id: 'user',
+                  name: '사용자',
+                  profileImage: '👤',
+                },
+                styleLabels: data.interests ? [data.interests] : [],
+                aiHashtags: data.aiHashtags ? JSON.parse(data.aiHashtags) : [],
+                nearbyRecommendations: data.nearbyRecommendations
+                  ? JSON.parse(data.nearbyRecommendations)
+                  : [],
+              };
+
+              setPlan(loadedPlan);
+              setIsLiked(false);
+              setLikeCount(0);
+            } else {
+              throw new Error('Failed to load plan');
+            }
+          } catch (error) {
+            console.error('❌ 백엔드 로드 실패:', error);
+            // 폴백: localStorage 체크
+            const savedPlan = localStorage.getItem('currentTravelPlan');
+            if (savedPlan) {
+              const parsedPlan = JSON.parse(savedPlan);
+              loadedPlan = parsedPlan;
+              setPlan(parsedPlan);
+              setIsLiked(parsedPlan.isLiked || false);
+              setLikeCount(parsedPlan.likes || 0);
+            } else {
+              // 기본 계획 사용
+              const defaultPlan = createDefaultPlan();
+              loadedPlan = defaultPlan;
+              setPlan(defaultPlan);
+              setIsLiked(defaultPlan.isLiked);
+              setLikeCount(defaultPlan.likes);
+            }
           }
         } else {
-          // 2. URL 파라미터가 없으면 현재 계획 로드
-          console.log('🔍 현재 여행 계획 로드');
-          savedPlan = localStorage.getItem('currentTravelPlan');
-        }
-
-        if (savedPlan) {
-          const parsedPlan = JSON.parse(savedPlan);
-          loadedPlan = parsedPlan;
-          setPlan(parsedPlan);
-          setIsLiked(parsedPlan.isLiked || false);
-          setLikeCount(parsedPlan.likes || 0);
-        } else {
-          // 저장된 계획이 없으면 기본 계획 사용
-          const defaultPlan = createDefaultPlan();
-          loadedPlan = defaultPlan;
-          setPlan(defaultPlan);
-          setIsLiked(defaultPlan.isLiked);
-          setLikeCount(defaultPlan.likes);
+          // URL 파라미터가 없으면 localStorage 체크
+          const savedPlan = localStorage.getItem('currentTravelPlan');
+          if (savedPlan) {
+            const parsedPlan = JSON.parse(savedPlan);
+            loadedPlan = parsedPlan;
+            setPlan(parsedPlan);
+            setIsLiked(parsedPlan.isLiked || false);
+            setLikeCount(parsedPlan.likes || 0);
+          } else {
+            // 기본 계획 사용
+            const defaultPlan = createDefaultPlan();
+            loadedPlan = defaultPlan;
+            setPlan(defaultPlan);
+            setIsLiked(defaultPlan.isLiked);
+            setLikeCount(defaultPlan.likes);
+          }
         }
       } catch (error) {
         console.error('여행 계획 로드 중 오류:', error);

@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-// 기본 피드 타입만 import
-import { Feed } from '../types/feed';
-import { getUserFeeds } from '../services/feedStatusService';
+// 프로필 API 추가
+import profileApiService from '../services/profileApi';
+import { FeedWithTravelStatus } from '../types/feed';
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -26,7 +26,7 @@ interface UserProfile {
 }
 
 const MyPage = () => {
-  const { logout } = useAuth();
+  const { logout, updateUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
   // 프로필 데이터 상태
@@ -97,21 +97,52 @@ const MyPage = () => {
     setIsSaving(true);
 
     try {
-      // localStorage에 프로필 정보 저장
+      // ✅ 백엔드 API로 프로필 업데이트
+      await profileApiService.updateProfile({
+        nickname: profileData.nickname.trim(),
+        realName: profileData.name,
+        age: profileData.age ? parseInt(profileData.age) : 0,
+        gender: profileData.gender,
+        bio: profileData.bio,
+        // TODO: 선호 여행지와 여행 스타일을 문자열로 변환
+        preferredDestinations: profileData.preferredDestinations.join(','),
+        travelStyle: profileData.travelStyles.join(','),
+      });
+
+      // localStorage에도 저장 (로컬 캐시용)
       localStorage.setItem('userProfile', JSON.stringify(profileData));
 
+      // ✅ AuthContext의 사용자 정보도 업데이트 (프로필 페이지 실시간 반영)
+      updateUser({
+        nickname: profileData.nickname.trim(),
+      });
+
       // 성공 메시지
-      alert('프로필이 성공적으로 저장되었습니다! ✅');
+      alert(
+        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
+      );
+
+      console.log('💾 프로필 업데이트 완료:', {
+        nickname: profileData.nickname,
+        realName: profileData.name,
+        bio: profileData.bio,
+      });
     } catch (error) {
-      console.error('프로필 저장 중 오류:', error);
-      alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('❌ 프로필 저장 중 오류:', error);
+      alert(
+        '프로필 저장 중 오류가 발생했습니다.\n\n' +
+          (error instanceof Error
+            ? error.message
+            : '네트워크 오류가 발생했습니다.') +
+          '\n\n다시 시도해주세요.',
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   // 피드 클릭 시 여행 계획 페이지로 이동
-  const handleFeedClick = (feed: Feed) => {
+  const handleFeedClick = (feed: FeedWithTravelStatus) => {
     if (feed.type === 'travel-plan' && feed.planId) {
       // 해당 계획을 currentTravelPlan으로 설정
       const planData = localStorage.getItem(`plan_${feed.planId}`);

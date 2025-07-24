@@ -24,6 +24,14 @@ import java.util.List;
 public class TravelFeedController {
 
     private final TravelFeedRepository feedRepository;
+    private final TravelFeedService feedService; // ✅ 서비스 추가
+
+    // ✅ 피드 이미지 업데이트 엔드포인트 추가
+    @PostMapping("/update-images")
+    public ResponseEntity<String> updateFeedImages() {
+        feedService.updateFeedImages();
+        return ResponseEntity.ok("피드 이미지 업데이트 완료");
+    }
 
     @GetMapping("/{feedId}")
     public ResponseEntity<TravelFeedResponseDto> getFeed(@PathVariable Long feedId) {

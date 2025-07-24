@@ -7,7 +7,7 @@ import {
   PlaceSearchResult,
   KakaoPlacesService,
 } from '../types/kakao';
-import { getPlaceImageByCategory } from '../services/unsplashApi';
+
 import { getPlaceImageFromBackend } from '../services/backendPlacesApi';
 import feedStatusService from '../services/feedStatusService';
 // import { generateMockUserFeeds } from '../data/mockProfileData'; // Mock 데이터 생성 비활성화로 제거
@@ -763,19 +763,17 @@ const MatchRecommendPage: React.FC = () => {
             photos.push(backendImageUrl);
           }
         } else {
-          // 백엔드에서 이미지를 가져오지 못한 경우 Unsplash API 사용
-          const unsplashImageUrl = await getPlaceImageByCategory(
+          // 백엔드에서 이미지를 가져오지 못한 경우 기본 이미지 사용
+          console.log(
+            '⚠️ 백엔드에서 이미지 없음, 기본 이미지 사용:',
             marker.title,
-            placeDetail.category_name,
           );
-          photos.push(unsplashImageUrl);
+          photos.push('/default-place-image.jpg');
         }
       } catch (error) {
         console.error('이미지 로드 중 오류:', error);
         // 오류 발생 시 기본 이미지 사용
-        photos.push(
-          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&q=80',
-        );
+        photos.push('/default-place-image.jpg');
       }
 
       setMarkerDetail({

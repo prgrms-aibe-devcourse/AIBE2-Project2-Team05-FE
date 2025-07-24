@@ -486,9 +486,12 @@ const PlanWritePage: React.FC = () => {
           destination: formData.destination,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          period: calculateDays(formData.startDate, formData.endDate),
-          budget: `${formData.budget}만원`,
-          people: `${formData.people}명`,
+          period: calculateDays(
+            formData.startDate,
+            formData.endDate,
+          ).toString(),
+          budget: `${formData.budget}`,
+          people: `${formData.people}`,
           styles: formData.styles,
           styleLabels: getStyleLabels(formData.styles),
           matchingInfo: formData.matchingEnabled
@@ -504,6 +507,8 @@ const PlanWritePage: React.FC = () => {
           aiHashtags: planData.aiHashtags,
           nearbyRecommendations: planData.nearbyRecommendations,
           imageUrl: destinationImageUrl,
+          accommodationInfo: formData.accommodation,
+          transportationInfo: formData.transportation,
         };
 
         // 백엔드 API 호출

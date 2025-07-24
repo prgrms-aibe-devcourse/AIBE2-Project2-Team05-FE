@@ -72,12 +72,12 @@ public class MatchingServiceImpl implements MatchingService {
                     .userId(plan.getUser().getId())
                     .nickname(plan.getUser().getNickname())
                     .travelPlanId(plan.getId())
-                    .destination(plan.getDestination())
+                    .destination(plan.getLocation())
                     .startDate(plan.getStartDate())
                     .endDate(plan.getEndDate())
                     .travelStyle(plan.getTravelStyle())
                     .description(plan.getDescription())
-                    .budget(plan.getBudget())
+                    .budget((int) plan.getBudget())
                     .numberOfPeople(plan.getNumberOfPeople())
                     .compatibilityScore(compatibilityScore)
                     .overlappingDays(overlappingDays)
@@ -205,7 +205,7 @@ public class MatchingServiceImpl implements MatchingService {
                     .endDate(travelPlan.getEndDate())
                     .travelStyle(travelPlan.getTravelStyle())
                     .description(travelPlan.getDescription())
-                    .budget(travelPlan.getBudget())
+                    .budget((int) travelPlan.getBudget())
                     .numberOfPeople(travelPlan.getNumberOfPeople())
                     .compatibilityScore(100) // 이미 매칭된 상태이므로 100점
                     .overlappingDays(calculateOverlappingDays(

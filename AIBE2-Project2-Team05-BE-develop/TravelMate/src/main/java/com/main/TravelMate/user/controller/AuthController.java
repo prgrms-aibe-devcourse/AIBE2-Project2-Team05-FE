@@ -45,6 +45,21 @@ public class AuthController {
         return ResponseEntity.ok("인증된 사용자: " + userDetails.getUsername());
     }
 
+    /**
+     * 토큰 유효성 검증 엔드포인트
+     * GET /api/auth/validate
+     */
+    @GetMapping("/validate")
+    public ResponseEntity<String> validateToken(Authentication authentication) {
+        // 이 엔드포인트에 도달했다는 것은 JWT 필터에서 토큰이 유효하다고 검증되었음을 의미
+        if (authentication != null && authentication.isAuthenticated()) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            return ResponseEntity.ok("토큰이 유효합니다. 사용자: " + userDetails.getUsername());
+        } else {
+            return ResponseEntity.status(401).body("토큰이 유효하지 않습니다.");
+        }
+    }
+
 
     @PostMapping("/oauth/google")
     public ResponseEntity<LoginResponseDto> googleLogin(@RequestParam String token) {

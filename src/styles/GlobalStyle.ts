@@ -3,14 +3,13 @@ import { createGlobalStyle } from 'styled-components';
 export const GlobalStyle = createGlobalStyle`
   html,
   body {
-    height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* 브라우저 스크롤만 막습니다. */
+    min-height: 100vh; /* 최소 높이를 100vh로 설정하여 스크롤 가능 */
   }
 
   #root {
-    height: 100%; /* 높이만 100%로 설정합니다. */
+    min-height: 100vh; /* 최소 높이를 100vh로 설정 */
   }
   
   * {
@@ -24,4 +23,4 @@ export const GlobalStyle = createGlobalStyle`
     font-family: 'Noto Sans KR', sans-serif;
     line-height: 1.5;
   }
-`; 
+`;

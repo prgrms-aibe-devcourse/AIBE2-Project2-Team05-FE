@@ -22,4 +22,12 @@ public class TravelPlanResponseDto {
     private String destination;
     private Integer numberOfPeople;
     private LocalDateTime createdAt;
+    
+    // Legacy 호환 필드
+    private String planId;
+    private Boolean matchingEnabled;
+    private String imageUrl;
+    private String aiHashtags;
+    private String nearbyRecommendations;
+    private String schedules; // 일정 정보 (JSON 형태)
 }

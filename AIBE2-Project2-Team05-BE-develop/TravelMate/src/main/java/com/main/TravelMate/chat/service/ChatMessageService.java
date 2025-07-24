@@ -44,6 +44,8 @@ public class ChatMessageService {
         return messageRepository.findByChatRoomIdOrderBySentAt(chatRoomId).stream()
                 .map(msg -> ChatMessageResponseDto.builder()
                         .id(msg.getId())
+                        .chatRoomId(msg.getChatRoom().getId())
+                        .senderId(msg.getSender().getId())
                         .senderNickname(msg.getSender().getNickname())
                         .message(msg.getMessage())
                         .sentAt(msg.getSentAt())

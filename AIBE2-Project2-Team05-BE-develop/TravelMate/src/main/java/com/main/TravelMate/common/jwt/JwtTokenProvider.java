@@ -92,9 +92,22 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secretKey.getBytes()).parseClaimsJws(token);
+            Claims claims = Jwts.parser().setSigningKey(secretKey.getBytes()).parseClaimsJws(token).getBody();
+            
+            // 디버깅 로그 추가
+            String email = claims.getSubject();
+            Date expiration = claims.getExpiration();
+            
+            System.out.println("🔍 JWT 토큰 검증 중:");
+            System.out.println("  - 사용자: " + email);
+            System.out.println("  - 만료시간: " + expiration);
+            System.out.println("  - 현재시간: " + new Date());
+            System.out.println("  - 만료여부: " + (expiration.before(new Date()) ? "만료됨" : "유효함"));
+            
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            System.err.println("❌ JWT 토큰 검증 실패: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }

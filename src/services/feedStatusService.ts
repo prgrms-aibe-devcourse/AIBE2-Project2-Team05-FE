@@ -142,13 +142,41 @@ class FeedStatusService {
    * 피드에 여행 상태 정보 추가
    */
   enrichFeedWithStatus(feed: any): FeedWithTravelStatus {
-    const travelStatus = this.getFeedStatus(feed.id);
+    console.log(`🔍 피드 ${feed.id} 상태 추가 중...`);
 
-    return {
+    const travelStatus = this.getFeedStatus(feed.id);
+    console.log(`📋 피드 ${feed.id} 상태: ${travelStatus}`);
+
+    // ✅ 올바른 상태 값인지 확인
+    const validStatuses: TravelStatus[] = [
+      'recruiting',
+      'traveling',
+      'completed',
+    ];
+    const finalStatus = validStatuses.includes(travelStatus)
+      ? travelStatus
+      : 'recruiting';
+
+    if (travelStatus !== finalStatus) {
+      console.warn(
+        `⚠️ 피드 ${feed.id} 잘못된 상태 ${travelStatus} → ${finalStatus}로 수정`,
+      );
+    }
+
+    const enrichedFeed = {
       ...feed,
-      travelStatus,
+      travelStatus: finalStatus,
       reviewWritten: this.hasReviewWritten(feed.id),
+      statusUpdatedAt: new Date().toISOString(), // 상태 업데이트 시간 추가
     };
+
+    console.log(`✅ 피드 ${feed.id} 상태 추가 완료:`, {
+      id: enrichedFeed.id,
+      travelStatus: enrichedFeed.travelStatus,
+      travelType: enrichedFeed.travelType,
+    });
+
+    return enrichedFeed;
   }
 
   /**

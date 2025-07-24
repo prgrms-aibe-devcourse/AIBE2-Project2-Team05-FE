@@ -291,7 +291,7 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
                   <PlaceDescription>{place.description}</PlaceDescription>
                   <PlaceFooter>
                     <Distance>📍 {place.distance}</Distance>
-                    <VerificationBadge verified={place.verified}>
+                    <VerificationBadge $verified={place.verified || false}>
                       {place.verified ? '✅ 실제 장소' : '❓ 확인 중'}
                     </VerificationBadge>
                   </PlaceFooter>
@@ -480,16 +480,16 @@ const Distance = styled.span`
   font-weight: 500;
 `;
 
-const VerificationBadge = styled.span<{ verified: boolean }>`
+const VerificationBadge = styled.span<{ $verified: boolean }>`
   background: ${(props) =>
-    props.verified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
-  color: ${(props) => (props.verified ? '#059669' : '#EF4444')};
+    props.$verified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
+  color: ${(props) => (props.$verified ? '#059669' : '#EF4444')};
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   border: ${(props) =>
-    props.verified
+    props.$verified
       ? '1px solid rgba(16, 185, 129, 0.2)'
       : '1px solid rgba(239, 68, 68, 0.2)'};
 `;
