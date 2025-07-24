@@ -6,7 +6,7 @@ export const GlobalStyle = createGlobalStyle`
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* 브라우저 스크롤만 막습니다. */
+    /* overflow: hidden 제거 - 무한 스크롤을 위해 스크롤 허용 */
   }
 
   #root {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import * as S from './PlanPage.style';
 import PlaceMap from '../components/PlaceMap';
+import LikesModal from '../components/common/LikesModal';
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -57,6 +58,8 @@ const PlanPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  // 좋아요 모달 상태 관리
+  const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
 
   // 기본 mock 데이터
   const createDefaultPlan = (): TravelPlan => ({
@@ -904,13 +907,23 @@ const PlanPage: React.FC = () => {
             <span>{likeCount}</span>
           </S.LikeButton>
           <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
-          <S.LikeText>좋아요 누른 사람을 보기</S.LikeText>
+          <S.LikeText onClick={() => setIsLikesModalOpen(true)}>
+            좋아요 누른 사람을 보기
+          </S.LikeText>
         </S.Likes>
         <S.ShareButton>
           <i className="ri-share-line"></i>
           공유하기
         </S.ShareButton>
       </S.Footer>
+
+      {/* 좋아요 누른 사람들 모달 */}
+      <LikesModal
+        isOpen={isLikesModalOpen}
+        onClose={() => setIsLikesModalOpen(false)}
+        title={plan?.title || "여행 계획"}
+        likesCount={likeCount}
+      />
     </S.Container>
   );
 };
