@@ -103,5 +103,27 @@ export const changePassword = async (passwordData: {
   }
 };
 
+// 프로필 이미지 업로드
+export const uploadProfileImage = async (imageFile: File) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+
+  const token = localStorage.getItem('token');
+  const response = await fetch('http://localhost:8080/api/profile/upload-image', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText);
+  }
+
+  return await response.text(); // 이미지 URL 반환
+};
+
 // 5. 생성하고 설정한 api 인스턴스를 다른 파일에서 사용할 수 있도록 내보냅니다.
 export default api;

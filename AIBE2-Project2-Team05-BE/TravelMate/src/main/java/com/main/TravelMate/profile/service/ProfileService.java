@@ -20,9 +20,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +40,9 @@ public class ProfileService {
     private final FollowRepository followRepository;
     private final TravelFeedRepository travelFeedRepository;
     private final ProfileRepository profileRepository;
+
+    // 이미지 저장 경로 설정
+    private static final String UPLOAD_DIR = "uploads/profile-images/";
 
     public ProfileResponseDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
@@ -111,6 +121,55 @@ public class ProfileService {
         followRepository.delete(follow);
     }
 
+    // 프로필 이미지 업로드 메서드
+    @Transactional
+    public String uploadProfileImage(Long userId, MultipartFile image) throws IOException {
+        // 사용자 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // 파일 유효성 검사
+        if (image.isEmpty()) {
+            throw new IllegalArgumentException("업로드된 파일이 없습니다.");
+        }
+
+        // 허용된 이미지 타입 확인
+        String contentType = image.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("이미지 파일만 업로드 가능합니다.");
+        }
+
+        // 파일 크기 제한 (5MB)
+        if (image.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("파일 크기는 5MB 이하여야 합니다.");
+        }
+
+        // 업로드 디렉토리 생성
+        Path uploadPath = Paths.get(UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // 고유한 파일명 생성
+        String originalFilename = image.getOriginalFilename();
+        String fileExtension = originalFilename != null ? 
+            originalFilename.substring(originalFilename.lastIndexOf(".")) : ".jpg";
+        String filename = UUID.randomUUID().toString() + fileExtension;
+
+        // 파일 저장
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(image.getInputStream(), filePath);
+
+        // 프로필에 이미지 URL 저장
+        Profile profile = profileRepository.findByUser(user)
+                .orElse(Profile.builder().user(user).build());
+
+        String imageUrl = "/api/profile/images/profile/" + filename;
+        profile.setProfileImage(imageUrl);
+        profileRepository.save(profile);
+
+        return imageUrl;
+    }
 
     @Transactional
     public void updateProfile(Long userId, ProfileUpdateRequestDto request) {

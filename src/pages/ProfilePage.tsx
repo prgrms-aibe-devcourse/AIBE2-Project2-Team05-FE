@@ -274,7 +274,7 @@ const ProfilePage = () => {
       {
         id: Date.now() + 1,
         author: `User_${userId}`,
-        avatar: '👤',
+        avatar: 'https://picsum.photos/400/400?random=1', // 이미지 URL 사용
         image: 'https://picsum.photos/400/400?random=1',
         likes: Math.floor(Math.random() * 200),
         caption: `${userId === 'user2' ? '부산' : '제주도'} 여행 계획을 세웠어요! 🏖️`,
@@ -284,7 +284,7 @@ const ProfilePage = () => {
       {
         id: Date.now() + 2,
         author: `User_${userId}`,
-        avatar: '👤',
+        avatar: 'https://picsum.photos/400/400?random=2', // 이미지 URL 사용
         image: 'https://picsum.photos/400/400?random=2',
         likes: Math.floor(Math.random() * 150),
         caption: '맛집 투어 예정! 😋',
@@ -463,7 +463,29 @@ const ProfilePage = () => {
       transition={{ duration: 0.2 }}
     >
       <ProfileHeader>
-        <ProfileAvatar>{userProfile.avatar}</ProfileAvatar>
+        <ProfileAvatar>
+          {userProfile.avatar && userProfile.avatar !== '👤' ? (
+            <>
+              <ProfileImage 
+                src={`http://localhost:8080${userProfile.avatar}`} 
+                alt="프로필 이미지"
+                onError={(e) => {
+                  console.error('프로필 이미지 로드 실패:', userProfile.avatar);
+                  // 이미지 로드 실패 시 기본 아이콘으로 대체
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.setAttribute('style', 'display: flex');
+                }}
+                onLoad={() => {
+                  console.log('프로필 이미지 로드 성공:', userProfile.avatar);
+                }}
+              />
+              <DefaultAvatar style={{ display: 'none' }}>👤</DefaultAvatar>
+            </>
+          ) : (
+            <DefaultAvatar>👤</DefaultAvatar>
+          )}
+        </ProfileAvatar>
         <ProfileInfo>
           <Username>
             {userProfile.username}
@@ -911,7 +933,22 @@ const ProfileAvatar = styled.div`
   border-radius: 50%;
   background-color: #eee;
   margin-right: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* 이미지가 원형을 벗어나지 않도록 */
+`;
+
+const ProfileImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+`;
+
+const DefaultAvatar = styled.span`
   font-size: 80px; /* 아바타 텍스트 크기 */
+  color: #8e8e8e;
   display: flex;
   align-items: center;
   justify-content: center;

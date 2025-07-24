@@ -1,9 +1,9 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { deleteUser } from '../services/api';
+import { deleteUser, uploadProfileImage } from '../services/api';
 import ReportModal from '../components/common/ReportModal';
 import PasswordChangeModal from '../components/common/PasswordChangeModal';
 
@@ -48,6 +48,10 @@ const MyPage = () => {
   
   // 비밀번호 변경 모달 관련 상태
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  // 파일 업로드 관련 상태
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -207,6 +211,54 @@ const MyPage = () => {
     setIsPasswordModalOpen(false);
   };
 
+  // 파일 업로드 핸들러
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 파일 유효성 검사
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB 제한
+      alert('파일 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const imageUrl = await uploadProfileImage(file);
+      console.log('업로드된 이미지 URL:', imageUrl);
+      
+      // 프로필 데이터 업데이트
+      const updatedProfileData = {
+        ...profileData,
+        profileImage: imageUrl
+      };
+      
+      setProfileData(updatedProfileData);
+      console.log('업데이트된 프로필 데이터:', updatedProfileData);
+
+      // localStorage에 저장
+      localStorage.setItem('userProfile', JSON.stringify(updatedProfileData));
+
+      alert('프로필 이미지가 성공적으로 업로드되었습니다! ✅');
+    } catch (error) {
+      console.error('이미지 업로드 중 오류:', error);
+      alert('이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 업로드 버튼 클릭 핸들러
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <motion.div
       initial="initial"
@@ -239,11 +291,46 @@ const MyPage = () => {
           <>
             <ProfileSection>
               <ProfilePhoto>
-                <PhotoUpload>
-                  <span>📷</span>
-                  <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
-                </PhotoUpload>
-                <UploadButton>사진 업로드</UploadButton>
+                {profileData.profileImage && profileData.profileImage !== '👤' ? (
+                  <ProfileImageContainer>
+                    <ProfileImage 
+                      src={`http://localhost:8080${profileData.profileImage}`} 
+                      alt="프로필 이미지"
+                      onError={(e) => {
+                        console.error('이미지 로드 실패:', profileData.profileImage);
+                        // 이미지 로드 실패 시 기본 아이콘으로 대체
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.setAttribute('style', 'display: block');
+                      }}
+                      onLoad={() => {
+                        console.log('이미지 로드 성공:', profileData.profileImage);
+                      }}
+                    />
+                    <PhotoUpload style={{ display: 'none' }}>
+                      <span>📷</span>
+                      <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
+                    </PhotoUpload>
+                  </ProfileImageContainer>
+                ) : (
+                  <PhotoUpload>
+                    <span>📷</span>
+                    <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
+                  </PhotoUpload>
+                )}
+                <UploadButton 
+                  onClick={handleUploadClick}
+                  disabled={isUploading}
+                >
+                  {isUploading ? '업로드 중...' : '사진 업로드'}
+                </UploadButton>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
               </ProfilePhoto>
 
               <BasicInfo>
@@ -533,6 +620,21 @@ const ProfilePhoto = styled.div`
   text-align: center;
 `;
 
+const ProfileImageContainer = styled.div`
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 15px;
+`;
+
+const ProfileImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
 const PhotoUpload = styled.div`
   width: 200px;
   height: 200px;
@@ -566,6 +668,10 @@ const UploadButton = styled.button`
   cursor: pointer;
   font-size: 16px;
   width: 100%;
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
 `;
 
 const BasicInfo = styled.div`
