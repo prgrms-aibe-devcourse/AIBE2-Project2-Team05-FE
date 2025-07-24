@@ -274,7 +274,9 @@ const ReportManagementPage: React.FC = () => {
       </StatsContainer>
 
       {isLoading ? (
-        <LoadingMessage>로딩 중...</LoadingMessage>
+        <LoadingMessage>
+          <p>신고 데이터를 불러오는 중입니다...</p>
+        </LoadingMessage>
       ) : error ? (
         <ErrorMessage>
           <p style={{ color: 'red' }}>{error}</p>
@@ -297,8 +299,15 @@ const ReportManagementPage: React.FC = () => {
             <tbody>
               {reports.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center' }}>
-                    신고가 없습니다.
+                  <td colSpan={7} style={{ 
+                    textAlign: 'center', 
+                    padding: '3rem',
+                    fontSize: '16px',
+                    color: '#6c757d'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>신고가 없습니다</div>
+                    <div style={{ fontSize: '14px' }}>모든 사용자들이 건전하게 이용하고 있습니다</div>
                   </td>
                 </tr>
               ) : (
@@ -346,51 +355,136 @@ export default ReportManagementPage;
 
 const Title = styled.h1`
   margin-bottom: 2rem;
+  color: #2c3e50;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  &::before {
+    content: "🚨";
+    font-size: 32px;
+  }
 `;
 
 const StatsContainer = styled.div`
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2rem;
 `;
 
 const StatCard = styled.div`
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
   text-align: center;
-  min-width: 120px;
+  min-width: 180px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+  }
+  
+  &:nth-child(1) {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #8b4513;
+    
+    &:hover {
+      box-shadow: 0 12px 32px rgba(252, 182, 159, 0.4);
+    }
+  }
+  
+  &:nth-child(2) {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #2c5530;
+    
+    &:hover {
+      box-shadow: 0 12px 32px rgba(168, 237, 234, 0.4);
+    }
+  }
+  
+  &:nth-child(3) {
+    background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
+    color: #5d4037;
+    
+    &:hover {
+      box-shadow: 0 12px 32px rgba(210, 153, 194, 0.4);
+    }
+  }
 `;
 
 const StatNumber = styled.div`
-  font-size: 2rem;
-  font-weight: bold;
-  color: #007bff;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const TableContainer = styled.div`
   background: white;
-  border-radius: 8px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 `;
 
-const LoadingMessage = styled.p`
-  text-align: center;
-  padding: 2rem;
-  font-size: 18px;
+const LoadingMessage = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  
+  &::before {
+    content: "⏳";
+    font-size: 48px;
+    margin-bottom: 16px;
+    animation: spin 2s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  p {
+    font-size: 18px;
+    color: #6c757d;
+    margin: 0;
+    font-weight: 500;
+  }
 `;
 
 const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  
+  &::before {
+    content: "⚠️";
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
 `;
 
 const ReportTable = styled.table`

@@ -285,13 +285,13 @@ const FeedManagementPage: React.FC = () => {
           active={activeTab === 'all-feeds'} 
           onClick={() => setActiveTab('all-feeds')}
         >
-          전체 피드 ({allFeeds.length})
+          전체 피드<span>{allFeeds.length}</span>
         </TabButton>
         <TabButton 
           active={activeTab === 'managed-feeds'} 
           onClick={() => setActiveTab('managed-feeds')}
         >
-          관리된 피드 ({managedFeeds.length})
+          관리된 피드<span>{managedFeeds.length}</span>
         </TabButton>
       </TabContainer>
 
@@ -315,25 +315,55 @@ export default FeedManagementPage;
 
 const Title = styled.h1`
   margin-bottom: 2rem;
+  color: #2c3e50;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  &::before {
+    content: "📸";
+    font-size: 32px;
+  }
 `;
 
 const TabContainer = styled.div`
   display: flex;
-  border-bottom: 2px solid #ddd;
-  margin-bottom: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 `;
 
 const TabButton = styled.button<{ active: boolean }>`
-  padding: 12px 24px;
+  flex: 1;
+  padding: 16px 24px;
   border: none;
-  background-color: ${({ active }) => (active ? '#007bff' : 'transparent')};
-  color: ${({ active }) => (active ? 'white' : '#333')};
+  background-color: ${({ active }) => (active ? '#fff' : 'transparent')};
+  color: ${({ active }) => (active ? '#2c3e50' : '#6c757d')};
   cursor: pointer;
-  border-bottom: 2px solid ${({ active }) => (active ? '#007bff' : 'transparent')};
-  font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
+  border-radius: 8px;
+  font-weight: ${({ active }) => (active ? '600' : '500')};
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-shadow: ${({ active }) => (active ? '0 2px 8px rgba(0,0,0,0.1)' : 'none')};
 
   &:hover {
-    background-color: ${({ active }) => (active ? '#0056b3' : '#f8f9fa')};
+    background-color: ${({ active }) => (active ? '#fff' : '#e9ecef')};
+    transform: translateY(-1px);
+  }
+
+  span {
+    display: inline-block;
+    margin-left: 8px;
+    background: ${({ active }) => (active ? '#007bff' : '#6c757d')};
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 600;
   }
 `;
 

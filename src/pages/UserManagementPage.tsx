@@ -192,8 +192,15 @@ const UserManagementPage: React.FC = () => {
       <tbody>
         {allUsers.length === 0 ? (
           <tr>
-            <td colSpan={7} style={{ textAlign: 'center' }}>
-              사용자가 없습니다.
+            <td colSpan={7} style={{ 
+              textAlign: 'center', 
+              padding: '3rem',
+              fontSize: '16px',
+              color: '#6c757d'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>👤</div>
+              <div style={{ fontWeight: '600', marginBottom: '8px' }}>등록된 사용자가 없습니다</div>
+              <div style={{ fontSize: '14px' }}>새로운 사용자가 가입하면 여기에 표시됩니다</div>
             </td>
           </tr>
         ) : (
@@ -247,8 +254,15 @@ const UserManagementPage: React.FC = () => {
       <tbody>
         {managedUsers.length === 0 ? (
           <tr>
-            <td colSpan={6} style={{ textAlign: 'center' }}>
-              관리된 사용자가 없습니다.
+            <td colSpan={6} style={{ 
+              textAlign: 'center', 
+              padding: '3rem',
+              fontSize: '16px',
+              color: '#6c757d'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🛡️</div>
+              <div style={{ fontWeight: '600', marginBottom: '8px' }}>관리 기록이 없습니다</div>
+              <div style={{ fontSize: '14px' }}>사용자 관리 조치를 취하면 여기에 기록됩니다</div>
             </td>
           </tr>
         ) : (
@@ -285,22 +299,24 @@ const UserManagementPage: React.FC = () => {
           active={activeTab === 'all-users'} 
           onClick={() => setActiveTab('all-users')}
         >
-          전체 사용자 ({allUsers.length})
+          전체 사용자<span>{allUsers.length}</span>
         </TabButton>
         <TabButton 
           active={activeTab === 'managed-users'} 
           onClick={() => setActiveTab('managed-users')}
         >
-          관리된 사용자 ({managedUsers.length})
+          관리된 사용자<span>{managedUsers.length}</span>
         </TabButton>
       </TabContainer>
 
       {isLoading ? (
-        <LoadingMessage>로딩 중...</LoadingMessage>
+        <LoadingMessage>
+          <p>데이터를 불러오는 중입니다...</p>
+        </LoadingMessage>
       ) : error ? (
         <ErrorMessage>
-          <p style={{ color: 'red' }}>{error}</p>
-          <p>Debug info: 전체 사용자 = {allUsers.length}명, 관리된 사용자 = {managedUsers.length}명</p>
+          <p style={{ color: '#e74c3c', fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>{error}</p>
+          <p style={{ color: '#6c757d', fontSize: '14px' }}>전체 사용자: {allUsers.length}명, 관리된 사용자: {managedUsers.length}명</p>
         </ErrorMessage>
       ) : (
         <TabContent>
@@ -315,25 +331,56 @@ export default UserManagementPage;
 
 const Title = styled.h1`
   margin-bottom: 2rem;
+  color: #2c3e50;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  &::before {
+    content: "👥";
+    font-size: 32px;
+  }
 `;
 
 const TabContainer = styled.div`
   display: flex;
-  border-bottom: 2px solid #ddd;
-  margin-bottom: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 `;
 
 const TabButton = styled.button<{ active: boolean }>`
-  padding: 12px 24px;
+  flex: 1;
+  padding: 16px 24px;
   border: none;
-  background-color: ${({ active }) => (active ? '#007bff' : 'transparent')};
-  color: ${({ active }) => (active ? 'white' : '#333')};
+  background-color: ${({ active }) => (active ? '#fff' : 'transparent')};
+  color: ${({ active }) => (active ? '#2c3e50' : '#6c757d')};
   cursor: pointer;
-  border-bottom: 2px solid ${({ active }) => (active ? '#007bff' : 'transparent')};
-  font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
+  border-radius: 8px;
+  font-weight: ${({ active }) => (active ? '600' : '500')};
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-shadow: ${({ active }) => (active ? '0 2px 8px rgba(0,0,0,0.1)' : 'none')};
+  position: relative;
 
   &:hover {
-    background-color: ${({ active }) => (active ? '#0056b3' : '#f8f9fa')};
+    background-color: ${({ active }) => (active ? '#fff' : '#e9ecef')};
+    transform: translateY(-1px);
+  }
+
+  span {
+    display: inline-block;
+    margin-left: 8px;
+    background: ${({ active }) => (active ? '#007bff' : '#6c757d')};
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 600;
   }
 `;
 
@@ -341,38 +388,77 @@ const TabContent = styled.div`
   margin-top: 1rem;
 `;
 
-const LoadingMessage = styled.p`
-  text-align: center;
-  padding: 2rem;
-  font-size: 18px;
+const LoadingMessage = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  
+  &::before {
+    content: "⏳";
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    font-size: 18px;
+    color: #6c757d;
+    margin: 0;
+  }
 `;
 
 const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  
+  &::before {
+    content: "⚠️";
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
 `;
 
 const UserTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  
   th, td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px;
     text-align: left;
   }
+  
   th {
-    background-color: #f2f2f2;
+    background-color: #f8f9fa;
     font-weight: bold;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
   }
 `;
 
 const ActionButton = styled.button<{ danger?: boolean }>`
-  padding: 4px 8px;
+  padding: 6px 12px;
   margin-right: 4px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  background-color: ${({ danger }) => (danger ? '#f44336' : '#007bff')};
+  background-color: ${({ danger }) => (danger ? '#dc3545' : '#007bff')};
   color: white;
   font-size: 12px;
 
