@@ -66,35 +66,33 @@ const AdminLoginPage: React.FC = () => {
                     </ImageText>
                 </ImageSection>
                 <FormSection>
-                    <FormContainer>
+                    <FormContainer as="form" onSubmit={handleSubmit}>
                         <FormHeader>
                             <h1>관리자 로그인</h1>
                             <p>관리자 계정으로 로그인해주세요.</p>
                         </FormHeader>
-                        <form onSubmit={handleSubmit}>
-                            <InputGroup>
-                                <label htmlFor="email">이메일</label>
-                                <Input
-                                    type="email"
-                                    id="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </InputGroup>
-                            <InputGroup>
-                                <label htmlFor="password">비밀번호</label>
-                                <Input
-                                    type="password"
-                                    id="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                            </InputGroup>
-                            {error && <ErrorMessage>{error}</ErrorMessage>}
-                            <SubmitButton type="submit">로그인</SubmitButton>
-                        </form>
+                        <InputGroup>
+                            <label htmlFor="email">이메일</label>
+                            <Input
+                                type="email"
+                                id="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </InputGroup>
+                        <InputGroup>
+                            <label htmlFor="password">비밀번호</label>
+                            <Input
+                                type="password"
+                                id="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </InputGroup>
+                        {error && <ErrorMessage>{error}</ErrorMessage>}
+                        <SubmitButton type="submit">로그인</SubmitButton>
                     </FormContainer>
                 </FormSection>
             </MainContent>

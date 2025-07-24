@@ -3,7 +3,6 @@ import { NavLink, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  AiOutlineSearch,
   AiOutlineHeart,
   AiOutlineMessage,
   AiOutlineUser,
@@ -22,17 +21,11 @@ const Sidebar = () => {
         <Link to="/">TravelMate</Link>
       </Logo>
       <Nav>
-        <StyledNavLink to="/search">
-          <AiOutlineSearch /> <span>검색</span>
-        </StyledNavLink>
         <StyledNavLink to="/plan/write">
           <FaRegCalendarPlus /> <span>여행 플랜 만들기</span>
         </StyledNavLink>
         <StyledNavLink to="/notifications">
           <AiOutlineHeart /> <span>알림</span>
-        </StyledNavLink>
-        <StyledNavLink to="/likes">
-          <AiOutlineHeart /> <span>좋아요</span>
         </StyledNavLink>
         <StyledNavLink to="/match/recommend">
           <FaRegCompass /> <span>여행 메이트 찾기</span>

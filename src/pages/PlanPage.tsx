@@ -11,6 +11,7 @@ import feedStatusService from '../services/feedStatusService';
 import openaiService from '../services/openaiApi';
 import { TravelStatus, FeedWithTravelStatus } from '../types/feed';
 import { useAuth } from '../contexts/AuthContext';
+import LikesModal from '../components/common/LikesModal';
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -193,6 +194,8 @@ const PlanPage: React.FC<PlanPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  // 좋아요 모달 상태 관리
+  const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
 
   // 피드 상태 관리 state
   const [feedStatus, setFeedStatus] = useState<TravelStatus>('recruiting');
@@ -1491,7 +1494,9 @@ const PlanPage: React.FC<PlanPageProps> = ({
             <span>{likeCount}</span>
           </S.LikeButton>
           <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
-          <S.LikeText>좋아요 누른 사람을 보기</S.LikeText>
+          <S.LikeText onClick={() => setIsLikesModalOpen(true)}>
+            좋아요 누른 사람을 보기
+          </S.LikeText>
         </S.Likes>
 
         {/* 버튼 그룹 */}
@@ -1677,6 +1682,13 @@ const PlanPage: React.FC<PlanPageProps> = ({
           region={plan.destination}
         />
       )}
+      {/* 좋아요 누른 사람들 모달 */}
+      <LikesModal
+        isOpen={isLikesModalOpen}
+        onClose={() => setIsLikesModalOpen(false)}
+        title={plan?.title || "여행 계획"}
+        likesCount={likeCount}
+      />
     </S.Container>
   );
 };
