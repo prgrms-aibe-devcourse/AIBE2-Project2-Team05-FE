@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -67,6 +68,42 @@ public class ProfileController {
     @GetMapping("/{userId}")
     public ResponseEntity<ProfileResponseDto> getProfile(@PathVariable Long userId) {
         return ResponseEntity.ok(profileService.getProfile(userId));
+    }
+
+    /**
+     * 닉네임으로 프로필 조회
+     * GET /api/profile/user/{nickname}
+     */
+    @GetMapping("/user/{nickname}")
+    public ResponseEntity<ProfileResponseDto> getProfileByNickname(@PathVariable String nickname) {
+        log.info("🔍 닉네임으로 프로필 조회 요청: {}", nickname);
+        
+        try {
+            ProfileResponseDto profile = profileService.getProfileByNickname(nickname);
+            log.info("✅ 닉네임 프로필 조회 성공: {} → {}", nickname, profile.getNickname());
+            return ResponseEntity.ok(profile);
+        } catch (Exception e) {
+            log.error("❌ 닉네임 프로필 조회 실패: {} - {}", nickname, e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * 임시 테스트용: 모든 사용자 목록 조회 (개발용)
+     * GET /api/profile/test/users
+     */
+    @GetMapping("/test/users")
+    public ResponseEntity<Object> getAllUsersForTest() {
+        log.info("🔍 테스트용 사용자 목록 조회");
+        
+        try {
+            List<Object> users = profileService.getAllUsersForTest();
+            log.info("✅ 사용자 목록 조회 성공: {} 명", users.size());
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error("❌ 사용자 목록 조회 실패: {}", e.getMessage());
+            return ResponseEntity.status(500).body("사용자 목록 조회 실패: " + e.getMessage());
+        }
     }
 
     @PutMapping

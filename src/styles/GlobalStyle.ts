@@ -23,4 +23,14 @@ export const GlobalStyle = createGlobalStyle`
     font-family: 'Noto Sans KR', sans-serif;
     line-height: 1.5;
   }
+
+  /* 로딩 스핀 애니메이션 */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;

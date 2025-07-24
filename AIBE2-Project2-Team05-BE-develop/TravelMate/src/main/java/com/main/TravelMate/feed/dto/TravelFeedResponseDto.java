@@ -14,6 +14,8 @@ import java.util.List;
 public class TravelFeedResponseDto {
 
     private Long travelPlanId; // ✅ 이거 추가
+    
+    private String planId; // ✅ 실제 planId 추가
 
     private String title;
     private String location;

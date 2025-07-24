@@ -23,8 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +44,25 @@ public class ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         
+        return buildProfileResponse(user);
+    }
+
+    /**
+     * 닉네임으로 프로필 조회
+     */
+    public ProfileResponseDto getProfileByNickname(String nickname) {
+        log.info("👤 닉네임으로 프로필 조회 시작 - 닉네임: {}", nickname);
+        
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + nickname));
+        
+        return buildProfileResponse(user);
+    }
+
+    /**
+     * 공통 프로필 응답 생성 메서드
+     */
+    private ProfileResponseDto buildProfileResponse(User user) {
         log.info("✅ 사용자 정보 조회 완료 - 이메일: {}, 닉네임: {}", user.getEmail(), user.getNickname());
 
         // 더 안전한 피드 조회 (EntityGraph 포함)
@@ -60,6 +81,10 @@ public class ProfileService {
 
         List<TravelFeedResponseDto> feedDtos = feeds.stream().map(feed -> {
             var plan = feed.getTravelPlan();
+            
+            // 🔍 이미지 URL 디버깅 로그 추가
+            log.info("📷 피드 ID: {}, TravelPlan 이미지 URL: {}", 
+                    feed.getId(), plan.getImageUrl());
 
             List<TravelDayDto> dayDtos = plan.getDays().stream().map(day -> {
                 List<TravelScheduleDto> scheduleDtos = day.getSchedules().stream().map(schedule ->
@@ -81,6 +106,7 @@ public class ProfileService {
 
             return TravelFeedResponseDto.builder()
                     .travelPlanId(plan.getId())
+                    .planId(plan.getId().toString()) // ✅ 단순한 ID 사용
                     .title(plan.getTitle())
                     .location(plan.getLocation())
                     .description(plan.getDescription())
@@ -90,7 +116,7 @@ public class ProfileService {
                     .startDate(plan.getStartDate())
                     .endDate(plan.getEndDate())
                     .days(dayDtos)
-                    .imageUrl(feed.getImageUrl())
+                    .imageUrl(plan.getImageUrl()) // ✅ TravelPlan의 image_url 사용
                     .caption(feed.getCaption())
                     .build();
         }).toList();
@@ -176,5 +202,22 @@ public class ProfileService {
         user.setProfile(profile); // 양방향 연관관계 유지
         
         log.info("✅ 프로필 업데이트 완료 - 사용자: {}, 닉네임: {}", user.getEmail(), user.getNickname());
+    }
+
+    /**
+     * 테스트용: 모든 사용자 목록 조회 (개발용)
+     */
+    public List<Object> getAllUsersForTest() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(user -> {
+                    Map<String, Object> userInfo = new HashMap<>();
+                    userInfo.put("id", user.getId());
+                    userInfo.put("email", user.getEmail());
+                    userInfo.put("nickname", user.getNickname());
+                    userInfo.put("role", user.getRole());
+                    return userInfo;
+                })
+                .collect(Collectors.toList());
     }
 }

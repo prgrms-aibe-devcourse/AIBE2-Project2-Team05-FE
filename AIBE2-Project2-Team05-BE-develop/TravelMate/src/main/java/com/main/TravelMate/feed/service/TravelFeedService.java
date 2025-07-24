@@ -7,6 +7,7 @@ import com.main.TravelMate.feed.repository.TravelFeedRepository;
 import com.main.TravelMate.plan.entity.TravelDay;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.plan.entity.TravelSchedule;
+import com.main.TravelMate.plan.repository.TravelPlanRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class TravelFeedService {
 
     private final TravelFeedRepository feedRepository;
+    private final TravelPlanRepository travelPlanRepository;
 
     public void createFeedFromPlan(TravelPlan plan) {
         log.info("🔄 여행 계획 '{}' (사용자: {}, ID: {})에 대한 피드 생성 시작", 
@@ -32,10 +34,17 @@ public class TravelFeedService {
             String caption = generateCaption(plan);
             log.info("📝 생성된 캡션 (50자): {}", caption.substring(0, Math.min(50, caption.length())) + "...");
             
+            // 이미지 URL이 너무 길면 NULL로 설정
+            String imageUrl = plan.getImageUrl();
+            if (imageUrl != null && imageUrl.length() > 255) {
+                log.warn("⚠️ 이미지 URL이 너무 길어서 NULL로 설정합니다 (길이: {})", imageUrl.length());
+                imageUrl = null;
+            }
+            
             TravelFeed feed = TravelFeed.builder()
                     .user(plan.getUser())
                     .travelPlan(plan)
-                    .imageUrl(plan.getImageUrl()) // ✅ 여행 계획의 이미지 URL 사용
+                    .imageUrl(imageUrl) // ✅ 길이 체크 후 설정
                     .caption(caption)
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -72,6 +81,27 @@ public class TravelFeedService {
         } catch (Exception e) {
             log.error("❌ 피드 이미지 URL 업데이트 실패: {}", e.getMessage(), e);
         }
+    }
+    
+    // ✅ 기존 여행 계획에서 피드 생성 메서드 추가
+    public void createFeedFromExistingPlan(Long planId) {
+        log.info("🔄 여행 계획 ID {}에서 피드 수동 생성 시작", planId);
+        
+        TravelPlan plan = travelPlanRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("여행 계획을 찾을 수 없습니다: " + planId));
+        
+        // 이미 피드가 있는지 확인
+        List<TravelFeed> existingFeeds = feedRepository.findByUser(plan.getUser());
+        boolean feedExists = existingFeeds.stream()
+                .anyMatch(feed -> feed.getTravelPlan() != null && feed.getTravelPlan().getId().equals(planId));
+        
+        if (feedExists) {
+            log.warn("⚠️ 여행 계획 ID {}에 대한 피드가 이미 존재합니다", planId);
+            throw new RuntimeException("이미 피드가 존재합니다");
+        }
+        
+        createFeedFromPlan(plan);
+        log.info("✅ 여행 계획 ID {}에서 피드 수동 생성 완료", planId);
     }
 
     private String generateCaption(TravelPlan plan) {

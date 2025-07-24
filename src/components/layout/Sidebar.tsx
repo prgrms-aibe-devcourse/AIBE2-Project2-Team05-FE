@@ -11,6 +11,11 @@ import {
 import { FaRegCompass, FaRegCalendarPlus } from 'react-icons/fa';
 
 const Sidebar = () => {
+  const { user } = useAuth();
+
+  // 프로필 링크 결정: 닉네임이 있으면 닉네임으로, 없으면 기본 프로필로
+  const profileLink = user?.nickname ? `/profile/${user.nickname}` : '/profile';
+
   return (
     <SidebarContainer>
       <Logo>
@@ -37,7 +42,7 @@ const Sidebar = () => {
         </StyledNavLink>
       </Nav>
       <Footer>
-        <ProfileLink to="/profile">
+        <ProfileLink to={profileLink}>
           <AiOutlineUser />
           <span>프로필</span>
         </ProfileLink>
@@ -51,21 +56,21 @@ export default Sidebar;
 const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
-  width: 220px;
+  width: 200px; /* 다시 200px로 */
   height: 100vh;
   background-color: #ffffff;
   border-right: 1px solid #dbdbdb;
-  padding: 20px;
+  padding: 20px 20px 20px 25px; /* 왼쪽 25px, 오른쪽 20px으로 여백 확보 */
   position: fixed;
   left: 0;
   top: 0;
 `;
 
 const Logo = styled.div`
-  font-size: 24px;
+  font-size: 22px; /* 원래대로 복구 */
   font-weight: bold;
-  margin-bottom: 40px;
-  padding: 10px 0;
+  margin-bottom: 30px; /* 원래대로 복구 */
+  padding: 8px 0; /* 원래대로 복구 */
 
   a {
     text-decoration: none;
@@ -82,11 +87,11 @@ const Nav = styled.nav`
 const StyledNavLink = styled(NavLink)`
   text-decoration: none;
   color: #2c3e50;
-  font-size: 16px;
+  font-size: 15px; /* 원래대로 복구 */
   font-weight: 500;
-  padding: 15px 10px;
+  padding: 12px 8px; /* 원래대로 복구 */
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* 원래대로 복구 */
   transition:
     background-color 0.2s,
     color 0.2s;
@@ -94,8 +99,8 @@ const StyledNavLink = styled(NavLink)`
   align-items: center;
 
   svg {
-    font-size: 24px;
-    margin-right: 15px;
+    font-size: 22px; /* 원래대로 복구 */
+    margin-right: 12px; /* 원래대로 복구 */
   }
 
   &:hover {
@@ -109,7 +114,7 @@ const StyledNavLink = styled(NavLink)`
   }
 
   span {
-    font-size: 16px;
+    font-size: 15px; /* 원래대로 복구 */
   }
 `;
 

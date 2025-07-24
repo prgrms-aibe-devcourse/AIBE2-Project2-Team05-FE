@@ -32,13 +32,13 @@ const FeedStatusBadge: React.FC<FeedStatusBadgeProps> = ({
       },
       traveling: {
         icon: '✈️',
-        statusLabel: '여행중',
+        statusLabel: '여행을 시작합니다',
         color: '#F59E0B',
         backgroundColor: '#FEF3C7',
       },
       completed: {
         icon: '✅',
-        statusLabel: '여행완료',
+        statusLabel: '여행을 완료합니다',
         color: '#10B981',
         backgroundColor: '#D1FAE5',
       },

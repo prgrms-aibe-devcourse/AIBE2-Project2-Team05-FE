@@ -136,8 +136,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
+
+    // ✅ 모든 사용자 관련 localStorage 데이터 정리
     localStorage.removeItem('accessToken'); // ✅ token → accessToken으로 변경
     localStorage.removeItem('user');
+    localStorage.removeItem('userProfile'); // ✅ MyPage 프로필 데이터 정리
+    localStorage.removeItem('currentTravelPlan'); // ✅ 여행 계획 데이터 정리
+
+    console.log('🧹 사용자 데이터 완전 정리 완료');
 
     setIsLoading(false); // 로그아웃 완료 후 로딩 종료
     console.log('✅ 로그아웃 완료');

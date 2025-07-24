@@ -74,6 +74,39 @@ class ProfileApiService {
   }
 
   /**
+   * 닉네임으로 사용자 프로필 조회
+   */
+  async getProfileByNickname(nickname: string): Promise<ProfileData> {
+    try {
+      console.log('👤 닉네임으로 사용자 프로필 조회 시작:', nickname);
+
+      const response = await api.get<ProfileData>(
+        `/api/profile/user/${nickname}`,
+      );
+
+      console.log('✅ 닉네임으로 사용자 프로필 조회 성공:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 닉네임으로 사용자 프로필 조회 실패:', error);
+
+      // 404 에러인 경우 사용자를 찾을 수 없음
+      if (error.response?.status === 404) {
+        throw new Error(`사용자를 찾을 수 없습니다: ${nickname}`);
+      }
+
+      // 네트워크 오류 등으로 백엔드 연결 실패 시 기본값 반환
+      if (!error.response || error.code === 'NETWORK_ERROR') {
+        console.warn('🔄 백엔드 연결 실패, 기본 프로필 데이터 반환');
+        return this.getDefaultProfile();
+      }
+
+      throw new Error(
+        `프로필 조회 실패: ${error.response?.data?.message || error.message}`,
+      );
+    }
+  }
+
+  /**
    * 프로필 업데이트 (닉네임 포함)
    */
   async updateProfile(profileData: {

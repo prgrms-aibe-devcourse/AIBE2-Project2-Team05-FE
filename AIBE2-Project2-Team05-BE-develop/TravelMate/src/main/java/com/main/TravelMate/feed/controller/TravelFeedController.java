@@ -32,6 +32,17 @@ public class TravelFeedController {
         feedService.updateFeedImages();
         return ResponseEntity.ok("피드 이미지 업데이트 완료");
     }
+    
+    // ✅ 특정 여행 계획에 대한 피드 수동 생성 엔드포인트 추가
+    @PostMapping("/create-from-plan/{planId}")
+    public ResponseEntity<String> createFeedFromPlan(@PathVariable Long planId) {
+        try {
+            feedService.createFeedFromExistingPlan(planId);
+            return ResponseEntity.ok("피드 생성 완료");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("피드 생성 실패: " + e.getMessage());
+        }
+    }
 
     @GetMapping("/{feedId}")
     public ResponseEntity<TravelFeedResponseDto> getFeed(@PathVariable Long feedId) {

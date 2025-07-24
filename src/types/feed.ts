@@ -61,7 +61,7 @@ export const TRAVEL_STATUS_MAP: Record<TravelStatus, TravelStatusInfo> = {
   },
   traveling: {
     status: 'traveling',
-    statusLabel: '여행중',
+    statusLabel: '여행을 시작합니다',
     color: '#F59E0B',
     backgroundColor: '#FEF3C7',
     icon: '✈️',
@@ -69,7 +69,7 @@ export const TRAVEL_STATUS_MAP: Record<TravelStatus, TravelStatusInfo> = {
   },
   completed: {
     status: 'completed',
-    statusLabel: '여행완료',
+    statusLabel: '여행을 완료합니다',
     color: '#10B981',
     backgroundColor: '#D1FAE5',
     icon: '✅',

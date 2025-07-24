@@ -84,6 +84,17 @@ public class TravelPlanController {
     }
     
     /**
+     * ID로 여행 계획 조회
+     * GET /api/plan/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<TravelPlanResponseDto> getTravelPlan(@PathVariable Long id) {
+        return planService.getTravelPlanById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    /**
      * 여행 계획 삭제 (legacy 기능)
      * DELETE /api/plan/{id}
      */

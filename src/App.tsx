@@ -76,8 +76,14 @@ function App() {
                   element={<MatchRecommendPage />}
                 />
                 <Route path="/chat" element={<ChatPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/profile/:userId" element={<ProfilePage />} />
+                <Route
+                  path="/profile"
+                  element={<ProfilePage isOwnProfile={true} />}
+                />
+                <Route
+                  path="/profile/:nickname"
+                  element={<ProfilePage isOwnProfile={false} />}
+                />
                 <Route path="/mypage" element={<MyPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/notifications" element={<NotificationPage />} />

@@ -28,6 +28,8 @@ public class TravelFeed {
     @JoinColumn(name = "travel_plan_id", unique = true)
     private TravelPlan travelPlan;
 
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
     @Lob

@@ -954,6 +954,226 @@ ${searchResultsText}
 
     return fallbackRecommendations;
   }
+
+  /**
+   * 목적지의 카테고리를 분류하는 메서드
+   */
+  async classifyDestinationCategory(destination: string): Promise<{
+    category: string;
+    icon: string;
+    background: string;
+    textColor: string;
+    borderColor: string;
+  }> {
+    try {
+      if (!this.apiKey) {
+        console.warn(
+          'OpenAI API 키가 설정되지 않았습니다. 기본 카테고리를 반환합니다.',
+        );
+        return this.getDefaultDestinationCategory(destination);
+      }
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: `당신은 여행 목적지 분류 전문가입니다. 주어진 목적지의 주요 특성을 파악하여 가장 적합한 카테고리로 분류해주세요.
+
+사용 가능한 카테고리:
+- 자연: 산, 바다, 호수, 국립공원, 자연명소 등
+- 도시: 대도시, 시내, 번화가, 도심지 등  
+- 문화: 역사적 장소, 박물관, 전통 마을, 문화재 등
+- 휴양: 리조트, 온천, 해변, 휴양지 등
+- 모험: 등산, 트레킹, 익스트림 스포츠 지역 등
+- 쇼핑: 쇼핑몰, 시장, 명동 등 쇼핑 중심지
+- 엔터: 테마파크, 놀이공원, 유흥가 등
+
+응답 형식 (JSON):
+{
+  "category": "카테고리명",
+  "reasoning": "분류 근거"
+}`,
+            },
+            {
+              role: 'user',
+              content: `다음 여행 목적지를 분석하여 가장 적합한 카테고리로 분류해주세요: "${destination}"`,
+            },
+          ],
+          max_tokens: 150,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('OpenAI API 오류:', response.status, response.statusText);
+        return this.getDefaultDestinationCategory(destination);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content?.trim();
+
+      if (!content) {
+        console.warn('OpenAI API 응답이 비어있습니다.');
+        return this.getDefaultDestinationCategory(destination);
+      }
+
+      // JSON 파싱 시도
+      try {
+        const result = JSON.parse(content);
+        const category = result.category;
+
+        // 카테고리에 따른 스타일 반환
+        return this.getCategoryStyle(category);
+      } catch (parseError) {
+        console.error('JSON 파싱 실패:', parseError);
+        return this.getDefaultDestinationCategory(destination);
+      }
+    } catch (error) {
+      console.error('목적지 카테고리 분류 중 오류:', error);
+      return this.getDefaultDestinationCategory(destination);
+    }
+  }
+
+  /**
+   * 카테고리에 따른 스타일 반환
+   */
+  private getCategoryStyle(category: string): {
+    category: string;
+    icon: string;
+    background: string;
+    textColor: string;
+    borderColor: string;
+  } {
+    const categoryLower = category.toLowerCase();
+
+    if (categoryLower.includes('자연') || categoryLower.includes('nature')) {
+      return {
+        category: '자연',
+        icon: '🌲',
+        background: 'linear-gradient(135deg, #27AE60, #2ECC71)',
+        textColor: '#FFFFFF',
+        borderColor: '#27AE60',
+      };
+    }
+    if (categoryLower.includes('도시') || categoryLower.includes('city')) {
+      return {
+        category: '도시',
+        icon: '🏙️',
+        background: 'linear-gradient(135deg, #34495E, #2C3E50)',
+        textColor: '#FFFFFF',
+        borderColor: '#34495E',
+      };
+    }
+    if (categoryLower.includes('문화') || categoryLower.includes('culture')) {
+      return {
+        category: '문화',
+        icon: '🏛️',
+        background: 'linear-gradient(135deg, #F39C12, #E67E22)',
+        textColor: '#FFFFFF',
+        borderColor: '#F39C12',
+      };
+    }
+    if (categoryLower.includes('휴양') || categoryLower.includes('resort')) {
+      return {
+        category: '휴양',
+        icon: '🏖️',
+        background: 'linear-gradient(135deg, #3498DB, #2980B9)',
+        textColor: '#FFFFFF',
+        borderColor: '#3498DB',
+      };
+    }
+    if (categoryLower.includes('모험') || categoryLower.includes('adventure')) {
+      return {
+        category: '모험',
+        icon: '⛰️',
+        background: 'linear-gradient(135deg, #E74C3C, #C0392B)',
+        textColor: '#FFFFFF',
+        borderColor: '#E74C3C',
+      };
+    }
+    if (categoryLower.includes('쇼핑') || categoryLower.includes('shopping')) {
+      return {
+        category: '쇼핑',
+        icon: '🛍️',
+        background: 'linear-gradient(135deg, #9B59B6, #8E44AD)',
+        textColor: '#FFFFFF',
+        borderColor: '#9B59B6',
+      };
+    }
+    if (
+      categoryLower.includes('엔터') ||
+      categoryLower.includes('entertainment')
+    ) {
+      return {
+        category: '엔터',
+        icon: '🎢',
+        background: 'linear-gradient(135deg, #E91E63, #F06292)',
+        textColor: '#FFFFFF',
+        borderColor: '#E91E63',
+      };
+    }
+
+    // 기본값
+    return {
+      category: '관광',
+      icon: '📍',
+      background: 'linear-gradient(135deg, #45B7D1, #3682F8)',
+      textColor: '#FFFFFF',
+      borderColor: '#45B7D1',
+    };
+  }
+
+  /**
+   * 기본 목적지 카테고리 (API 실패 시)
+   */
+  private getDefaultDestinationCategory(destination: string): {
+    category: string;
+    icon: string;
+    background: string;
+    textColor: string;
+    borderColor: string;
+  } {
+    const destLower = destination.toLowerCase();
+
+    // 간단한 키워드 기반 분류
+    if (
+      destLower.includes('산') ||
+      destLower.includes('국립공원') ||
+      destLower.includes('자연')
+    ) {
+      return this.getCategoryStyle('자연');
+    }
+    if (
+      destLower.includes('서울') ||
+      destLower.includes('부산') ||
+      destLower.includes('도시')
+    ) {
+      return this.getCategoryStyle('도시');
+    }
+    if (
+      destLower.includes('해변') ||
+      destLower.includes('바다') ||
+      destLower.includes('제주')
+    ) {
+      return this.getCategoryStyle('휴양');
+    }
+    if (
+      destLower.includes('박물관') ||
+      destLower.includes('궁') ||
+      destLower.includes('문화')
+    ) {
+      return this.getCategoryStyle('문화');
+    }
+
+    return this.getCategoryStyle('관광');
+  }
 }
 
 // 싱글톤 인스턴스 생성

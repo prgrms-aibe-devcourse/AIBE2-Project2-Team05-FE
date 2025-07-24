@@ -41,6 +41,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/places/**").permitAll()
                         .requestMatchers("/api/openai/**").permitAll()
                         
+                        // ✅ 공개 프로필 조회 (닉네임 기반)
+                        .requestMatchers("/api/profile/user/**").permitAll()
+                        .requestMatchers("/api/profile/test/**").permitAll()
+                        
                         // ✅ 인증이 필요한 엔드포인트 - ROLE_USER 명시
                         .requestMatchers("/api/plan/**").hasRole("USER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

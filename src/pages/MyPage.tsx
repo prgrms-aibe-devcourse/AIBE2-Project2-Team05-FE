@@ -26,8 +26,9 @@ interface UserProfile {
 }
 
 const MyPage = () => {
-  const { logout, updateUser } = useAuth();
+  const { logout, updateUser, user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -42,22 +43,93 @@ const MyPage = () => {
     travelStyles: ['계획적인 여행', '관광 중심'],
   });
 
-  // 프로필 데이터 로드
+  // 프로필 데이터 로드 - 백엔드에서 실제 사용자 정보 가져오기
   useEffect(() => {
-    const loadProfile = () => {
-      try {
-        const savedProfile = localStorage.getItem('userProfile');
-        if (savedProfile) {
-          const parsed = JSON.parse(savedProfile);
-          setProfileData((prev) => ({ ...prev, ...parsed }));
+    const loadProfile = async () => {
+      if (!user?.email) {
+        console.log('🔍 사용자 정보 없음, 로딩 중...');
+        return;
+      }
+
+      setLoading(true);
+      console.log('🔄 프로필 데이터 로드 시작 - 사용자:', user.email);
+
+      // ✅ 사용자가 변경되었을 때 이전 사용자의 localStorage 데이터 정리
+      const storedProfile = localStorage.getItem('userProfile');
+      if (storedProfile) {
+        try {
+          const parsed = JSON.parse(storedProfile);
+          if (parsed.email && parsed.email !== user.email) {
+            console.log(
+              '🧹 다른 사용자의 데이터 정리:',
+              parsed.email,
+              '→',
+              user.email,
+            );
+            localStorage.removeItem('userProfile');
+            localStorage.removeItem('currentTravelPlan');
+          }
+        } catch (e) {
+          console.warn('localStorage 파싱 오류, 정리:', e);
+          localStorage.removeItem('userProfile');
         }
+      }
+
+      try {
+        // ✅ 백엔드에서 현재 로그인된 사용자의 실제 프로필 정보 가져오기
+        const profileResponse: any = await profileApiService.getMyProfile();
+        console.log('✅ 백엔드에서 프로필 로드 성공:', profileResponse);
+
+        // 백엔드 데이터로 상태 업데이트
+        setProfileData({
+          name: profileResponse.realName || '',
+          nickname: profileResponse.nickname || '',
+          age: profileResponse.age ? profileResponse.age.toString() : '',
+          gender: profileResponse.gender || '남성',
+          bio: profileResponse.bio || '',
+          username: profileResponse.nickname || 'Traveler',
+          profileImage: profileResponse.profileImage || '👤',
+          preferredDestinations: profileResponse.preferredDestinations
+            ? profileResponse.preferredDestinations.split(',').filter(Boolean)
+            : ['유럽'],
+          travelStyles: profileResponse.travelStyle
+            ? profileResponse.travelStyle.split(',').filter(Boolean)
+            : ['계획적인 여행', '관광 중심'],
+        });
+
+        // 백업용으로 localStorage에도 저장 (이메일 포함)
+        localStorage.setItem(
+          'userProfile',
+          JSON.stringify({
+            email: user.email, // ✅ 현재 사용자 이메일 추가
+            name: profileResponse.realName,
+            nickname: profileResponse.nickname,
+            age: profileResponse.age?.toString(),
+            gender: profileResponse.gender,
+            bio: profileResponse.bio,
+          }),
+        );
       } catch (error) {
-        console.error('프로필 로드 중 오류:', error);
+        console.error('❌ 백엔드 프로필 로드 실패:', error);
+
+        // 백엔드 실패 시에만 localStorage 백업 사용
+        try {
+          const savedProfile = localStorage.getItem('userProfile');
+          if (savedProfile) {
+            const parsed = JSON.parse(savedProfile);
+            console.log('📦 localStorage 백업 사용:', parsed);
+            setProfileData((prev) => ({ ...prev, ...parsed }));
+          }
+        } catch (localError) {
+          console.error('localStorage 읽기 실패:', localError);
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     loadProfile();
-  }, []);
+  }, [user?.email]); // user.email이 변경될 때마다 다시 로드
 
   // 프로필 데이터 변경 핸들러
   const handleInputChange = (field: keyof UserProfile, value: string) => {
@@ -109,8 +181,14 @@ const MyPage = () => {
         travelStyle: profileData.travelStyles.join(','),
       });
 
-      // localStorage에도 저장 (로컬 캐시용)
-      localStorage.setItem('userProfile', JSON.stringify(profileData));
+      // localStorage에도 저장 (로컬 캐시용, 현재 사용자 이메일 포함)
+      localStorage.setItem(
+        'userProfile',
+        JSON.stringify({
+          ...profileData,
+          email: user?.email, // ✅ 현재 사용자 이메일 추가
+        }),
+      );
 
       // ✅ AuthContext의 사용자 정보도 업데이트 (프로필 페이지 실시간 반영)
       updateUser({
@@ -165,6 +243,35 @@ const MyPage = () => {
       window.location.href = '/';
     }
   };
+
+  // 로딩 중일 때 로딩 화면 표시
+  if (loading) {
+    return (
+      <motion.div
+        initial="initial"
+        animate="in"
+        exit="out"
+        variants={pageVariants}
+        transition={{ duration: 0.5 }}
+      >
+        <MainContent>
+          <PageTitle>마이페이지</PageTitle>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '200px',
+              fontSize: '18px',
+              color: '#666',
+            }}
+          >
+            🔄 프로필 정보를 불러오는 중...
+          </div>
+        </MainContent>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

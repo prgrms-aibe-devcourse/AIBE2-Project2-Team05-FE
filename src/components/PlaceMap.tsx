@@ -33,7 +33,7 @@ const PlaceMap: React.FC<PlaceMapProps> = ({
         const mapContainer = mapRef.current;
         const mapOption = {
           center: new window.kakao.maps.LatLng(37.5665, 126.978), // 서울 시청 좌표 (기본값)
-          level: 3, // 지도 확대 레벨
+          level: 2, // 지도 확대 레벨 (더 가까이)
         };
 
         const map = new window.kakao.maps.Map(mapContainer, mapOption);
@@ -54,10 +54,23 @@ const PlaceMap: React.FC<PlaceMapProps> = ({
             // 지도 중심을 결과값으로 받은 위치로 이동
             map.setCenter(coords);
 
+            // 커스텀 마커 이미지 생성
+            const imageSrc =
+              'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+            const imageSize = new window.kakao.maps.Size(35, 42); // 마커 크기 증가
+            const imageOption = { offset: new window.kakao.maps.Point(17, 42) };
+
+            const markerImage = new window.kakao.maps.MarkerImage(
+              imageSrc,
+              imageSize,
+              imageOption,
+            );
+
             // 마커 생성
             const marker = new window.kakao.maps.Marker({
               map: map,
               position: coords,
+              image: markerImage,
             });
 
             // 인포윈도우 생성

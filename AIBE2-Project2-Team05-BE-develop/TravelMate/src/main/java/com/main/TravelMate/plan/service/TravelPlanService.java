@@ -8,6 +8,7 @@ import com.main.TravelMate.plan.dto.TravelScheduleDto;
 import com.main.TravelMate.plan.entity.TravelDay;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.plan.entity.TravelSchedule;
+import com.main.TravelMate.plan.entity.PlanStatus;
 import com.main.TravelMate.plan.repository.TravelDayRepository;
 import com.main.TravelMate.plan.repository.TravelPlanRepository;
 import com.main.TravelMate.plan.repository.TravelScheduleRepository;
@@ -36,6 +37,7 @@ public class TravelPlanService {
     private final TravelDayRepository travelDayRepository;
     private final TravelScheduleRepository travelScheduleRepository;
     private final TravelFeedService travelFeedService;
+    private final PlaceCategoryService placeCategoryService;
 
     public void createPlan(String email, TravelPlanCreateRequestDto request) {
         log.info("🚀 여행 계획 생성 시작 - 사용자: {}, 제목: '{}'", email, request.getTitle());
@@ -101,15 +103,38 @@ public class TravelPlanService {
             TravelDay savedDay = travelDayRepository.save(day);
 
             for (TravelScheduleDto scheduleDto : dayDto.getSchedules()) {
-                TravelSchedule schedule = TravelSchedule.builder()
+                // 장소 카테고리 자동 분류
+                PlaceCategoryService.PlaceCategoryInfo categoryInfo = null;
+                if (scheduleDto.getPlace() != null && !scheduleDto.getPlace().trim().isEmpty()) {
+                    try {
+                        log.info("🏷️ 장소 '{}' 카테고리 분류 중...", scheduleDto.getPlace());
+                        categoryInfo = placeCategoryService.classifyPlace(scheduleDto.getPlace());
+                        log.info("✅ 장소 '{}' → 카테고리: {} {}", 
+                            scheduleDto.getPlace(), categoryInfo.icon, categoryInfo.category);
+                    } catch (Exception e) {
+                        log.warn("⚠️ 장소 '{}' 카테고리 분류 실패: {}", scheduleDto.getPlace(), e.getMessage());
+                    }
+                }
+
+                TravelSchedule.TravelScheduleBuilder scheduleBuilder = TravelSchedule.builder()
                         .travelDay(savedDay)
                         .time(scheduleDto.getTime())
                         .place(scheduleDto.getPlace())
                         .activity(scheduleDto.getActivity())
                         .memo(scheduleDto.getMemo())
-                        .cost(scheduleDto.getCost())
-                        .build();
+                        .cost(scheduleDto.getCost());
 
+                // 카테고리 정보가 있으면 추가
+                if (categoryInfo != null) {
+                    scheduleBuilder
+                        .category(categoryInfo.category)
+                        .categoryIcon(categoryInfo.icon)
+                        .categoryBackground(categoryInfo.background)
+                        .categoryTextColor(categoryInfo.textColor)
+                        .categoryBorderColor(categoryInfo.borderColor);
+                }
+
+                TravelSchedule schedule = scheduleBuilder.build();
                 travelScheduleRepository.save(schedule);
             }
         }
@@ -171,21 +196,37 @@ public class TravelPlanService {
     }
     
     /**
-     * 여행 계획 삭제
+     * ID로 여행 계획 조회
+     */
+    public Optional<TravelPlanResponseDto> getTravelPlanById(Long id) {
+        return travelPlanRepository.findById(id)
+                .map(this::convertToDto);
+    }
+    
+    /**
+     * 여행 계획 삭제 (소프트 삭제 - 상태를 DELETED로 변경)
      */
     @Transactional
     public void deleteTravelPlan(Long id, String email) {
+        log.info("🗑️ 여행 계획 삭제 요청 - ID: {}, 사용자: {}", id, email);
+        
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("유저 없음"));
         
         TravelPlan plan = travelPlanRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("여행 계획을 찾을 수 없습니다"));
         
+        // 작성자 권한 확인
         if (!plan.getUser().getId().equals(user.getId())) {
+            log.warn("❌ 삭제 권한 없음 - 계획 작성자: {}, 요청자: {}", plan.getUser().getEmail(), email);
             throw new RuntimeException("삭제 권한이 없습니다");
         }
         
-        travelPlanRepository.delete(plan);
+        // 소프트 삭제: 상태를 DELETED로 변경
+        plan.setStatus(PlanStatus.DELETED);
+        travelPlanRepository.save(plan);
+        
+        log.info("✅ 여행 계획 소프트 삭제 완료 - ID: {}", id);
     }
     
     /**
@@ -210,6 +251,14 @@ public class TravelPlanService {
                 .aiHashtags(plan.getAiHashtags())
                 .nearbyRecommendations(plan.getNearbyRecommendations())
                 .schedules(plan.getSchedules())
+                // 사용자 관련 필드 추가
+                .participants(plan.getParticipants())
+                .introduction(plan.getIntroduction())
+                // 작성자 정보 추가
+                .authorId(plan.getUser() != null ? plan.getUser().getId() : null)
+                .authorNickname(plan.getUser() != null ? plan.getUser().getNickname() : plan.getAuthorName())
+                .authorProfileImage(plan.getUser() != null && plan.getUser().getProfile() != null ? 
+                    plan.getUser().getProfile().getProfileImage() : null)
                 .build();
     }
 }

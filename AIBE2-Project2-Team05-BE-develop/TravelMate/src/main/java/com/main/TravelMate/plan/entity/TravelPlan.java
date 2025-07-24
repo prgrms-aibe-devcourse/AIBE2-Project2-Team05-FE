@@ -105,5 +105,16 @@ public class TravelPlan {
     @Enumerated(EnumType.STRING)
     private TravelStyle travelStyle; // 여행 스타일 (매칭용)
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PlanStatus status = PlanStatus.ACTIVE; // 계획 상태 (기본값: ACTIVE)
+    
+    // 여행 참여자 필드 추가
+    @Column(columnDefinition = "TEXT")
+    private String participants; // 참여자 ID 리스트 (JSON 배열 형태: ["userId1", "userId2", ...])
+    
+    @Column(columnDefinition = "TEXT")
+    private String introduction; // 소개글 필드 추가
+    
     private LocalDateTime createdAt = LocalDateTime.now();
 }

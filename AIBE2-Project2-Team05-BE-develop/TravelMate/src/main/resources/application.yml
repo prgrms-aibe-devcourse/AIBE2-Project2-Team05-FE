@@ -23,6 +23,12 @@ google:
       # API 키 직접 설정 (개발용)
       key: AIzaSyCDdmyQ1ZMwjj7iorE7uUZzJHwp387zSOU
 
+# OpenAI API 설정 (장소 카테고리 분류용)
+openai:
+  api:
+    # API 키 설정 (환경변수 OPENAI_API_KEY로도 설정 가능)
+    key: ${OPENAI_API_KEY:}
+
 # 로깅 설정 추가
 logging:
   level:
