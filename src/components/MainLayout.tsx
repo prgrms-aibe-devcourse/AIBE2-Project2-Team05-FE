@@ -27,8 +27,10 @@ const MainLayout = () => {
     '/match/recommend',
     '/chat',
     '/mypage',
+    '/search',
     '/notifications',
     '/profile',
+    '/likes',
   ];
   const showSidebar = sidebarRoutes.some((route) =>
     location.pathname.startsWith(route),

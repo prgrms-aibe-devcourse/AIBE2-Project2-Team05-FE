@@ -277,29 +277,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
 
       {/* Profile Header */}
       <ProfileHeader>
-        <ProfileAvatar>
-          {userProfile.avatar && userProfile.avatar !== '👤' ? (
-            <>
-              <ProfileImage 
-                src={`http://localhost:8080${userProfile.avatar}`} 
-                alt="프로필 이미지"
-                onError={(e) => {
-                  console.error('프로필 이미지 로드 실패:', userProfile.avatar);
-                  // 이미지 로드 실패 시 기본 아이콘으로 대체
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.nextElementSibling?.setAttribute('style', 'display: flex');
-                }}
-                onLoad={() => {
-                  console.log('프로필 이미지 로드 성공:', userProfile.avatar);
-                }}
-              />
-              <DefaultAvatar style={{ display: 'none' }}>👤</DefaultAvatar>
-            </>
-          ) : (
-            <DefaultAvatar>👤</DefaultAvatar>
-          )}
-        </ProfileAvatar>
+        <ProfileImage>
+          <img src={profile.profileImage} alt={profile.nickname} />
+        </ProfileImage>
         <ProfileInfo>
           <ProfileTop>
             <Username>{profile.nickname}</Username>
@@ -563,28 +543,6 @@ const ProfileImage = styled.div`
     opacity: 0;
     transition: opacity 0.2s ease;
   }
-  border-radius: 50%;
-  background-color: #eee;
-  margin-right: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden; /* 이미지가 원형을 벗어나지 않도록 */
-`;
-
-const ProfileImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-`;
-
-const DefaultAvatar = styled.span`
-  font-size: 80px; /* 아바타 텍스트 크기 */
-  color: #8e8e8e;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const ProfileInfo = styled.div`

@@ -25,9 +25,11 @@ import MyPage from './pages/MyPage';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import Layout from './components/layout/Layout';
+import SearchPage from './pages/SearchPage';
 import NotificationPage from './pages/NotificationPage';
 import ReviewPage from './pages/ReviewPage';
 import ReportManagementPage from './pages/ReportManagementPage';
+import LikePage from './pages/LikePage';
 import PlanPage from './pages/PlanPage';
 import PlanWritePage from './pages/PlanWritePage';
 import AdminLoginPage from './pages/AdminLoginPage';
@@ -83,10 +85,12 @@ function App() {
                   element={<ProfilePage isOwnProfile={false} />}
                 />
                 <Route path="/mypage" element={<MyPage />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/notifications" element={<NotificationPage />} />
                 <Route path="/review" element={<ReviewPage />} />
                 <Route path="/report" element={<ReportManagementPage />} />
                 <Route path="/map-test" element={<MapTestPage />} />
+                <Route path="/likes" element={<LikePage />} />
                 <Route path="/plan" element={<PlanPage />} />
                 <Route path="/plan/write" element={<PlanWritePage />} />
                 <Route path="/plan/edit/:id" element={<PlanWritePage />} />

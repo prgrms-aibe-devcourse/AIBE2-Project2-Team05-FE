@@ -1,14 +1,11 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 // 프로필 API 추가
 import profileApiService from '../services/profileApi';
 import { FeedWithTravelStatus } from '../types/feed';
-import { deleteUser, uploadProfileImage } from '../services/api';
-import ReportModal from '../components/common/ReportModal';
-import PasswordChangeModal from '../components/common/PasswordChangeModal';
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -32,16 +29,6 @@ const MyPage = () => {
   const { logout, updateUser, user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // 신고하기 모달 관련 상태
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  
-  // 비밀번호 변경 모달 관련 상태
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-
-  // 파일 업로드 관련 상태
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -285,100 +272,6 @@ const MyPage = () => {
       </motion.div>
     );
   }
-  // 회원탈퇴 처리 함수
-  const handleDeleteAccount = async () => {
-    // 사용자에게 한 번 더 확인받기
-    const isConfirmed = window.confirm(
-      '정말로 회원탈퇴를 하시겠습니까?\n\n탈퇴 시 모든 데이터가 삭제되며, 복구할 수 없습니다.'
-    );
-
-    if (!isConfirmed) {
-      return; // 사용자가 취소를 선택한 경우
-    }
-
-    try {
-      // 백엔드 API 호출하여 회원탈퇴 진행
-      await deleteUser();
-      
-      // 성공 메시지 표시
-      alert('회원탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.');
-      
-      // 로그아웃 처리 (토큰 삭제 등)
-      logout();
-      
-      // 메인 페이지로 이동
-      window.location.href = '/';
-    } catch (error) {
-      console.error('회원탈퇴 중 오류:', error);
-      alert('회원탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
-    }
-  };
-
-  // 신고하기 모달 열기
-  const handleOpenReportModal = () => {
-    setIsReportModalOpen(true);
-  };
-
-  // 신고하기 모달 닫기
-  const handleCloseReportModal = () => {
-    setIsReportModalOpen(false);
-  };
-  
-  const handleOpenPasswordModal = () => {
-    setIsPasswordModalOpen(true);
-  };
-  
-  const handleClosePasswordModal = () => {
-    setIsPasswordModalOpen(false);
-  };
-
-  // 파일 업로드 핸들러
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // 파일 유효성 검사
-    if (!file.type.startsWith('image/')) {
-      alert('이미지 파일만 업로드 가능합니다.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB 제한
-      alert('파일 크기는 5MB 이하여야 합니다.');
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const imageUrl = await uploadProfileImage(file);
-      console.log('업로드된 이미지 URL:', imageUrl);
-      
-      // 프로필 데이터 업데이트
-      const updatedProfileData = {
-        ...profileData,
-        profileImage: imageUrl
-      };
-      
-      setProfileData(updatedProfileData);
-      console.log('업데이트된 프로필 데이터:', updatedProfileData);
-
-      // localStorage에 저장
-      localStorage.setItem('userProfile', JSON.stringify(updatedProfileData));
-
-      alert('프로필 이미지가 성공적으로 업로드되었습니다! ✅');
-    } catch (error) {
-      console.error('이미지 업로드 중 오류:', error);
-      alert('이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // 업로드 버튼 클릭 핸들러
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
 
   return (
     <motion.div
@@ -407,52 +300,6 @@ const MyPage = () => {
               placeholder="실명을 입력해주세요"
             />
           </InputGroup>
-        {/* 프로필 설정 탭 */}
-        {activeTab === 'profile' && (
-          <>
-            <ProfileSection>
-              <ProfilePhoto>
-                {profileData.profileImage && profileData.profileImage !== '👤' ? (
-                  <ProfileImageContainer>
-                    <ProfileImage 
-                      src={`http://localhost:8080${profileData.profileImage}`} 
-                      alt="프로필 이미지"
-                      onError={(e) => {
-                        console.error('이미지 로드 실패:', profileData.profileImage);
-                        // 이미지 로드 실패 시 기본 아이콘으로 대체
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.setAttribute('style', 'display: block');
-                      }}
-                      onLoad={() => {
-                        console.log('이미지 로드 성공:', profileData.profileImage);
-                      }}
-                    />
-                    <PhotoUpload style={{ display: 'none' }}>
-                      <span>📷</span>
-                      <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
-                    </PhotoUpload>
-                  </ProfileImageContainer>
-                ) : (
-                  <PhotoUpload>
-                    <span>📷</span>
-                    <PhotoUploadText>프로필 사진 추가</PhotoUploadText>
-                  </PhotoUpload>
-                )}
-                <UploadButton 
-                  onClick={handleUploadClick}
-                  disabled={isUploading}
-                >
-                  {isUploading ? '업로드 중...' : '사진 업로드'}
-                </UploadButton>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                />
-              </ProfilePhoto>
 
           <InputGroup>
             <Label>닉네임*</Label>
@@ -508,69 +355,6 @@ const MyPage = () => {
                     key={destination}
                     $checked={profileData.preferredDestinations.includes(
                       destination,
-            <Section>
-              <SectionTitle>계정 설정</SectionTitle>
-              <FormGroup>
-                <FormLabel htmlFor="username">아이디 (변경 불가)</FormLabel>
-                <FormControl
-                  type="text"
-                  id="username"
-                  value={profileData.username}
-                  disabled
-                />
-              </FormGroup>
-
-            </Section>
-
-            <ButtonSection>
-              <BtnCancel>취소</BtnCancel>
-              <BtnSave onClick={handleSaveProfile} disabled={isSaving}>
-                {isSaving ? '저장 중...' : '저장하기'}
-              </BtnSave>
-            </ButtonSection>
-
-            <Divider />
-
-            <AccountButtonContainer>
-              <LeftButtonGroup>
-                <PasswordChangeButton onClick={handleOpenPasswordModal}>
-                  🔒 비밀번호 변경
-                </PasswordChangeButton>
-                <LogoutButton onClick={logout}>로그아웃</LogoutButton>
-                <ReportButton onClick={handleOpenReportModal}>
-                  신고하기
-                </ReportButton>
-              </LeftButtonGroup>
-              <RightButtonGroup>
-                <DestructiveButton onClick={handleDeleteAccount}>
-                  회원 탈퇴
-                </DestructiveButton>
-              </RightButtonGroup>
-            </AccountButtonContainer>
-          </>
-        )}
-
-        {/* 내 피드 탭 */}
-        {activeTab === 'feeds' && (
-          <FeedsSection>
-            {myFeeds.length > 0 ? (
-              <FeedGrid>
-                {myFeeds.map((feed) => (
-                  <FeedCard key={feed.id} onClick={() => handleFeedClick(feed)}>
-                    <FeedHeader>
-                      <FeedAuthor>
-                        <span>{feed.avatar}</span>
-                        <span>{feed.author}</span>
-                      </FeedAuthor>
-                      <FeedDate>
-                        {feed.createdAt
-                          ? new Date(feed.createdAt).toLocaleDateString('ko-KR')
-                          : '방금 전'}
-                      </FeedDate>
-                    </FeedHeader>
-
-                    {feed.type === 'travel-plan' && (
-                      <FeedBadge>✈️ 여행 계획</FeedBadge>
                     )}
                     onClick={() => toggleDestination(destination)}
                   >
@@ -620,18 +404,6 @@ const MyPage = () => {
           </DestructiveButton>
         </WithdrawalSection>
       </MainContent>
-
-      {/* 신고하기 모달 */}
-      <ReportModal
-        isOpen={isReportModalOpen}
-        onClose={handleCloseReportModal}
-      />
-      
-      {/* 비밀번호 변경 모달 */}
-      <PasswordChangeModal
-        isOpen={isPasswordModalOpen}
-        onClose={handleClosePasswordModal}
-      />
     </motion.div>
   );
 };
@@ -680,46 +452,6 @@ const ProfilePhoto = styled.div`
 `;
 
 const PhotoUploadButton = styled.button`
-const ProfileImageContainer = styled.div`
-  position: relative;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin-bottom: 15px;
-`;
-
-const ProfileImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const PhotoUpload = styled.div`
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background-color: #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: 3px dashed #ccc;
-  margin-bottom: 15px;
-
-  span {
-    font-size: 48px;
-    color: #aaa;
-  }
-`;
-
-const PhotoUploadText = styled.p`
-  font-size: 14px;
-  color: #888;
-`;
-
-const UploadButton = styled.button`
   background-color: #3498db;
   color: white;
   border: none;
@@ -729,10 +461,6 @@ const UploadButton = styled.button`
   font-size: 16px;
   width: 100%;
   margin-top: 15px;
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
 `;
 
 const InputGroup = styled.div`
@@ -857,10 +585,6 @@ const LogoutButton = styled(ActionButton)`
   background-color: transparent;
   border: 1px solid #adb5bd; // 차분한 회색 테두리
   color: #495057; // 조금 더 진한 회색 글씨
-  height: 40px; // 고정 높이 설정
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   &:hover {
     background-color: #f1f3f5; // 마우스 올렸을 때의 배경색
@@ -872,28 +596,9 @@ const ReportButton = styled(ActionButton)`
   background-color: transparent;
   border: 1px solid #f39c12; // 주황색 테두리
   color: #f39c12; // 주황색 글씨
-  height: 40px; // 고정 높이 설정
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   &:hover {
     background: rgba(243, 156, 18, 0.1); // 마우스 올렸을 때의 배경색
-  }
-`;
-
-// ActionButton을 기반으로 비밀번호 변경 버튼 스타일을 정의합니다.
-const PasswordChangeButton = styled(ActionButton)`
-  background-color: transparent;
-  border: 1px solid #3498db; // 파란색 테두리
-  color: #3498db; // 파란색 글씨
-  height: 40px; // 고정 높이 설정
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: rgba(52, 152, 219, 0.1); // 마우스 올렸을 때의 배경색
   }
 `;
 
@@ -910,29 +615,8 @@ const DestructiveButton = styled(ActionButton)`
 // 나머지 컴포넌트들을 정의합니다.
 const AccountButtonContainer = styled.div`
   display: flex;
-  justify-content: space-between; // 왼쪽과 오른쪽 버튼 그룹을 멀리 분리
-  align-items: center;
+  gap: 10px;
   margin-top: 20px; // 입력 필드와의 간격 조정
-`;
-
-const LeftButtonGroup = styled.div`
-  display: flex;
-  gap: 10px; // 왼쪽 버튼들 사이의 간격
-`;
-
-const RightButtonGroup = styled.div`
-  display: flex;
-  gap: 10px; // 오른쪽 버튼들 사이의 간격
-`;
-
-// 구분선 컴포넌트
-const Divider = styled.hr`
-  border: none;
-  height: 4px;
-  background: #e1e5e9;
-  margin: 30px 0;
-  width: 100%;
-  border-radius: 1px;
 `;
 
 const WithdrawalSection = styled.div`
