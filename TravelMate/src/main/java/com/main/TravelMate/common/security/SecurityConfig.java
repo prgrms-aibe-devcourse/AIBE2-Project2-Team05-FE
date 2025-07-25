@@ -34,7 +34,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/login", "/api/admin/signup").permitAll()
                         .requestMatchers("/api/auth/**", "/api/auth/oauth/**").permitAll()
-                        .requestMatchers("/api/profile/images/**").permitAll() // 이미지 파일 접근 허용
                         .requestMatchers("/api/admin/manage/user").authenticated() // 임시로 권한 완화
                         .requestMatchers("/api/admin/manage/feed").authenticated() // 임시로 권한 완화
                         .requestMatchers("/api/admin/manage/**").authenticated() // 모든 관리 API 임시로 권한 완화
