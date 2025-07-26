@@ -24,9 +24,9 @@ yarn-error.log*
 
 # Editor directories and files
 .vscode/
+.idea/
 
 # Legacy files
-
 
 # Distribution folder
 dist/
@@ -41,22 +41,26 @@ Thumbs.db
 logs
 *.log
 dev-debug.log
-# Dependency directories
-node_modules/
-# Environment variables
-.env
-.idea
-.vscode
+
+# IDE specific files
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-# OS specific
 
-# API Key
+# Taskmaster AI - 프로젝트 관리 도구
+.taskmaster/
+tasks.json
+tasks/
+*.tsbuildinfo
+
+# Cursor AI IDE - 설정 및 규칙 파일
+.cursor/
+
+# API Keys and Environment variables
 .env
-
-# Task files
-# tasks.json
-# tasks/ 
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 

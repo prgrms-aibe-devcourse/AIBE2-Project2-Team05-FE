@@ -1,6 +1,7 @@
 package com.main.TravelMate.admin.controller;
 
 import com.main.TravelMate.admin.dto.AdminManagedFeedDto;
+import com.main.TravelMate.admin.dto.AdminManagedUserDto;
 import com.main.TravelMate.admin.dto.AdminUserDto;
 import com.main.TravelMate.admin.dto.ManageFeedRequest;
 import com.main.TravelMate.common.security.CustomAdminDetails;
@@ -28,9 +29,9 @@ public class AdminManageController {
     private final AdminManageService adminManageService;
 
     @PostMapping("/user")
-    public ResponseEntity<String> manageUser(@AuthenticationPrincipal String adminEmail,
+    public ResponseEntity<String> manageUser(@AuthenticationPrincipal CustomAdminDetails adminDetails,
                                              @RequestBody ManageUserRequest request) {
-        adminManageService.manageUser(adminEmail, request);
+        adminManageService.manageUser(adminDetails.getUsername(), request);
         return ResponseEntity.ok("유저 제재 처리 완료");
     }
 
@@ -95,6 +96,11 @@ public class AdminManageController {
     @GetMapping("/managed-feeds")
     public ResponseEntity<List<AdminManagedFeedDto>> getManagedFeeds() {
         return ResponseEntity.ok(adminManageService.getManagedFeeds());
+    }
+
+    @GetMapping("/managed-users")
+    public ResponseEntity<List<AdminManagedUserDto>> getManagedUsers() {
+        return ResponseEntity.ok(adminManageService.getManagedUsers());
     }
 
     @GetMapping("/reports")

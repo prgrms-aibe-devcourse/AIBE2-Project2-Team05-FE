@@ -1,6 +1,5 @@
 import React from 'react';
-import styled from 'styled-components';
-import { TravelStatus, TRAVEL_STATUS_MAP } from '../../types/feed';
+import { TravelStatus } from '../../types/feed';
 
 interface FeedStatusBadgeProps {
   status: TravelStatus;

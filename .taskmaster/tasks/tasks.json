@@ -1242,229 +1242,235 @@
       "description": "test/part2_page branch work"
     }
   },
-  "project-merge": {
+  "merge-features": {
     "tasks": [
       {
         "id": 1,
-        "title": "프로젝트 분석 및 백업 전략 수립",
-        "description": "두 프로젝트의 코드베이스를 상세히 분석하고 병합 전 안전한 백업 전략을 수립합니다.",
-        "details": "1. 두 프로젝트 코드베이스 클론 및 분석\n2. Git diff 도구를 사용하여 파일별 차이점 문서화\n3. 중복 컴포넌트 및 충돌 가능성 있는 파일 목록 작성\n4. 백업 전략 수립: Git 태그 생성 (v1.0.0-pre-merge)\n5. 병합용 새 브랜치 생성 (feature/project-merge)\n6. 충돌 해결 우선순위 및 결정 기준 문서화\n\n도구 추천:\n- Git 2.40.0 이상\n- VS Code의 Git Graph 확장 프로그램\n- Beyond Compare 또는 Meld와 같은 diff 도구",
-        "testStrategy": "1. 백업 브랜치가 성공적으로 생성되었는지 확인\n2. 분석 문서가 모든 주요 차이점을 포함하는지 검토\n3. 충돌 파일 목록의 완전성 검증",
-        "priority": "high",
+        "title": "백엔드 기능 병합 준비 및 환경 설정",
+        "description": "백엔드 코드 병합을 위한 환경 설정 및 기존 프로젝트 분석",
+        "status": "done",
         "dependencies": [],
-        "status": "pending",
+        "priority": "high",
+        "details": "1. 기존 프로젝트 코드 구조 분석\n2. 병합할 백엔드 코드(admin, common, user 패키지) 검토\n3. 충돌 가능성 있는 부분 식별\n4. 병합 전략 수립 (브랜치 전략, 병합 순서 등)\n5. 개발 환경 설정 (IDE, 빌드 도구 등)\n6. 테스트 환경 구성\n\n## 백엔드 구조 분석 결과:\n### 1. Admin 패키지\n- AdminManagedUserDto.java (새로 추가)\n\n### 2. Common 패키지  \n- controller/ 디렉토리 (파일 업로드 기능)\n- service/ 디렉토리 (파일 업로드 서비스)\n\n### 3. User 패키지\n- UserStatus.java (새로 추가)\n\n## 병합 전략:\n1. 기존 파일과 동일한 파일들은 팀원 버전으로 덮어쓰기 (업데이트된 내용 반영)\n2. 새로운 파일들은 그대로 추가\n3. SecurityConfig.java의 경우 팀원 버전에 `/api/upload/**` 경로가 추가되어 있음\n\n개발 환경 설정 예시 코드:\n```bash\n# 프로젝트 클론 및 브랜치 생성\ngit clone [repository-url]\ncd [project-directory]\ngit checkout -b feature/backend-merge\n\n# 의존성 설치\n./gradlew build\n```",
+        "testStrategy": "1. 기존 프로젝트 빌드 테스트\n2. 기존 기능 단위 테스트 실행 확인\n3. 병합 전략 문서 검토\n4. 개발 환경 정상 작동 확인\n5. SecurityConfig.java의 `/api/upload/**` 경로 설정 테스트\n6. 파일 업로드 기능 기본 테스트 환경 구성",
         "subtasks": [
           {
             "id": 1,
-            "title": "프로젝트 코드베이스 클론 및 구조 분석",
-            "description": "두 프로젝트의 Git 저장소를 로컬로 클론하고, 각 코드베이스의 폴더 구조, 주요 컴포넌트, 핵심 모듈을 분석합니다.",
-            "dependencies": [],
-            "details": "Git 2.40.0 이상을 사용하여 두 프로젝트를 각각 클론한 후, VS Code의 Git Graph 확장 프로그램 등으로 전체 구조와 주요 파일을 시각적으로 파악합니다. 코드베이스의 핵심 추상화와 주요 흐름을 문서화합니다.\n<info added on 2025-07-25T06:42:36.142Z>\nGit 2.40.0 이상을 사용하여 두 프로젝트를 각각 클론한 후, VS Code의 Git Graph 확장 프로그램 등으로 전체 구조와 주요 파일을 시각적으로 파악했습니다. 코드베이스의 핵심 추상화와 주요 흐름을 문서화했습니다.\n\n분석 결과는 `.taskmaster/docs/project-analysis.md` 파일에 상세히 기록되었으며, 다음과 같은 주요 발견사항이 있습니다:\n\n1. 현재 프로젝트는 AI 추천 기능, 완전한 여행 계획 페이지, 일관된 디자인 시스템을 갖추고 있습니다.\n2. 팀원들 프로젝트는 차트 기능, 완전한 관리 페이지들, 고도화된 프로필 페이지가 특징입니다.\n3. 파일별 크기 비교 및 기능 차이점을 파악했습니다.\n4. 충돌 위험도별 파일 분류를 완료했으며, 특히 Dashboard.tsx, ProfilePage.tsx, MyPage.tsx, 관리 페이지들이 높은 충돌 위험을 가진 것으로 확인되었습니다.\n5. 팀원 프로젝트에서 chart.js, react-chartjs-2와 같은 추가 의존성을 식별했습니다.\n</info added on 2025-07-25T06:42:36.142Z>",
+            "title": "백엔드 코드 구조 분석",
+            "description": "기존 프로젝트와 병합할 코드의 구조 분석 완료",
             "status": "done",
-            "testStrategy": "클론된 저장소의 폴더 구조와 주요 파일 목록이 정확히 문서화되었는지 검토"
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
           },
           {
             "id": 2,
-            "title": "파일별 차이점 및 중복/충돌 파일 목록화",
-            "description": "Git diff 및 Beyond Compare, Meld 등 diff 도구를 활용하여 두 프로젝트의 파일별 차이점, 중복 컴포넌트, 충돌 가능성이 있는 파일을 식별하고 목록화합니다.",
-            "dependencies": [
-              "1.1"
-            ],
-            "details": "각 파일의 변경점, 중복 여부, 충돌 가능성을 표로 정리하고, 주요 차이점은 별도 문서로 기록합니다.\n<info added on 2025-07-25T06:44:44.954Z>\n파일별 차이점 및 중복/충돌 파일 목록화 작업이 완료되었습니다.\n\n`.taskmaster/docs/file-differences.md` 문서에 상세 분석 내용을 정리했으며, 충돌 위험도에 따라 파일들을 높음/중간/낮음으로 분류했습니다.\n\n주요 충돌 파일로는 Dashboard.tsx(팀원들: Chart.js 완전 구현 vs 현재: 정적 UI), package.json(chart.js, react-chartjs-2 의존성 차이), 관리 페이지들(팀원들: 완전 구현 vs 현재: 템플릿만)이 확인되었습니다.\n\n현재 프로젝트에서 보존해야 할 고유 기능으로는 AI 추천 및 장소 모달 기능이 있으며, 팀원들 프로젝트에서 채택할 기능으로는 완전한 관리 시스템과 고도화된 프로필 페이지가 있습니다.\n\n충돌 해결을 위한 원칙으로 1) 기능 완전성 우선, 2) styled-components 디자인 시스템 유지, 3) AI 기능은 현재 프로젝트 우선, 4) 관리 기능은 팀원들 프로젝트 우선으로 설정했습니다.\n</info added on 2025-07-25T06:44:44.954Z>",
+            "title": "병합 전략 문서화",
+            "description": "파일별 병합 전략 수립 및 문서화 (덮어쓰기, 추가, 수정 등)",
             "status": "done",
-            "testStrategy": "차이점 및 충돌 파일 목록이 누락 없이 작성되었는지 검토"
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
           },
           {
             "id": 3,
-            "title": "백업 전략 수립 및 사전 백업 실행",
-            "description": "병합 전 안전한 백업을 위해 Git 태그(v1.0.0-pre-merge) 생성 및 필요시 별도 백업 브랜치 생성 등 백업 전략을 수립하고 실행합니다.",
-            "dependencies": [
-              "1.2"
-            ],
-            "details": "각 프로젝트의 현재 상태에 대해 Git 태그를 생성하고, 병합 전 스냅샷을 보존합니다. 필요시 별도 백업 브랜치도 생성합니다.",
-            "status": "in-progress",
-            "testStrategy": "백업 태그 및 브랜치가 정상적으로 생성되고, 복원 테스트를 통해 백업의 신뢰성을 검증"
+            "title": "SecurityConfig.java 병합 계획 수립",
+            "description": "팀원 버전의 `/api/upload/**` 경로 추가를 위한 병합 계획 작성",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
           },
           {
             "id": 4,
-            "title": "병합용 신규 브랜치 생성 및 초기 세팅",
-            "description": "병합 작업을 위한 feature/project-merge 브랜치를 생성하고, 병합 작업의 기반을 준비합니다.",
-            "dependencies": [
-              "1.3"
-            ],
-            "details": "메인 브랜치에서 feature/project-merge 브랜치를 생성하고, 병합 작업에 필요한 초기 세팅(예: README, 병합 가이드라인 등)을 추가합니다.",
-            "status": "pending",
-            "testStrategy": "신규 브랜치가 정상적으로 생성되고, 병합 준비 상태가 문서화되었는지 확인"
-          },
-          {
-            "id": 5,
-            "title": "충돌 해결 우선순위 및 결정 기준 문서화",
-            "description": "병합 과정에서 발생할 수 있는 충돌에 대한 해결 우선순위와 결정 기준을 명확히 문서화합니다.",
-            "dependencies": [
-              "1.4"
-            ],
-            "details": "중복/충돌 파일 목록을 기반으로, 어떤 프로젝트의 변경사항을 우선 적용할지, 충돌 발생 시 해결 기준(예: 최신 코드 우선, 주요 기능 우선 등)을 명확히 정의하여 문서화합니다.",
-            "status": "pending",
-            "testStrategy": "충돌 해결 기준 문서가 모든 주요 충돌 파일을 포함하고, 팀 내 합의가 이루어졌는지 검토"
+            "title": "파일 업로드 기능 테스트 환경 구성",
+            "description": "Common 패키지의 파일 업로드 기능 테스트를 위한 환경 설정",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
           }
         ]
       },
       {
         "id": 2,
-        "title": "package.json 및 의존성 통합",
-        "description": "두 프로젝트의 package.json 파일을 통합하고 필요한 의존성을 추가합니다.",
-        "details": "1. 두 프로젝트의 package.json 비교 분석\n2. 통합된 package.json 생성\n   - chart.js v4.4.0 추가\n   - react-chartjs-2 v5.2.0 추가\n   - 기존 의존성 최신 버전으로 업데이트 (충돌 방지)\n3. npm-check-updates 도구로 호환성 검사\n4. yarn.lock 또는 package-lock.json 재생성\n5. 의존성 설치 및 빌드 테스트\n\n주의사항:\n- React 19 호환성 확인\n- TypeScript 5.0 이상 사용\n- styled-components v6.0.0 이상 사용",
-        "testStrategy": "1. `npm install` 또는 `yarn` 명령 실행 후 오류 없는지 확인\n2. `npm run build` 또는 `yarn build` 실행하여 빌드 성공 여부 확인\n3. 주요 페이지 렌더링 테스트로 의존성 충돌 확인",
-        "priority": "high",
+        "title": "백엔드 기능 병합 구현",
+        "description": "admin, common, user 패키지의 새로운 기능을 기존 프로젝트에 병합",
+        "status": "done",
         "dependencies": [
           1
         ],
-        "status": "pending",
-        "subtasks": []
+        "priority": "high",
+        "details": "1. admin 패키지 병합:\n   - 관리자 컨트롤러, 서비스, 엔티티 코드 통합\n   - 관리자 API 엔드포인트 확인 및 충돌 해결\n\n2. common 패키지 병합:\n   - 파일 업로드 기능 통합\n   - 보안 설정 업데이트 적용\n   - 공통 유틸리티 함수 병합\n\n3. user 패키지 병합:\n   - 사용자 관련 새로운 기능 통합\n   - 기존 사용자 기능과의 충돌 해결\n\n병합 코드 예시:\n```java\n// Admin 컨트롤러 병합 예시\n@RestController\n@RequestMapping(\"/api/admin\")\npublic class AdminController {\n    // 새로운 관리자 기능 구현\n    @Autowired\n    private AdminService adminService;\n    \n    @GetMapping(\"/dashboard\")\n    public ResponseEntity<?> getDashboard() {\n        return ResponseEntity.ok(adminService.getDashboardData());\n    }\n}\n```",
+        "testStrategy": "1. 각 패키지별 단위 테스트 실행\n2. API 엔드포인트 테스트 (Postman 또는 JUnit)\n3. 통합 테스트 실행\n4. 보안 설정 테스트 (인증/인가 테스트)\n5. 파일 업로드 기능 테스트",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Admin 패키지 병합",
+            "description": "AdminManagedUserDto.java 추가 및 AdminManageService.java 업데이트",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Common 패키지 병합",
+            "description": "controller/ 디렉토리(파일 업로드 기능), service/ 디렉토리(파일 업로드 서비스), config/ 디렉토리(FileUploadConfig 등) 추가 및 SecurityConfig.java 업데이트(/api/upload/** 경로 추가)",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "User 패키지 병합",
+            "description": "UserStatus.java 추가, User.java 엔티티 업데이트(status 필드 추가), ManagedUser.java 엔티티 업데이트(@Builder 추가)",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "빌드 및 테스트",
+            "description": "모든 컴파일 에러 해결 및 빌드 성공 확인. 일부 경고는 있지만 기능에는 영향 없음",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "새로 추가된 기능 문서화",
+            "description": "파일 업로드 API (/api/upload/**), 사용자 상태 관리 (UserStatus), 관리자의 사용자 관리 기능 등 새로 추가된 주요 기능 문서화",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 3,
-        "title": "TypeScript 및 프로젝트 설정 통합",
-        "description": "두 프로젝트의 TypeScript 설정, 환경 변수, 빌드 설정을 통합합니다.",
-        "details": "1. tsconfig.json 파일 비교 및 통합\n   - 최신 TypeScript 기능 활용 (strict 모드 유지)\n   - 경로 별칭 설정 통합\n2. .env 파일 통합 (API 키, 환경 변수 등)\n3. 빌드 설정 통합 (webpack/vite 설정)\n4. ESLint 및 Prettier 설정 통합\n   - airbnb 스타일 가이드 기반 설정\n   - styled-components 관련 규칙 추가\n5. 폴더 구조 최적화 계획 수립\n\n권장 설정:\n- TypeScript 5.2 이상\n- ESLint v8.40.0 이상\n- Prettier 3.0.0 이상",
-        "testStrategy": "1. TypeScript 컴파일 오류 없는지 확인\n2. ESLint 검사 실행 및 오류 확인\n3. 개발 서버 실행 테스트\n4. 환경 변수 로드 테스트",
-        "priority": "high",
+        "title": "프론트엔드 컴포넌트 병합 준비 및 환경 설정",
+        "description": "프론트엔드 컴포넌트 병합을 위한 환경 설정 및 기존 프로젝트 분석 완료",
+        "status": "done",
         "dependencies": [
-          2
+          1
         ],
-        "status": "pending",
-        "subtasks": []
+        "priority": "high",
+        "details": "1. 기존 프론트엔드 코드 구조 분석\n2. 병합할 컴포넌트 검토 (차트, 대시보드, 피드, 프로필)\n3. 의존성 패키지 확인\n4. 컴포넌트 간 의존성 관계 파악\n5. 병합 전략 수립\n\n## 성공적으로 복사된 컴포넌트들:\n### 1. 차트 컴포넌트 시스템\n- BarChart.tsx, DoughnutChart.tsx, LineChart.tsx, PieChart.tsx\n- ChartContainer.tsx 및 유틸리티\n- 기존 chart.js, react-chartjs-2 의존성과 호환\n\n### 2. 대시보드 컴포넌트\n- Dashboard.tsx, DashboardChart.tsx \n- DashboardRecentReports.tsx, DashboardStatistics.tsx\n- hooks, types, utils 디렉토리\n\n### 3. 피드 컴포넌트 확장\n- FeedStatusBadge.tsx, FeedStatusChanger.tsx\n- FeedStatusFilter.tsx, ReviewCompletedIndicator.tsx\n- ReviewWriteModal.tsx\n\n### 4. 프로필 컴포넌트 개선\n- BioSection.tsx, ErrorDisplay.tsx, ImageModal.tsx\n- LoadingSpinner.tsx, PostsGrid.tsx, ProfileHeader.tsx\n- ProfileTabs.tsx\n\n### 5. 유틸리티 함수\n- chartUtils.ts, imageUtils.ts\n\n환경 설정 예시 코드:\n```bash\n# 프론트엔드 프로젝트 설정\ngit checkout -b feature/frontend-merge\nnpm install\n\n# 필요한 차트 라이브러리 설치 (예시)\nnpm install chart.js react-chartjs-2\n```",
+        "testStrategy": "1. 기존 프론트엔드 빌드 테스트 - ✅ 성공 (파일 크기: 320.67 kB)\n2. 컴포넌트 렌더링 테스트 - ✅ 성공\n3. 의존성 충돌 확인 - ✅ package.json 의존성 완전 호환\n4. 개발 서버 구동 테스트 - ✅ 성공\n5. ESLint 검사 - ⚠️ 일부 경고 있으나 기능에 영향 없음",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "컴포넌트 복사 및 통합",
+            "description": "모든 필요 컴포넌트를 성공적으로 복사하고 프로젝트에 통합",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "의존성 호환성 확인",
+            "description": "chart.js, react-chartjs-2 등 모든 의존성 호환성 확인 완료",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "ESLint 경고 검토",
+            "description": "발견된 ESLint 경고 검토 및 필요시 수정",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "병합 결과 문서화",
+            "description": "병합된 컴포넌트 목록 및 구조 문서화",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 4,
-        "title": "스타일 시스템 통합 및 CSS 파일 변환",
-        "description": "CSS 파일을 styled-components로 변환하고 일관된 디자인 시스템을 구축합니다.",
-        "details": "1. 팀원 프로젝트의 CSS 파일 식별 (MatchPage.css, MatchRecommendPage.css 등)\n2. CSS 파일을 styled-components로 변환\n   - CSS-in-JS 변환 도구 활용 (css-to-styled-components)\n   - 글로벌 스타일 및 테마 통합\n3. 디자인 토큰 시스템 통합\n   - 색상, 폰트, 간격 등의 일관된 변수 정의\n   - ThemeProvider 설정\n4. 반응형 디자인 유틸리티 통합\n5. 스타일 가이드 문서 작성\n\n권장 라이브러리:\n- styled-components v6.0.7 이상\n- polished v4.2.2 (색상 조작 유틸리티)\n- styled-breakpoints v11.2.3 (반응형 미디어 쿼리)",
-        "testStrategy": "1. 변환된 컴포넌트의 시각적 일관성 검증\n2. 다양한 화면 크기에서 반응형 디자인 테스트\n3. 브라우저 호환성 테스트 (Chrome, Firefox, Safari)\n4. 스타일 적용 성능 측정",
-        "priority": "medium",
+        "title": "프론트엔드 컴포넌트 병합 구현",
+        "description": "차트, 대시보드, 피드, 프로필 컴포넌트를 기존 프로젝트에 병합",
+        "details": "1. 차트 컴포넌트 병합:\n   - BarChart, DoughnutChart, LineChart, PieChart 컴포넌트 통합\n   - 차트 데이터 연동 구현\n\n2. 대시보드 컴포넌트 병합:\n   - Dashboard, DashboardChart 등 컴포넌트 통합\n   - 레이아웃 및 스타일 조정\n\n3. 피드 관리 컴포넌트 병합:\n   - 새로운 피드 기능 통합\n   - 기존 피드 기능과 통합\n\n4. 프로필 컴포넌트 병합:\n   - 개선된 프로필 기능 통합\n\n컴포넌트 병합 예시 코드:\n```jsx\n// 차트 컴포넌트 예시\nimport React from 'react';\nimport { Bar } from 'react-chartjs-2';\n\nconst BarChart = ({ data, options }) => {\n  return (\n    <div className=\"chart-container\">\n      <Bar data={data} options={options} />\n    </div>\n  );\n};\n\nexport default BarChart;\n```",
+        "testStrategy": "1. 각 컴포넌트 렌더링 테스트\n2. 컴포넌트 상호작용 테스트\n3. 반응형 디자인 테스트\n4. 브라우저 호환성 테스트\n5. 백엔드 API 연동 테스트",
+        "priority": "high",
         "dependencies": [
+          2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
         "id": 5,
-        "title": "차트 기능 통합 및 설정",
-        "description": "Chart.js 및 react-chartjs-2 라이브러리를 통합하고 차트 컴포넌트를 구현합니다.",
-        "details": "1. Chart.js 및 react-chartjs-2 설치 및 설정\n2. 차트 테마 및 기본 스타일 설정 (styled-components 테마와 일치)\n3. 공통 차트 컴포넌트 구현\n   - LineChart, BarChart, PieChart, DoughnutChart 등\n   - 반응형 차트 래퍼 컴포넌트 구현\n4. 차트 데이터 포맷팅 유틸리티 함수 구현\n5. 차트 애니메이션 및 인터랙션 설정\n\n구현 예시:\n```tsx\n// src/components/charts/LineChart.tsx\nimport { Line } from 'react-chartjs-2';\nimport { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';\nimport styled from 'styled-components';\n\nChart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);\n\nconst ChartContainer = styled.div`\n  width: 100%;\n  height: 100%;\n  padding: 1rem;\n`;\n\ninterface LineChartProps {\n  data: any;\n  options?: any;\n}\n\nconst LineChart = ({ data, options = {} }: LineChartProps) => {\n  const defaultOptions = {\n    responsive: true,\n    maintainAspectRatio: false,\n    plugins: {\n      legend: {\n        position: 'top' as const,\n      },\n      title: {\n        display: true,\n        text: '데이터 차트',\n      },\n    },\n  };\n\n  return (\n    <ChartContainer>\n      <Line data={data} options={{ ...defaultOptions, ...options }} />\n    </ChartContainer>\n  );\n};\n\nexport default LineChart;\n```",
-        "testStrategy": "1. 각 차트 타입 렌더링 테스트\n2. 다양한 데이터셋으로 차트 정확성 검증\n3. 반응형 동작 테스트\n4. 브라우저 호환성 테스트\n5. 성능 테스트 (대용량 데이터셋)",
-        "priority": "medium",
+        "title": "설정 파일 통합 및 최종 테스트",
+        "description": "package.json 의존성 및 TypeScript 설정 통합, 전체 시스템 테스트",
+        "status": "done",
         "dependencies": [
           2,
           4
         ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 6,
-        "title": "관리자 대시보드 컴포넌트 통합",
-        "description": "팀원 프로젝트의 고도화된 관리자 대시보드 컴포넌트를 통합합니다.",
-        "details": "1. Dashboard.tsx (18KB) 분석 및 모듈화\n   - 대시보드를 작은 컴포넌트로 분리\n   - 각 섹션별 컴포넌트 구현 (통계, 차트, 알림 등)\n2. 차트 컴포넌트 통합\n   - 기존 차트를 새로 구현한 차트 컴포넌트로 교체\n3. 대시보드 레이아웃 최적화\n   - 그리드 시스템 구현\n   - 반응형 레이아웃 적용\n4. 데이터 페칭 로직 통합\n   - React Query 또는 SWR 활용 고려\n   - 데이터 캐싱 및 재검증 전략 구현\n5. 대시보드 상태 관리 구현\n\n권장 구조:\n```\nsrc/\n  components/\n    dashboard/\n      DashboardLayout.tsx\n      StatisticsSection.tsx\n      ChartSection.tsx\n      RecentActivitiesSection.tsx\n      AlertsSection.tsx\n  pages/\n    admin/\n      Dashboard.tsx\n```",
-        "testStrategy": "1. 각 대시보드 섹션 렌더링 테스트\n2. 데이터 로딩 및 표시 검증\n3. 상태 관리 테스트\n4. 반응형 레이아웃 테스트\n5. 성능 최적화 검증 (메모이제이션, 코드 스플리팅)",
-        "priority": "high",
-        "dependencies": [
-          4,
-          5
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 7,
-        "title": "관리 페이지 통합 (피드, 신고, 사용자 관리)",
-        "description": "팀원 프로젝트의 완전한 관리 페이지들(FeedManagement, ReportManagement, UserManagement)을 통합합니다.",
-        "details": "1. 각 관리 페이지 컴포넌트 분석 및 통합\n   - FeedManagement 페이지 통합\n   - ReportManagement 페이지 통합\n   - UserManagement 페이지 통합\n2. 데이터 테이블 컴포넌트 최적화\n   - 페이지네이션, 정렬, 필터링 기능 구현\n   - 테이블 스타일링 (styled-components)\n3. CRUD 작업 구현\n   - 모달 컴포넌트 통합\n   - 폼 검증 로직 구현\n4. 권한 관리 시스템 통합\n   - 역할 기반 접근 제어 (RBAC) 구현\n5. 알림 시스템 통합\n\n권장 라이브러리:\n- react-table v8 또는 tanstack/react-table\n- react-hook-form v7.45.0 이상\n- yup 또는 zod (폼 검증)\n- react-toastify v9.1.3 (알림)",
-        "testStrategy": "1. CRUD 작업 기능 테스트\n2. 권한 관리 시스템 테스트\n3. 데이터 테이블 기능 테스트 (정렬, 필터링, 페이지네이션)\n4. 폼 검증 테스트\n5. API 연동 테스트",
-        "priority": "high",
-        "dependencies": [
-          4,
-          6
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 8,
-        "title": "프로필 페이지 기능 통합",
-        "description": "팀원 프로젝트의 고도화된 프로필 페이지(ProfilePage.tsx 36KB)를 통합합니다.",
-        "details": "1. 기존 프로필 페이지(24KB)와 팀원 프로필 페이지(36KB) 비교 분석\n2. 프로필 페이지 모듈화\n   - 프로필 헤더 컴포넌트\n   - 프로필 정보 섹션\n   - 활동 내역 섹션\n   - 설정 섹션 등\n3. 추가 기능 통합\n   - 프로필 편집 기능\n   - 활동 통계 및 차트\n   - 팔로워/팔로잉 관리\n4. 이미지 업로드 및 크롭 기능 구현\n5. 프로필 데이터 캐싱 전략 구현\n\n권장 라이브러리:\n- react-dropzone v14.2.3 (이미지 업로드)\n- react-image-crop v10.1.5 (이미지 크롭)\n- react-query v5 또는 SWR v2.2.0 (데이터 페칭)",
-        "testStrategy": "1. 프로필 데이터 로딩 및 표시 테스트\n2. 프로필 편집 기능 테스트\n3. 이미지 업로드 및 크롭 기능 테스트\n4. 활동 내역 표시 테스트\n5. 반응형 디자인 테스트",
         "priority": "medium",
-        "dependencies": [
-          4
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 9,
-        "title": "AI 추천 및 근처 장소 추천 기능 보존",
-        "description": "기존 프로젝트의 AI 추천 기능(AIRecommendationSection.tsx)과 근처 장소 추천(NearbyRecommendations.tsx) 기능을 보존합니다.",
-        "details": "1. 기존 AI 추천 컴포넌트 분석\n   - AIRecommendationSection.tsx 코드 검토\n   - API 연동 로직 확인\n2. 근처 장소 추천 컴포넌트 분석\n   - NearbyRecommendations.tsx 코드 검토\n   - 카카오맵 API 연동 확인\n3. 병합된 프로젝트에 컴포넌트 통합\n   - 필요한 의존성 및 타입 정의 확인\n   - 스타일 시스템 적용\n4. 성능 최적화\n   - 메모이제이션 적용\n   - 지연 로딩 구현\n5. 오류 처리 및 폴백 UI 개선\n\n카카오맵 API 연동:\n```tsx\n// 카카오맵 API 초기화 예시\nconst initKakaoMap = () => {\n  if (window.kakao && window.kakao.maps) {\n    const mapContainer = document.getElementById('map');\n    const mapOption = {\n      center: new window.kakao.maps.LatLng(37.566826, 126.9786567),\n      level: 3\n    };\n    const map = new window.kakao.maps.Map(mapContainer, mapOption);\n    return map;\n  }\n  return null;\n};\n```",
-        "testStrategy": "1. AI 추천 기능 동작 테스트\n2. 근처 장소 추천 기능 테스트\n3. 카카오맵 API 연동 테스트\n4. 오류 상황 테스트 (API 실패, 데이터 없음 등)\n5. 성능 테스트",
-        "priority": "high",
-        "dependencies": [
-          4
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 10,
-        "title": "장소 상세 모달 및 여행 플랜 페이지 통합",
-        "description": "기존 프로젝트의 장소 상세 모달(PlaceDetailModal.tsx)과 여행 플랜 페이지(PlanPage.tsx, PlanWritePage.tsx)를 통합합니다.",
-        "details": "1. 장소 상세 모달 컴포넌트 분석 및 통합\n   - PlaceDetailModal.tsx 코드 검토\n   - 모달 상태 관리 및 애니메이션 확인\n2. 여행 플랜 페이지 분석 및 통합\n   - PlanPage.tsx, PlanWritePage.tsx 코드 검토\n   - 데이터 구조 및 상태 관리 확인\n3. 컴포넌트 간 상호작용 최적화\n   - 상태 공유 메커니즘 구현\n   - 컨텍스트 API 또는 상태 관리 라이브러리 활용\n4. UI/UX 개선\n   - 애니메이션 및 전환 효과 추가\n   - 접근성 개선\n5. 오류 처리 및 사용자 피드백 개선\n\n권장 라이브러리:\n- framer-motion v10.16.4 (애니메이션)\n- react-hook-form v7.45.0 (폼 관리)\n- zustand v4.4.1 또는 jotai v2.4.2 (상태 관리)",
-        "testStrategy": "1. 모달 열기/닫기 기능 테스트\n2. 여행 플랜 CRUD 기능 테스트\n3. 컴포넌트 간 상호작용 테스트\n4. 애니메이션 및 전환 효과 테스트\n5. 접근성 테스트 (키보드 탐색, 스크린 리더)",
-        "priority": "medium",
-        "dependencies": [
-          4,
-          9
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 11,
-        "title": "통합 테스트 및 성능 최적화",
-        "description": "병합된 프로젝트의 전체 기능을 테스트하고 성능을 최적화합니다.",
-        "details": "1. 전체 기능 테스트 계획 수립\n   - 주요 사용자 시나리오 정의\n   - 테스트 케이스 작성\n2. 자동화 테스트 구현\n   - Jest 및 React Testing Library 설정\n   - 주요 컴포넌트 단위 테스트 작성\n   - 통합 테스트 작성\n3. 성능 최적화\n   - Lighthouse 성능 분석\n   - 번들 크기 최적화 (코드 스플리팅, 트리 쉐이킹)\n   - 메모이제이션 및 지연 로딩 적용\n   - 이미지 최적화\n4. 접근성 검사 및 개선\n   - WCAG 2.1 가이드라인 준수\n   - 키보드 탐색 지원\n   - 스크린 리더 호환성\n5. 크로스 브라우저 테스트\n\n권장 도구:\n- Jest v29.6.0\n- React Testing Library v14.0.0\n- Lighthouse\n- axe-core (접근성 테스트)",
-        "testStrategy": "1. 자동화 테스트 실행 및 결과 검증\n2. Lighthouse 성능 점수 측정 (목표: 90점 이상)\n3. 번들 크기 측정 및 최적화 검증\n4. 접근성 점수 측정 (목표: WCAG AA 준수)\n5. 다양한 브라우저에서 테스트 (Chrome, Firefox, Safari, Edge)",
-        "priority": "high",
-        "dependencies": [
-          6,
-          7,
-          8,
-          9,
-          10
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 12,
-        "title": "최종 배포 및 문서화",
-        "description": "병합된 프로젝트를 배포하고 필요한 문서를 업데이트합니다.",
-        "details": "1. 배포 파이프라인 설정\n   - CI/CD 구성 (GitHub Actions 또는 Jenkins)\n   - 환경별 배포 설정 (개발, 스테이징, 프로덕션)\n2. 배포 전 최종 점검\n   - 환경 변수 확인\n   - 빌드 프로세스 검증\n3. 문서 업데이트\n   - README.md 업데이트\n   - 컴포넌트 문서화 (Storybook 고려)\n   - API 연동 문서 업데이트\n4. 불필요한 파일 정리\n   - 중복 파일 제거\n   - 미사용 코드 정리\n5. 버전 관리 및 릴리스 노트 작성\n\n권장 도구:\n- GitHub Actions\n- Storybook v7.4.0\n- Vercel 또는 Netlify (배포)",
-        "testStrategy": "1. 배포 파이프라인 테스트\n2. 배포된 애플리케이션 기능 테스트\n3. 문서 정확성 검증\n4. 사용자 피드백 수집 및 분석\n5. 성능 모니터링 설정 검증",
-        "priority": "medium",
-        "dependencies": [
-          11
-        ],
-        "status": "pending",
-        "subtasks": []
+        "details": "1. package.json 의존성 통합:\n   - 새로운 의존성 추가\n   - 버전 충돌 해결\n   - 불필요한 의존성 제거\n\n2. TypeScript 설정 통합:\n   - tsconfig.json 업데이트\n   - 타입 정의 파일 통합\n\n3. 전체 시스템 빌드 및 테스트:\n   - 프론트엔드 빌드 (성공적으로 완료 - 320.67 kB)\n   - 백엔드 빌드 (성공적으로 완료 - BUILD SUCCESSFUL)\n   - 통합 테스트 실행\n\n4. 성공적으로 병합된 주요 기능:\n   - 백엔드: Admin 관리 시스템, 파일 업로드 API, 사용자 상태 관리, 보안 설정 업데이트\n   - 프론트엔드: 차트 시스템, 대시보드 컴포넌트, 피드 관리 시스템, 프로필 컴포넌트 개선, 유틸리티 함수\n\n설정 파일 통합 예시:\n```json\n// package.json 의존성 통합 예시\n{\n  \"dependencies\": {\n    \"react\": \"^17.0.2\",\n    \"react-dom\": \"^17.0.2\",\n    \"chart.js\": \"^3.7.0\",\n    \"react-chartjs-2\": \"^4.0.0\",\n    // 기타 필요한 의존성\n  }\n}\n\n// tsconfig.json 설정 예시\n{\n  \"compilerOptions\": {\n    \"target\": \"es5\",\n    \"lib\": [\"dom\", \"dom.iterable\", \"esnext\"],\n    \"allowJs\": true,\n    \"skipLibCheck\": true,\n    \"esModuleInterop\": true,\n    \"allowSyntheticDefaultImports\": true,\n    \"strict\": true,\n    \"forceConsistentCasingInFileNames\": true,\n    \"noFallthroughCasesInSwitch\": true,\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"node\",\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\"\n  },\n  \"include\": [\"src\"]\n}\n```",
+        "testStrategy": "1. 의존성 충돌 테스트 - ✅ package.json 의존성 완전 호환\n2. TypeScript 컴파일 테스트 - ✅ 컴파일 에러 없음\n3. 프론트엔드 빌드 테스트 - ✅ 빌드 성공 (320.67 kB)\n4. 백엔드 빌드 테스트 - ✅ 빌드 성공 (BUILD SUCCESSFUL)\n5. 전체 시스템 통합 테스트 - ✅ 모든 컴포넌트 정상 통합\n6. 기존 기능 정상 동작 확인 - ✅ 기존 기능 정상 동작 유지\n7. 새로운 기능 정상 동작 확인 - ✅ 모든 새로운 기능 정상 통합\n8. ESLint 검사 - ⚠️ 일부 경고 있으나 기능에 영향 없음",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "의존성 통합 및 충돌 해결",
+            "description": "package.json 의존성 통합 및 버전 충돌 해결 완료",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "TypeScript 설정 통합",
+            "description": "tsconfig.json 설정 및 타입 정의 파일 통합 완료",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "전체 시스템 빌드 테스트",
+            "description": "프론트엔드 빌드(320.67 kB) 및 백엔드 빌드(BUILD SUCCESSFUL) 완료",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "통합 기능 테스트",
+            "description": "백엔드 기능(Admin 관리, 파일 업로드, 사용자 상태 관리, 보안 설정) 및 프론트엔드 컴포넌트(차트, 대시보드, 피드, 프로필) 정상 동작 확인",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       }
     ],
     "metadata": {
-      "created": "2025-07-25T06:38:06.236Z",
-      "updated": "2025-07-25T06:45:00.485Z",
-      "description": "Tasks for project-merge context"
+      "created": "2025-07-26T15:55:05.736Z",
+      "updated": "2025-07-26T16:05:02.582Z",
+      "description": "Tasks for merge-features context"
     }
   }
 }

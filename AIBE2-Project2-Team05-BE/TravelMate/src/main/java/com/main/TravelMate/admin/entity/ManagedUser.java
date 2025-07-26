@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PUBLIC)
+@AllArgsConstructor
+@Builder
 public class ManagedUser {
 
     @Id
