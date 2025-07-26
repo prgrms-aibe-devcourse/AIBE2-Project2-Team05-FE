@@ -1434,7 +1434,7 @@ const PlanWritePage: React.FC = () => {
       {/* 푸터 */}
       <S.Footer>
         <S.FooterContent>
-          <S.FooterLogo>트립매치</S.FooterLogo>
+                          <S.FooterLogo>트래블메이트</S.FooterLogo>
           <S.FooterLinks>
             {/* 임시 주석 처리 - 실제 링크 추가 시 활성화 */}
             {/* <a href="#">서비스 소개</a>
@@ -1445,7 +1445,7 @@ const PlanWritePage: React.FC = () => {
           </S.FooterLinks>
         </S.FooterContent>
         <S.FooterCopyright>
-          © 2023 트립매치. All rights reserved.
+                      © 2023 트래블메이트. All rights reserved.
         </S.FooterCopyright>
       </S.Footer>
     </S.Container>

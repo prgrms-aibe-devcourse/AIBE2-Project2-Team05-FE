@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "트래블메이트",
+  "name": "트래블메이트",
   "icons": [
     {
       "src": "favicon.ico",

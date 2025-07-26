@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 // import { Link } from 'react-router-dom'; // 임시 주석 처리 - 미사용
 // 프로필 API 추가
 import profileApiService from '../services/profileApi';
 import { FeedWithTravelStatus } from '../types/feed';
+// 이미지 업로드 API 추가
+import { uploadImages } from '../services/feedStatusApi';
+// 이미지 유틸리티 추가
+import { getProfileImageUrl, handleImageError } from '../utils/imageUtils';
+
+
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -30,6 +36,8 @@ const MyPage = () => {
   const { logout, updateUser, user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  // 파일 입력을 위한 ref 추가
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -245,6 +253,64 @@ const MyPage = () => {
     }
   };
 
+  // 프로필 이미지 업로드 핸들러 추가
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) {
+      console.log('📁 파일이 선택되지 않았습니다.');
+      return;
+    }
+
+    const file = files[0]; // 첫 번째 파일만 사용
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    // 파일 크기 검증 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('파일 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+
+    try {
+      console.log('📤 프로필 이미지 업로드 시작:', file.name);
+      
+      // 이미지 업로드 API 호출
+      const imageUrls = await uploadImages([file]);
+      
+      if (imageUrls.length > 0) {
+        // 업로드된 이미지 URL로 프로필 데이터 업데이트
+        const newProfileData = {
+          ...profileData,
+          profileImage: imageUrls[0] // 첫 번째 이미지 URL 사용
+        };
+        
+        setProfileData(newProfileData);
+        
+        // 백엔드에 프로필 업데이트
+        await profileApiService.updateProfile({
+          profileImage: imageUrls[0]
+        });
+        
+        console.log('✅ 프로필 이미지 업로드 성공:', imageUrls[0]);
+        alert('프로필 이미지가 성공적으로 업로드되었습니다!');
+      } else {
+        throw new Error('이미지 업로드 실패');
+      }
+    } catch (error) {
+      console.error('❌ 프로필 이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 이미지 업로드 버튼 클릭 핸들러
+  const handlePhotoUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   // 로딩 중일 때 로딩 화면 표시
   if (loading) {
     return (
@@ -288,8 +354,28 @@ const MyPage = () => {
         {/* 프로필 설정 */}
         <ProfileSection>
           <ProfilePhoto>
-            <div style={{ fontSize: '60px' }}>{profileData.profileImage}</div>
-            <PhotoUploadButton>📷 사진 변경</PhotoUploadButton>
+            {/* 프로필 이미지 표시 - URL인 경우 이미지, 아니면 이모지 */}
+            {profileData.profileImage && (profileData.profileImage.startsWith('http') || profileData.profileImage.startsWith('/')) ? (
+              <ProfileImage 
+                src={getProfileImageUrl(profileData.profileImage)} 
+                alt="프로필 이미지"
+                onError={(e) => handleImageError(e, 200)}
+              />
+            ) : null}
+            <div style={{ 
+              fontSize: '60px', 
+              display: profileData.profileImage && (profileData.profileImage.startsWith('http') || profileData.profileImage.startsWith('/')) ? 'none' : 'block'
+            }}>
+              {profileData.profileImage || '👤'}
+            </div>
+            <PhotoUploadButton onClick={handlePhotoUploadClick}>📷 사진 변경</PhotoUploadButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+              accept="image/*"
+            />
           </ProfilePhoto>
 
           <InputGroup>
@@ -451,6 +537,17 @@ const ProfilePhoto = styled.div`
   flex-shrink: 0;
   text-align: center;
 `;
+
+const ProfileImage = styled.img`
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 15px;
+  border: 3px solid #3498db;
+`;
+
+
 
 const PhotoUploadButton = styled.button`
   background-color: #3498db;

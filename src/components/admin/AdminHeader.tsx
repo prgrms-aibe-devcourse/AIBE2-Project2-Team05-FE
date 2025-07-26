@@ -24,65 +24,7 @@ const HeaderActions = styled.div`
     gap: 20px;
 `;
 
-const SearchBar = styled.div`
-    position: relative;
 
-    input {
-        padding: 10px 15px 10px 40px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        width: 250px;
-        font-size: 14px;
-        outline: none;
-        transition: all 0.3s;
-
-        &:focus {
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-        }
-    }
-
-    i {
-        position: absolute;
-        left: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #999;
-    }
-`;
-
-const HeaderIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f5f7fa;
-    color: #666;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.3s;
-
-    &:hover {
-        background: #e0e6ed;
-    }
-`;
-
-const NotificationBadge = styled.span`
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #e74c3c;
-    color: white;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
 
 const LogoutButton = styled.button`
     background: #f5f7fa;
@@ -116,18 +58,6 @@ const AdminHeader: React.FC = () => {
         <HeaderContainer>
             <PageTitle>대시보드 홈</PageTitle>
             <HeaderActions>
-                <SearchBar>
-                    <i className="ri-search-line"></i>
-                    <input type="text" placeholder="검색..." />
-                </SearchBar>
-                <HeaderIcon>
-                    <i className="ri-notification-3-line"></i>
-                    <NotificationBadge>5</NotificationBadge>
-                </HeaderIcon>
-                <HeaderIcon>
-                    <i className="ri-message-3-line"></i>
-                    <NotificationBadge>3</NotificationBadge>
-                </HeaderIcon>
                 <LogoutButton onClick={handleLogout}>
                     <i className="ri-logout-box-r-line"></i>
                     로그아웃

@@ -71,9 +71,11 @@ const UserManagementPage: React.FC = () => {
       });
       
       console.log('Managed Users API Response:', response);
+      console.log('Managed Users Data:', response.data);
       
       if (Array.isArray(response.data)) {
         setManagedUsers(response.data);
+        console.log('Managed Users set successfully:', response.data);
       } else {
         console.error('Managed users response is not an array:', response.data);
         setManagedUsers([]);
@@ -265,11 +267,11 @@ const UserManagementPage: React.FC = () => {
               <td>{managedUser.id}</td>
               <td>
                 <div>
-                  <strong>{managedUser.user.nickname}</strong><br />
-                  <small>{managedUser.user.email}</small>
+                  <strong>{managedUser.user?.nickname || 'N/A'}</strong><br />
+                  <small>{managedUser.user?.email || 'N/A'}</small>
                 </div>
               </td>
-              <td>{managedUser.admin.name}</td>
+              <td>{managedUser.admin?.name || managedUser.admin?.email || 'N/A'}</td>
               <td>
                 <StatusBadge $status={managedUser.status}>
                   {managedUser.status}

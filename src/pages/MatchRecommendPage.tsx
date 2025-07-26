@@ -14,6 +14,7 @@ import feedStatusService from '../services/feedStatusService';
 // import { generateMockUserFeeds } from '../data/mockProfileData'; // Mock 데이터 생성 비활성화로 제거
 import matePostService from '../services/matePostService'; // 추가
 import travelPlanApiService from '../services/travelPlanApi'; // 백엔드 API 연결
+import { getProfileImageUrl, handleImageError } from '../utils/imageUtils';
 
 interface Activity {
   time: string;
@@ -1517,9 +1518,10 @@ const MatchRecommendPage: React.FC = () => {
                 <div className="card-header">
                   <div className="header-profile">
                     <img
-                      src={currentUser.profileImage}
+                      src={getProfileImageUrl(currentUser.profileImage)}
                       alt={`${currentUser.name} 프로필`}
                       className="header-profile-image"
+                      onError={(e) => handleImageError(e, 40)}
                     />
                     <div className="header-profile-info">
                       <h2>

@@ -12,6 +12,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
 jwt:
   secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=
   expiration: 3600000 # 1시간
@@ -34,3 +39,9 @@ logging:
   level:
     org.springframework.security: DEBUG
     com.main.TravelMate.common.security: DEBUG
+
+# 파일 업로드 설정
+file:
+  upload:
+    path: uploads
+    url-prefix: /api/upload/images

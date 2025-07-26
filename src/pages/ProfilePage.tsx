@@ -29,7 +29,7 @@ interface UserProfile {
   followersCount: number;
   followingCount: number;
   feeds?: BackendFeed[];
-  isCurrentUser?: boolean;
+  isCurrentUser: boolean;
 }
 
 // 백엔드에서 받은 피드 데이터 타입
@@ -199,6 +199,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           </svg>
         `)}`;
 
+        // 현재 사용자의 프로필인지 확인
+        const isCurrentUserProfile = Boolean(isOwnProfile || (user && user.nickname === profileData.nickname));
+        
         setProfile({
           id: profileData.id,
           username: profileData.email || 'user',
@@ -208,7 +211,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           postsCount: 0,
           followersCount: 0,
           followingCount: 0,
-          isCurrentUser: true,
+          isCurrentUser: isCurrentUserProfile,
         });
 
         console.log('✅ 프로필 페이지 로드 완료');
@@ -288,12 +291,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
     }
   };
 
-  // 설정 버튼 표시 여부 확인
-  const shouldShowSettings = (() => {
-    const isOwnProfilePath = location.pathname === '/profile';
-    const isSameUser = user && profile && user.nickname === profile.nickname;
-    return isOwnProfile || isOwnProfilePath || isSameUser;
-  })();
+
 
   // Render loading state
   if (loading) {
@@ -313,7 +311,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
   return (
     <Container>
       {/* 설정 버튼 - 우측 상단 */}
-      {shouldShowSettings && (
+      {profile && profile.isCurrentUser && (
         <SettingsButton onClick={() => navigate('/mypage')}>⚙️</SettingsButton>
       )}
 
