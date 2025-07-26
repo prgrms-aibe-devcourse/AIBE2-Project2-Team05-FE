@@ -241,7 +241,7 @@ const FeedManagementPage: React.FC = () => {
   const handleRestoreFeed = async (managedFeed: AdminManagedFeedDto) => {
     const confirmMessage = `"${managedFeed.feedCaption.substring(0, 30)}..." 피드의 관리 상태를 해제하시겠습니까?\n다시 전체 피드 목록에 표시됩니다.`;
     
-    if (!confirm(confirmMessage)) {
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
