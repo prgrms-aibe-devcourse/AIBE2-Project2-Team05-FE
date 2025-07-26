@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import styled from 'styled-components';
 import { getProfileImageUrl, handleImageError } from '../../utils/imageUtils';
 
@@ -17,11 +17,19 @@ interface UserProfile {
 }
 
 interface ProfileHeaderProps {
-  profile: UserProfile;
+  profile: {
+    nickname: string;
+    profileImage: string;
+    postsCount: number;
+    followersCount: number;
+    followingCount: number;
+    isCurrentUser?: boolean; // ✅ 누락된 속성 추가
+  };
   feedCount: number; // 실제 피드 개수를 전달받음
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, feedCount }) => {
+// ✅ React.memo로 최적화
+const ProfileHeader = memo<ProfileHeaderProps>(({ profile, feedCount }) => {
   return (
     <Container>
       <ProfileImage>
@@ -72,7 +80,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, feedCount }) => 
       </ProfileInfo>
     </Container>
   );
-};
+});
+
+ProfileHeader.displayName = 'ProfileHeader';
 
 // 스타일 컴포넌트들
 const Container = styled.div`

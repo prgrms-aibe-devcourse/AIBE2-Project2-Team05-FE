@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import profileApiService from '../services/profileApi';
 import PlanPage from './PlanPage';
 
-// 모듈화된 컴포넌트들 import
+// ✅ 모듈화된 컴포넌트들 import
 import {
   ProfileHeader,
   BioSection,
@@ -56,7 +56,11 @@ interface UserFeed {
   authorName?: string; // ✅ 여행 계획 작성자 이름 (여행리더 구분용)
 }
 
-// TravelPlan 모달 컴포넌트
+interface ProfilePageProps {
+  isOwnProfile?: boolean;
+}
+
+// ✅ TravelPlan 모달 컴포넌트
 const TravelPlanModal: React.FC<{
   planId: string;
   onClose: () => void;
@@ -84,10 +88,6 @@ const TravelPlanModal: React.FC<{
 };
 
 // Main Component
-interface ProfilePageProps {
-  isOwnProfile?: boolean;
-}
-
 const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
   const { nickname } = useParams<{ nickname: string }>();
   const navigate = useNavigate();
@@ -106,194 +106,148 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Refresh function
-  const refreshProfile = () => {
-    console.log('🔄 프로필 새로고침 시작');
+  // ✅ 기본 프로필 이미지를 memo로 최적화 (컴포넌트 레벨에서)
+  const defaultProfileImage = useMemo(() => 
+    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+      <svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="75" cy="75" r="75" fill="url(#gradient)"/>
+        <circle cx="75" cy="55" r="25" fill="white" opacity="0.9"/>
+        <path d="M75 85c-20 0-36 12-36 26v14h72v-14c0-14-16-26-36-26z" fill="white" opacity="0.9"/>
+        <defs>
+          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#667eea"/>
+            <stop offset="100%" style="stop-color:#764ba2"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    `)}`, []
+  );
+
+  // ✅ 최적화된 새로고침 함수
+  const refreshProfile = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
-  };
+  }, []);
 
-  // Load profile data
-  useEffect(() => {
-    const loadProfile = async () => {
-      console.log('🔍 프로필 페이지 로드 시작');
-      console.log('📍 isOwnProfile:', isOwnProfile, 'nickname:', nickname);
-      try {
-        // Get profile data from backend
-        let profileData: any = null; // 백엔드 API 응답에 맞춰 any 타입 사용
-        if (isOwnProfile) {
-          // 내 프로필 조회
-          profileData = await profileApiService.getMyProfile();
-          console.log('📋 내 프로필 데이터:', profileData);
-        } else if (nickname) {
-          // 닉네임으로 다른 사용자 프로필 조회
-          profileData = await profileApiService.getProfileByNickname(nickname);
-          console.log('📋 사용자 프로필 데이터:', profileData);
-        } else {
-          throw new Error('프로필을 불러올 수 없습니다.');
-        }
+  // ✅ 최적화된 프로필 로드 함수
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get profile data from backend
+      let profileData: any = null;
+      if (isOwnProfile) {
+        profileData = await profileApiService.getMyProfile();
+      } else if (nickname) {
+        profileData = await profileApiService.getProfileByNickname(nickname);
+      } else {
+        throw new Error('프로필을 불러올 수 없습니다.');
+      }
 
-        // Process feeds with real backend data
-        const processedFeeds: UserFeed[] = [];
-
-        if (profileData && profileData.feeds && profileData.feeds.length > 0) {
-          console.log('🔍 백엔드 피드 데이터 처리 시작:', profileData.feeds);
-          console.log('📊 받은 피드 개수:', profileData.feeds.length);
-
-          // 모든 피드를 간단하게 처리
-          profileData.feeds.forEach((feed: any, index: number) => {
-            console.log(`🔍 피드 ${index + 1} 처리 중:`, {
-              travelPlanId: feed.travelPlanId,
-              title: feed.title,
-              location: feed.location,
-              imageUrl: feed.imageUrl,
-              authorName: feed.authorName, // ✅ authorName 디버깅 추가
-            });
-
-            // Create rich caption with actual backend data
-            const caption = `📍 ${feed.location || '여행지'}
+      // ✅ 피드 처리 최적화 - map으로 변경하고 로그 제거
+      const processedFeeds: UserFeed[] = profileData?.feeds?.map((feed: any, index: number) => {
+        const caption = `📍 ${feed.location || '여행지'}
 ✨ ${feed.title || '여행 계획'}
 📅 ${feed.startDate ? new Date(feed.startDate).toLocaleDateString() : '날짜 미정'}`;
 
-            const feedData: UserFeed = {
-              id: `feed-${feed.travelPlanId}-${index}`,
-              author: profileData.nickname || 'Unknown',
-              avatar: profileData.profileImage || '/default-avatar.jpg',
-              image: feed.imageUrl || '/default-place-image.jpg',
-              caption: caption,
-              likes: 0,
-              type: 'travel-plan',
-              planId: feed.planId || `plan_${feed.travelPlanId}`,
-              createdAt: feed.startDate || new Date().toISOString(),
-              travelType: 'created' as const,
-              authorName: feed.authorName, // ✅ 백엔드에서 받은 authorName 추가
-            };
+        return {
+          id: `feed-${feed.travelPlanId}-${index}`,
+          author: profileData.nickname || 'Unknown',
+          avatar: profileData.profileImage || '/default-avatar.jpg',
+          image: feed.imageUrl || '/default-place-image.jpg',
+          caption,
+          likes: 0,
+          type: 'travel-plan' as const,
+          planId: feed.planId || `plan_${feed.travelPlanId}`,
+          createdAt: feed.startDate || new Date().toISOString(),
+          travelType: 'created' as const,
+          authorName: feed.authorName,
+        };
+      }) || [];
 
-            console.log(`✅ 피드 ${index + 1} 생성 완료:`, feedData.id);
-            processedFeeds.push(feedData);
-          });
-        } else {
-          console.log('⚠️ 백엔드에서 피드 데이터 없음');
-        }
+      setFeeds(processedFeeds);
 
-        console.log('📋 최종 처리된 피드 목록:', processedFeeds);
-        setFeeds(processedFeeds);
-
-        // ✅ AuthContext의 사용자 정보에 nickname이 없으면 업데이트
-        if (isOwnProfile && profileData && profileData.nickname && user && !user.nickname) {
-          console.log('🔄 AuthContext 사용자 정보에 nickname 업데이트:', profileData.nickname);
-          updateUser({ nickname: profileData.nickname });
-        }
-
-        // 기본 프로필 이미지 설정
-        const defaultProfileImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-          <svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="75" cy="75" r="75" fill="url(#gradient)"/>
-            <circle cx="75" cy="55" r="25" fill="white" opacity="0.9"/>
-            <path d="M75 85c-20 0-36 12-36 26v14h72v-14c0-14-16-26-36-26z" fill="white" opacity="0.9"/>
-            <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#667eea"/>
-                <stop offset="100%" style="stop-color:#764ba2"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        `)}`;
-
-        setProfile({
-          id: profileData.id,
-          username: profileData.email || 'user',
-          nickname: profileData.nickname || 'User',
-          profileImage: profileData.profileImage || defaultProfileImage,
-          bio: profileData.bio || '안녕하세요 👋',
-          postsCount: 0,
-          followersCount: 0,
-          followingCount: 0,
-          isCurrentUser: true,
-        });
-
-        console.log('✅ 프로필 페이지 로드 완료');
-      } catch (error) {
-        console.error('❌ 프로필 로드 실패:', error);
-
-        if (
-          error instanceof Error &&
-          error.message.includes('사용자를 찾을 수 없습니다')
-        ) {
-          setError(`사용자 "${nickname}"을(를) 찾을 수 없습니다.`);
-        } else {
-          setError('프로필을 불러올 수 없습니다.');
-        }
-      } finally {
-        setLoading(false);
+      // ✅ AuthContext 업데이트 최적화
+      if (isOwnProfile && profileData?.nickname && user && !user.nickname) {
+        updateUser({ nickname: profileData.nickname });
       }
-    };
 
-    loadProfile();
-  }, [nickname, refreshKey, isOwnProfile]);
-
-  // Event handlers
-  const handleImageClick = (imageUrl: string) => {
-    setSelectedImage(imageUrl);
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setSelectedImage('');
-  };
-
-  const handleFeedClick = (feed: UserFeed) => {
-    if (feed.type === 'travel-plan') {
-      console.log('🔍 피드 클릭 - 여행 계획 모달 열기:', {
-        feedPlanId: feed.planId,
-        feedId: feed.id,
+      setProfile({
+        id: profileData.id,
+        username: profileData.email || 'user',
+        nickname: profileData.nickname || 'User',
+        profileImage: profileData.profileImage || defaultProfileImage,
+        bio: profileData.bio || '안녕하세요 👋',
+        postsCount: 0,
+        followersCount: 0,
+        followingCount: 0,
+        isCurrentUser: true,
       });
 
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('사용자를 찾을 수 없습니다')) {
+        setError(`사용자 "${nickname}"을(를) 찾을 수 없습니다.`);
+      } else {
+        setError('프로필을 불러올 수 없습니다.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [isOwnProfile, nickname, user, updateUser, defaultProfileImage]);
+
+  // ✅ 최적화된 useEffect
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile, refreshKey]);
+
+  // ✅ 최적화된 이벤트 핸들러들
+  const handleImageClick = useCallback((imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setSelectedImage('');
+  }, []);
+
+  const handleFeedClick = useCallback((feed: UserFeed) => {
+    if (feed.type === 'travel-plan') {
       setSelectedPlanId(feed.planId || feed.id.toString());
       setTravelPlanModalOpen(true);
     }
-  };
+  }, []);
 
-  const closeTravelPlanModal = () => {
+  const closeTravelPlanModal = useCallback(() => {
     setTravelPlanModalOpen(false);
     setSelectedPlanId(null);
-  };
+  }, []);
 
-  // 피드 삭제 기능
-  const handleDeleteFeed = async (feedId: string | number, event: React.MouseEvent) => {
+  // ✅ 최적화된 피드 삭제 핸들러
+  const handleDeleteFeed = useCallback(async (feedId: string | number, event: React.MouseEvent) => {
     event.stopPropagation();
     
     const isConfirmed = window.confirm('이 게시물을 삭제하시겠습니까?');
-    if (!isConfirmed) {
-      return;
-    }
+    if (!isConfirmed) return;
 
     try {
       await profileApiService.deleteFeed(feedId);
-
-      const updatedFeeds = feeds.filter((feed) => feed.id !== feedId);
-      setFeeds(updatedFeeds);
-
-      if (profile) {
-        setProfile({
-          ...profile,
-          postsCount: Math.max(0, profile.postsCount - 1),
-        });
-      }
-
-      console.log('✅ 피드 삭제 완료:', feedId);
+      setFeeds(prevFeeds => prevFeeds.filter((feed) => feed.id !== feedId));
+      setProfile(prevProfile => prevProfile ? {
+        ...prevProfile,
+        postsCount: Math.max(0, prevProfile.postsCount - 1),
+      } : null);
     } catch (error) {
-      console.error('❌ 피드 삭제 실패:', error);
       alert('피드 삭제에 실패했습니다. 다시 시도해주세요.');
     }
-  };
+  }, []);
 
-  // 설정 버튼 표시 여부 확인
-  const shouldShowSettings = (() => {
+  // ✅ 설정 버튼 표시 여부를 memo로 최적화
+  const shouldShowSettings = useMemo(() => {
     const isOwnProfilePath = location.pathname === '/profile';
     const isSameUser = user && profile && user.nickname === profile.nickname;
     return isOwnProfile || isOwnProfilePath || isSameUser;
-  })();
+  }, [isOwnProfile, location.pathname, user, profile]);
 
   // Render loading state
   if (loading) {
