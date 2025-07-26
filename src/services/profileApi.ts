@@ -187,6 +187,24 @@ class ProfileApiService {
       feeds: [],
     };
   }
+
+  /**
+   * 피드 삭제
+   */
+  async deleteFeed(feedId: string | number): Promise<void> {
+    try {
+      console.log('🗑️ 피드 삭제 시작:', feedId);
+
+      await api.delete(`/api/feeds/${feedId}`);
+
+      console.log('✅ 피드 삭제 성공:', feedId);
+    } catch (error: any) {
+      console.error('❌ 피드 삭제 실패:', error);
+      throw new Error(
+        `피드 삭제 실패: ${error.response?.data?.message || error.message}`,
+      );
+    }
+  }
 }
 
 // 싱글톤 인스턴스 생성

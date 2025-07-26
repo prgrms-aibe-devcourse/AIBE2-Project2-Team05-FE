@@ -68,9 +68,9 @@ export interface RecommendedPlace {
   name: string;
   description: string;
   category: string;
-  rating: number;
+  rating?: number;
   imageUrl?: string;
-  tags: string[];
+  tags?: string[];
   distance?: string; // 거리 정보
   verified?: boolean; // 검증 여부
 }
@@ -81,6 +81,8 @@ export interface AIRecommendationData {
   destination: string;
   recommendations: RecommendedPlace[];
   generatedAt: string;
+  visitedPlaces: string[];
+  travelStyles: string[];
 }
 
 // === 여행 계획 작성을 위한 타입들 ===

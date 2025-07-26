@@ -211,6 +211,24 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
     setSelectedPlace(null);
   };
 
+  // 카테고리별로 추천 장소 그룹화 (각 카테고리당 최대 9개)
+  const groupRecommendationsByCategory = () => {
+    const grouped: { [key: string]: LocalRecommendedPlace[] } = {};
+    
+    recommendations.forEach((place) => {
+      const category = place.category || '기타';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      // 각 카테고리당 최대 9개 (3x3)
+      if (grouped[category].length < 9) {
+        grouped[category].push(place);
+      }
+    });
+    
+    return grouped;
+  };
+
   // 카테고리별 아이콘과 색상
   const getCategoryStyle = (category: string) => {
     const categoryLower = category.toLowerCase();
@@ -382,38 +400,51 @@ const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
           </LoadingContainer>
         ) : recommendations.length > 0 ? (
           <>
-            <PlacesGrid>
-              {recommendations.map((place, index) => (
-                <PlaceCard
-                  key={index}
-                  onClick={() => handlePlaceClick(place.name)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <PlaceHeader>
-                    <PlaceName>{place.name}</PlaceName>
-                    <CategoryBadge
-                      categoryStyle={getCategoryStyle(place.category)}
+            {Object.entries(groupRecommendationsByCategory()).map(([category, places]) => (
+              <CategorySection key={category}>
+                <CategoryHeader>
+                  <CategoryTitle>
+                    <CategoryIcon>
+                      {getCategoryStyle(category).icon}
+                    </CategoryIcon>
+                    {category}
+                  </CategoryTitle>
+                  <CategoryCount>{places.length}개 장소</CategoryCount>
+                </CategoryHeader>
+                <PlacesGrid>
+                  {places.map((place, index) => (
+                    <PlaceCard
+                      key={`${category}-${index}`}
+                      onClick={() => handlePlaceClick(place.name)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <CategoryIcon>
-                        {getCategoryStyle(place.category).icon}
-                      </CategoryIcon>
-                      {place.category}
-                    </CategoryBadge>
-                  </PlaceHeader>
-                  <PlaceDescription>{place.description}</PlaceDescription>
-                  <PlaceFooter>
-                    <Distance>📍 {place.distance}</Distance>
-                    <VerificationBadge $verified={place.verified || false}>
-                      {place.verified ? '✅ 실제 장소' : '❓ 확인 중'}
-                    </VerificationBadge>
-                  </PlaceFooter>
-                </PlaceCard>
-              ))}
-            </PlacesGrid>
+                      <PlaceHeader>
+                        <PlaceName>{place.name}</PlaceName>
+                        <CategoryBadge
+                          categoryStyle={getCategoryStyle(place.category)}
+                        >
+                          <CategoryIcon>
+                            {getCategoryStyle(place.category).icon}
+                          </CategoryIcon>
+                          {place.category}
+                        </CategoryBadge>
+                      </PlaceHeader>
+                      <PlaceDescription>{place.description}</PlaceDescription>
+                      <PlaceFooter>
+                        <Distance>📍 {place.distance}</Distance>
+                        <VerificationBadge $verified={place.verified || false}>
+                          {place.verified ? '✅ 실제 장소' : '❓ 확인 중'}
+                        </VerificationBadge>
+                      </PlaceFooter>
+                    </PlaceCard>
+                  ))}
+                </PlacesGrid>
+              </CategorySection>
+            ))}
             <FooterNote>
-              💡 AI가 {destination} 근처에서 추천하는 장소들입니다. 클릭하면
+              💡 AI가 {destination} 근처에서 카테고리별로 추천하는 장소들입니다. 클릭하면
               상세 정보를 확인할 수 있어요!
             </FooterNote>
           </>
@@ -445,8 +476,28 @@ const Container = styled.div`
   background: white;
   border-radius: 12px;
   padding: 24px;
-  margin: 24px 0;
+  margin: 24px auto; /* 중앙 정렬 */
   border: 1px solid #e5e7eb;
+  width: 75%; /* 75%로 적절하게 조정 */
+  max-width: 1100px; /* 최대 너비를 늘림 */
+  min-width: 800px; /* 최소 너비 보장으로 깨짐 방지 */
+  
+  /* 반응형 처리 */
+  @media (max-width: 1400px) {
+    width: 85%; /* 중간 화면에서는 85% */
+    min-width: 700px;
+  }
+  
+  @media (max-width: 1024px) {
+    width: 95%; /* 태블릿에서는 95% */
+    min-width: 600px;
+  }
+  
+  @media (max-width: 768px) {
+    width: 98%; /* 모바일에서는 98% */
+    min-width: auto; /* 모바일에서는 최소 너비 해제 */
+    padding: 16px;
+  }
 `;
 
 const Header = styled.div`
@@ -520,12 +571,17 @@ const LoadingText = styled.div`
 
 const PlacesGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr); /* 3x3 배치를 위한 고정 3컬럼 */
+  gap: 12px; /* 16px에서 12px로 줄임 */
   margin-bottom: 16px;
 
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr); /* 태블릿에서는 2컬럼 */
+  }
+
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* 모바일에서는 1컬럼 */
+    gap: 8px; /* 모바일에서는 더 작은 gap */
   }
 `;
 
@@ -533,7 +589,7 @@ const PlaceCard = styled(motion.div)`
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px; /* 16px에서 12px로 줄임 */
   position: relative;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -554,7 +610,7 @@ const PlaceHeader = styled.div`
 
 const PlaceName = styled.h3`
   margin: 0 0 4px 0;
-  font-size: 18px;
+  font-size: 16px; /* 18px에서 16px로 줄임 */
   font-weight: 700;
   color: #1e293b;
   line-height: 1.3;
@@ -570,28 +626,28 @@ interface CategoryStyle {
 const CategoryBadge = styled.span<{ categoryStyle: CategoryStyle }>`
   background: ${(props) => props.categoryStyle.background};
   color: ${(props) => props.categoryStyle.textColor};
-  border: 2px solid ${(props) => props.categoryStyle.borderColor};
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
+  border: 1px solid ${(props) => props.categoryStyle.borderColor};  /* 2px → 1px로 얇게 */
+  padding: 4px 8px;  /* 6px 12px → 4px 8px로 작게 */
+  border-radius: 16px;  /* 20px → 16px로 작게 */
+  font-size: 11px;  /* 12px → 11px로 작게 */
+  font-weight: 600;  /* 700 → 600으로 약간 연하게 */
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  gap: 4px;  /* 6px → 4px로 간격 줄임 */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);  /* 그림자도 더 작게 */
   transition: all 0.2s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;  /* 0.5px → 0.3px로 줄임 */
   z-index: 1;
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  /* 호버 그림자도 줄임 */
   }
 `;
 
 const CategoryIcon = styled.span`
-  font-size: 14px;
+  font-size: 12px;  /* 14px → 12px로 작게 */
   line-height: 1;
 `;
 
@@ -668,6 +724,43 @@ const FooterNote = styled.div`
   font-size: 12px;
   padding-top: 16px;
   border-top: 1px solid #f3f4f6;
+`;
+
+// 카테고리별 섹션 스타일 컴포넌트들
+const CategorySection = styled.div`
+  margin-bottom: 32px;
+  
+  &:last-child {
+    margin-bottom: 16px;
+  }
+`;
+
+const CategoryHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+`;
+
+const CategoryTitle = styled.h3`
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CategoryCount = styled.span`
+  background: rgba(54, 130, 248, 0.1);
+  color: #3682f8;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
 `;
 
 export default AIRecommendationSection;

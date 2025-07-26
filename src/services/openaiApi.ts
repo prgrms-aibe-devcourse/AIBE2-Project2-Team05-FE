@@ -1,6 +1,6 @@
-import webSearchService from './webSearchService';
+// import webSearchService from './webSearchService'; // 임시 주석 처리 - 미사용
 import kakaoMapService from './kakaoMapService';
-import type { KakaoPlace, CategorySearchResult } from './kakaoMapService';
+import type { CategorySearchResult } from './kakaoMapService'; // KakaoPlace 미사용으로 제거
 
 // OpenAI API 연동 서비스
 class OpenAIService {

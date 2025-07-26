@@ -4,6 +4,7 @@ import * as S from './FeedDetailPage.style';
 
 const FeedDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
 
   // TODO: 실제 id에 해당하는 데이터 불러오기

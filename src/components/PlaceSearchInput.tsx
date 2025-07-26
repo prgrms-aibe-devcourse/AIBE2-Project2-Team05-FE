@@ -34,7 +34,9 @@ const PlaceSearchInput: React.FC<PlaceSearchInputProps> = ({
   const [selectedPlace, setSelectedPlace] = useState<SearchResult | null>(null);
   const [showMap, setShowMap] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [map, setMap] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [marker, setMarker] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { KakaoMapProps, MarkerData, PlaceSearchResult } from '../types/kakao';
-import { getPlaceImageFromGoogle } from '../services/googlePlacesApi';
+// import { getPlaceImageFromGoogle } from '../services/googlePlacesApi'; // 임시 주석 처리 - 미사용
 
 /**
  * KakaoMap 래퍼 컴포넌트
@@ -67,7 +67,7 @@ const KakaoMap: React.FC<KakaoMapComponentProps> = ({
       markersRef.current.forEach((marker) => marker.setMap(null));
       markersRef.current = [];
     };
-  }, [center.lat, center.lng, level]);
+  }, [center.lat, center.lng, level, onClick, onCreate]); // dependency 추가
 
   // 마커 업데이트
   useEffect(() => {
@@ -136,7 +136,7 @@ const KakaoMap: React.FC<KakaoMapComponentProps> = ({
         infoWindow.open(map, marker);
       });
     });
-  }, [map, markers]);
+  }, [map, markers, onMarkerClick, onMarkerDelete, onMarkerUpdate]); // dependency 추가
 
   // 위치 검색 함수
   const searchPlaces = async (keyword: string) => {

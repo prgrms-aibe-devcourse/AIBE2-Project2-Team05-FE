@@ -58,7 +58,7 @@ export const updateFeedStatus = async (
   try {
     const requestData: StatusChangeRequest = {
       feedId,
-      newStatus,
+      status: newStatus,
       userId,
     };
 

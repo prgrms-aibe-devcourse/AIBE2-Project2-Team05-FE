@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom'; // 임시 주석 처리 - 미사용
 // 프로필 API 추가
 import profileApiService from '../services/profileApi';
 import { FeedWithTravelStatus } from '../types/feed';
@@ -779,3 +780,4 @@ const ErrorMessage = styled.p`
   color: #ef4444;
   font-size: 18px;
 `;
+

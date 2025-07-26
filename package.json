@@ -13,10 +13,12 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "axios": "^1.10.0",
+    "chart.js": "^4.5.0",
     "formik": "^2.4.6",
-    "framer-motion": "^12.23.6",
+    "framer-motion": "^12.23.9",
     "jwt-decode": "^4.0.0",
     "react": "^19.1.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.0",
     "react-error-boundary": "^6.0.0",
     "react-hot-toast": "^2.5.2",
@@ -32,9 +34,20 @@
   },
   "scripts": {
     "start": "npx kill-port 3000 && npx react-scripts start",
+    "start:dev": "REACT_APP_ENV=development npm start",
     "build": "react-scripts build",
+    "build:production": "GENERATE_SOURCEMAP=false REACT_APP_ENV=production npm run build",
+    "build:analyze": "npm run build && npx serve -s build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
+    "eject": "react-scripts eject",
+    "clean": "rm -rf build node_modules/.cache",
+    "prebuild": "npm run clean",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "structure:check": "echo '📁 프로젝트 구조:' && find src -type d | head -20",
+    "dev:all": "npm run lint && npm run type-check && npm start"
   },
   "eslintConfig": {
     "extends": [
@@ -52,12 +65,14 @@
     "production": [
       ">0.2%",
       "not dead",
-      "not op_mini all"
+      "not op_mini all",
+      "supports es6-module"
     ],
     "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
+      "last 2 chrome version",
+      "last 2 firefox version",
+      "last 2 safari version",
+      "last 2 edge version"
     ]
   },
   "devDependencies": {

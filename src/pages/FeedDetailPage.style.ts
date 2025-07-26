@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled /* , { css } */ from 'styled-components'; // 임시 주석 처리 - css 미사용
 
 const getCategoryColor = (category: string) => {
     switch (category) {
