@@ -14,6 +14,7 @@ export interface UserFeed {
   travelType?: 'created' | 'joined'; // 백엔드에서 피드 권한에 따라 설정
   // created: 내가 여행 계획자인 경우
   // joined: 타인이 만든 여행에 참여한 경우
+  authorName?: string; // ✅ 여행 계획 작성자 이름 (여행리더 구분용)
 }
 
 export interface UserProfile {
@@ -371,9 +372,12 @@ const generateMatchingInfoForDestination = (destination: string) => {
   );
 };
 
-export default {
+// ESLint 익명 기본 export 경고 해결을 위한 변수 할당
+const mockProfileDataService = {
   generateMockUserProfile,
   generateMockUserFeeds,
   generateMockPlanDataForFeed,
   extractDestinationFromCaption,
 };
+
+export default mockProfileDataService;

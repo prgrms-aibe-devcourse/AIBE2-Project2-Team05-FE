@@ -234,10 +234,12 @@ const ModalContent = styled.div`
   background: white;
   border-radius: 16px;
   width: 100%;
-  max-width: 600px;
+  max-width: 1000px; /* 800px에서 1000px로 추가 확장 */
   max-height: 90vh;
-  overflow: hidden;
+  overflow: hidden; /* 외부 컨테이너는 hidden 유지 */
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
 `;
 
 const ModalHeader = styled.div`
@@ -272,6 +274,26 @@ const ModalBody = styled.div`
   padding: 24px;
   overflow-y: auto;
   max-height: calc(90vh - 140px);
+  flex: 1; /* flex 레이아웃을 위해 추가 */
+  
+  /* 스크롤바 스타일링 */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
 `;
 
 const DestinationInfo = styled.div`

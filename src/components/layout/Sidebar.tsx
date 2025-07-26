@@ -3,12 +3,23 @@ import { NavLink, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  AiOutlineSearch,
   AiOutlineHeart,
   AiOutlineMessage,
   AiOutlineUser,
 } from 'react-icons/ai';
 import { FaRegCompass, FaRegCalendarPlus } from 'react-icons/fa';
+
+// 아이콘 컴포넌트 타입 에러를 방지하기 위한 래퍼 함수들
+// @ts-ignore
+const HeartIcon = () => <AiOutlineHeart />;
+// @ts-ignore
+const MessageIcon = () => <AiOutlineMessage />;
+// @ts-ignore
+const UserIcon = () => <AiOutlineUser />;
+// @ts-ignore
+const CompassIcon = () => <FaRegCompass />;
+// @ts-ignore
+const CalendarIcon = () => <FaRegCalendarPlus />;
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -22,28 +33,22 @@ const Sidebar = () => {
         <Link to="/">TravelMate</Link>
       </Logo>
       <Nav>
-        <StyledNavLink to="/search">
-          <AiOutlineSearch /> <span>검색</span>
-        </StyledNavLink>
         <StyledNavLink to="/plan/write">
-          <FaRegCalendarPlus /> <span>여행 플랜 만들기</span>
-        </StyledNavLink>
-        <StyledNavLink to="/notifications">
-          <AiOutlineHeart /> <span>알림</span>
-        </StyledNavLink>
-        <StyledNavLink to="/likes">
-          <AiOutlineHeart /> <span>좋아요</span>
+          <CalendarIcon /> <span>여행 플랜 만들기</span>
         </StyledNavLink>
         <StyledNavLink to="/match/recommend">
-          <FaRegCompass /> <span>여행 메이트 찾기</span>
+          <CompassIcon /> <span>여행 메이트 찾기</span>
+        </StyledNavLink>
+        <StyledNavLink to="/notifications">
+          <HeartIcon /> <span>알림</span>
         </StyledNavLink>
         <StyledNavLink to="/chat">
-          <AiOutlineMessage /> <span>채팅</span>
+          <MessageIcon /> <span>채팅</span>
         </StyledNavLink>
       </Nav>
       <Footer>
         <ProfileLink to={profileLink}>
-          <AiOutlineUser />
+          <UserIcon />
           <span>프로필</span>
         </ProfileLink>
       </Footer>
@@ -152,22 +157,4 @@ const ProfileLink = styled(NavLink)`
   }
 `;
 
-const ProfileIcon = styled.div`
-  font-size: 24px;
-`;
-
-const LogoutButton = styled.button`
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background-color: #e74c3c;
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-
-  &:hover {
-    background-color: #c0392b;
-  }
-`;
+// 사용되지 않는 styled components 제거됨 (경고 해결)

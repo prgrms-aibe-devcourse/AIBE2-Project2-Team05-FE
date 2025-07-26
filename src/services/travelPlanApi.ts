@@ -117,7 +117,7 @@ class TravelPlanApiService {
       console.log('🤝 매칭 자동 활성화: true (여행메이트 찾기 가능)');
 
       // ✅ 토큰 상태 검증
-      const tokenState = this.validateTokens();
+      this.validateTokens(); // tokenState 변수 제거 - 반환값 미사용
 
       // ✅ 요청 데이터 미리보기
       const requestData = {

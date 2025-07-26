@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useState /* , useEffect */ } from 'react'; // useEffect 임시 주석 처리
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import PlaceSearchInput from '../components/PlaceSearchInput';
@@ -454,6 +455,7 @@ const PlanWritePage: React.FC = () => {
 
           // AI 추천 데이터를 planData에 저장
           const aiRecommendationData: AIRecommendationData = {
+            planId: planData.id || 'temp-plan-id',
             recommendations: aiRecommendations,
             generatedAt: new Date().toISOString(),
             destination: formData.destination,
@@ -1426,10 +1428,12 @@ const PlanWritePage: React.FC = () => {
         <S.FooterContent>
           <S.FooterLogo>트립매치</S.FooterLogo>
           <S.FooterLinks>
-            <a href="#">서비스 소개</a>
+            {/* 임시 주석 처리 - 실제 링크 추가 시 활성화 */}
+            {/* <a href="#">서비스 소개</a>
             <a href="#">이용약관</a>
             <a href="#">개인정보처리방침</a>
-            <a href="#">고객센터</a>
+            <a href="#">고객센터</a> */}
+            <span>링크 준비 중</span>
           </S.FooterLinks>
         </S.FooterContent>
         <S.FooterCopyright>

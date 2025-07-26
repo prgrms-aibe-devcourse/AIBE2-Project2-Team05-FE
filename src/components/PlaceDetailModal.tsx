@@ -84,8 +84,8 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
     }
   }, [placeName, region]); // 의존성 배열에 필요한 값들 포함
 
-  // 카카오맵 로드
-  const loadKakaoMap = (lat: number, lng: number) => {
+  // 카카오맵 로드 - useCallback으로 감싸서 의존성 문제 해결
+  const loadKakaoMap = useCallback((lat: number, lng: number) => {
     console.log(`🗺️ 카카오맵 로드 함수 호출: lat=${lat}, lng=${lng}`);
 
     if (!mapContainerRef.current) {
@@ -136,7 +136,7 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
     } catch (error) {
       console.error('❌ 카카오맵 로드 실패:', error);
     }
-  };
+  }, [placeDetails]); // useCallback 의존성 배열 추가
 
   // 모달이 열릴 때 데이터 fetch
   useEffect(() => {
@@ -379,12 +379,31 @@ const ModalOverlay = styled(motion.div)`
 const ModalContent = styled(motion.div)`
   background: white;
   border-radius: 16px;
-  width: 90%;
-  max-width: 800px;
-  max-height: 90vh;
+  width: 85%; /* 95%에서 85%로 10% 더 줄임 */
+  max-width: 1080px; /* 1200px에서 1080px로 10% 더 축소 */
+  max-height: 85vh; /* 90vh에서 85vh로 조금 줄임 */
   overflow-y: auto;
   position: relative;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  
+  /* 스크롤바 스타일링 */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -492,15 +511,19 @@ const PhotoSection = styled.div`
 
 const MainPhoto = styled.div`
   width: 100%;
-  height: 300px;
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
   img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto; /* 원본 비율 유지 */
+    max-height: 500px; /* 너무 클 경우를 대비한 최대 높이 */
+    object-fit: contain; /* 원본 비율 유지하면서 전체 이미지 표시 */
+    border-radius: 12px;
   }
 `;
 

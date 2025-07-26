@@ -198,6 +198,20 @@ class FeedStatusService {
   }
 
   /**
+   * 일반 피드를 상태별로 필터링 (Feed[] 지원)
+   */
+  filterFeedsByStatusGeneric(
+    feeds: any[],
+    status?: string,
+  ): any[] {
+    if (!status || status === 'all') return feeds;
+    return feeds.filter((feed) => {
+      // Feed 타입에서 status 속성을 확인
+      return feed.status === status || feed.travelStatus === status;
+    });
+  }
+
+  /**
    * 후기 작성 완료 표시
    */
   markReviewCompleted(feedId: number): void {
@@ -258,6 +272,14 @@ class FeedStatusService {
 
 // 싱글톤 인스턴스 생성
 const feedStatusService = new FeedStatusService();
+
+// 독립적인 함수들을 export (컴포넌트에서 직접 사용 가능)
+export const filterFeedsByStatus = (
+  feeds: any[],
+  status?: string,
+): any[] => {
+  return feedStatusService.filterFeedsByStatusGeneric(feeds, status);
+};
 
 export default feedStatusService;
 export { FeedStatusService };
