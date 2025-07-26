@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { User } from '../types/user';
 
 // AuthContext에서 제공할 값들의 타입을 정의합니다.
@@ -63,7 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             console.log('👤 복원된 사용자 정보:', {
               email: userData.email,
               role: userData.role,
+              nickname: userData.nickname, // ✅ nickname 확인 추가
               tokenEmail: validationResult.tokenEmail,
+              '전체 userData': userData, // ✅ 전체 사용자 데이터 확인
             });
           } catch (error) {
             console.error('❌ 저장된 사용자 정보 파싱 실패:', error);

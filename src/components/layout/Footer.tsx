@@ -10,10 +10,12 @@ const Footer = () => {
           <p>새로운 여행 동반자를 찾고, 특별한 여행 경험을 만들어보세요.</p>
           <SocialLinks>
             {/* 아이콘 라이브러리 추가 후 <i className="ri-instagram-line"></i> 등으로 대체 */}
-            <a href="#">Insta</a>
+            {/* 임시 주석 처리 - 실제 소셜 미디어 링크 추가 시 활성화 */}
+            {/* <a href="#">Insta</a>
             <a href="#">Fb</a>
             <a href="#">Twit</a>
-            <a href="#">YT</a>
+            <a href="#">YT</a> */}
+            <span>소셜 미디어 링크 준비 중</span>
           </SocialLinks>
         </FooterCol>
         <FooterCol>

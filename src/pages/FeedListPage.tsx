@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useState, useEffect /* , useRef */ } from 'react'; // useRef 임시 주석 처리
 import styled from 'styled-components';
 import FeedList from '../components/feed/FeedList';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';

@@ -24,7 +24,7 @@ import ProfilePage from './pages/ProfilePage';
 import MyPage from './pages/MyPage';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
-import Layout from './components/layout/Layout';
+// import Layout from './components/layout/Layout'; // 임시 주석 처리 - 미사용
 import SearchPage from './pages/SearchPage';
 import NotificationPage from './pages/NotificationPage';
 import ReviewPage from './pages/ReviewPage';

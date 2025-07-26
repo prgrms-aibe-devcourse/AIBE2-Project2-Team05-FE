@@ -2,6 +2,78 @@
 
 export type TravelStatus = 'recruiting' | 'traveling' | 'completed';
 
+// 여행 리뷰 타입 (Feed 타입보다 먼저 정의)
+export interface TravelReview {
+  id: number;
+  feedId: number;
+  planId: string;
+  rating: number;
+  title: string;
+  content: string;
+  images: string[];
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  destination: string;
+}
+
+// 기본 Feed 타입 (다른 컴포넌트들에서 사용)
+export interface Feed {
+  id: number;
+  author: string;
+  avatar: string;
+  image: string;
+  likes: number;
+  caption: string;
+  type: string;
+  createdAt: string;
+  updatedAt?: string;
+  travelType?: 'created' | 'joined';
+  planId?: string;
+  travelStatus?: TravelStatus;
+  status?: FeedStatus; // 피드 상태 추가
+  statusUpdatedAt?: string;
+  completedDate?: string;
+  reviewWritten?: boolean;
+  startDate?: string;
+  endDate?: string;
+  review?: TravelReview; // 리뷰 정보 추가
+  participants?: string[]; // 참여자 목록 추가
+  maxParticipants?: number; // 최대 참여자 수 추가
+  authorName?: string; // ✅ 여행 계획 작성자 이름 (여행리더 구분용)
+}
+
+// Feed 상태 타입 ('matched' 추가)
+export type FeedStatus = 'recruiting' | 'matched' | 'traveling' | 'completed' | 'cancelled';
+
+// Feed 상태 라벨 매핑
+export const FEED_STATUS_LABELS: Record<FeedStatus, string> = {
+  recruiting: '모집중',
+  matched: '매칭완료',
+  traveling: '여행중',
+  completed: '완료',
+  cancelled: '취소',
+};
+
+// 상태 변경 요청 타입 (userId 추가)
+export interface StatusChangeRequest {
+  feedId: number;
+  status: FeedStatus;
+  userId: string; // 사용자 ID 추가
+  note?: string;
+}
+
+// 리뷰 생성 요청 타입
+export interface ReviewCreateRequest {
+  feedId: number;
+  planId: string;
+  rating: number;
+  title: string;
+  content: string;
+  images?: string[];
+  tags?: string[];
+}
+
 export interface TravelStatusInfo {
   status: TravelStatus;
   statusLabel: string;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -2317,11 +2318,30 @@ const Container = styled(motion.div)`
     background: white;
     border-radius: 20px;
     padding: 32px;
-    min-width: 400px;
-    max-width: 90vw;
+    min-width: 600px; /* 500px에서 600px로 추가 확장 */
+    max-width: 95vw; /* 90vw에서 95vw로 확장 */
     max-height: 80vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  /* 필터 모달 스크롤바 스타일링 */
+  .filter-modal::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .filter-modal::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  .filter-modal::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  .filter-modal::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
   }
 
   .filter-modal h3 {

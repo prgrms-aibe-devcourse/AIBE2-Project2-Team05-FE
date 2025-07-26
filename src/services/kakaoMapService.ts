@@ -218,7 +218,7 @@ class KakaoMapService {
   private async searchMultipleKeywords(
     keywords: string[],
   ): Promise<KakaoPlace[]> {
-    const allPlaces: KakaoPlace[] = [];
+    // const allPlaces: KakaoPlace[] = []; // 사용되지 않는 변수 주석 처리
     const uniquePlaces = new Map<string, KakaoPlace>();
 
     for (const keyword of keywords) {

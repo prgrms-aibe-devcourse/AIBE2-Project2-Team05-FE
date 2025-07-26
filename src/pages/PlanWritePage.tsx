@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useState /* , useEffect */ } from 'react'; // useEffect 임시 주석 처리
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext'; // 🔧 AuthContext 추가
 import PlaceSearchInput from '../components/PlaceSearchInput';
 import * as S from './PlanWritePage.style';
 import PlaceMap from '../components/PlaceMap';
@@ -54,6 +56,7 @@ const PlanWritePage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
+  const { user, isAuthenticated } = useAuth(); // 🔧 AuthContext에서 사용자 정보 가져오기
 
   // 현재 활성 탭
   const [activeTab, setActiveTab] = useState('day1');
@@ -250,11 +253,17 @@ const PlanWritePage: React.FC = () => {
   const handleSave = async () => {
     if (!validateForm()) return;
 
+    // 🔧 로그인 상태 확인
+    if (!isAuthenticated || !user) {
+      toast.error('로그인이 필요합니다. 로그인 후 다시 시도해주세요.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const planId = Date.now().toString();
-      const currentUserId = 'current-user'; // 실제론 AuthContext에서 가져올 것
+      const currentUserId = user.email; // 🔧 실제 사용자 이메일을 ID로 사용
 
       // 저장된 프로필 정보 불러오기
       let userProfile = null;
@@ -270,7 +279,7 @@ const PlanWritePage: React.FC = () => {
       // 작성자 정보 설정 (프로필 정보가 있으면 사용, 없으면 기본값)
       const authorInfo = {
         id: currentUserId,
-        name: userProfile?.nickname || userProfile?.name || '나',
+        name: userProfile?.nickname || userProfile?.name || user.nickname || user.email,
         profileImage: userProfile?.profileImage || '👤',
       };
 
@@ -454,6 +463,7 @@ const PlanWritePage: React.FC = () => {
 
           // AI 추천 데이터를 planData에 저장
           const aiRecommendationData: AIRecommendationData = {
+            planId: planData.id || 'temp-plan-id',
             recommendations: aiRecommendations,
             generatedAt: new Date().toISOString(),
             destination: formData.destination,
@@ -1426,10 +1436,12 @@ const PlanWritePage: React.FC = () => {
         <S.FooterContent>
           <S.FooterLogo>트립매치</S.FooterLogo>
           <S.FooterLinks>
-            <a href="#">서비스 소개</a>
+            {/* 임시 주석 처리 - 실제 링크 추가 시 활성화 */}
+            {/* <a href="#">서비스 소개</a>
             <a href="#">이용약관</a>
             <a href="#">개인정보처리방침</a>
-            <a href="#">고객센터</a>
+            <a href="#">고객센터</a> */}
+            <span>링크 준비 중</span>
           </S.FooterLinks>
         </S.FooterContent>
         <S.FooterCopyright>

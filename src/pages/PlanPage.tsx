@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as S from './PlanPage.style';
 import PlaceMap from '../components/PlaceMap';
 import AIRecommendationSection from '../components/AIRecommendationSection';
-import FeedStatusChanger from '../components/feed/FeedStatusChanger';
 import FeedStatusBadge from '../components/feed/FeedStatusBadge';
 import ReviewWriteModal from '../components/feed/ReviewWriteModal';
 import PlaceDetailModal from '../components/PlaceDetailModal';
 import feedStatusService from '../services/feedStatusService';
 import openaiService from '../services/openaiApi';
-import { TravelStatus, FeedWithTravelStatus } from '../types/feed';
+import { TravelStatus } from '../types/feed';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api'; // api 인스턴스 추가
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -204,14 +204,14 @@ const PlanPage: React.FC<PlanPageProps> = ({
   const [reviewCompleted, setReviewCompleted] = useState(false);
   const [userReviews, setUserReviews] = useState<any[]>([]);
 
-  // 목적지 카테고리 상태
-  const [destinationCategory, setDestinationCategory] = useState<{
-    category: string;
-    icon: string;
-    background: string;
-    textColor: string;
-    borderColor: string;
-  } | null>(null);
+  // 목적지 카테고리 상태 (현재 사용되지 않음)
+  // const [destinationCategory, setDestinationCategory] = useState<{
+  //   category: string;
+  //   icon: string;
+  //   background: string;
+  //   textColor: string;
+  //   borderColor: string;
+  // } | null>(null);
 
   // visitedPlaces를 useMemo로 최적화해서 불필요한 재렌더링 방지
   const visitedPlaces = useMemo(() => {
@@ -331,125 +331,154 @@ const PlanPage: React.FC<PlanPageProps> = ({
 
       try {
         if (id && id !== 'undefined') {
-          // 백엔드에서 직접 데이터 로드
-          console.log('🔍 백엔드에서 여행 계획 로드 시도:', id);
+          console.log('🔍 여행 계획 로드 시도:', id, '| 모달 여부:', isModal);
 
-          try {
-            const response = await fetch(
-              `http://localhost:8080/api/plan/${id}`,
-              {
+          if (isModal && user?.role === 'ADMIN') {
+            // ✅ 관리자 모달에서만 백엔드 API 사용
+            console.log('🔐 관리자 모달: 백엔드 API 사용');
+            
+            try {
+              const adminToken = localStorage.getItem('accessToken') || localStorage.getItem('token');
+              console.log('🔐 관리자 토큰 길이:', adminToken?.length || 0);
+              
+              const response = await fetch(`http://localhost:8080/api/admin/manage/travel-plan/${id}`, {
                 headers: {
-                  Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                  'Authorization': `Bearer ${adminToken}`,
                   'Content-Type': 'application/json',
                 },
-              },
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              console.log('✅ 백엔드 데이터 로드 성공:', data);
-
-              // 백엔드 데이터를 TravelPlan 형식으로 변환
-              console.log('📊 백엔드 원본 데이터:', data);
-              console.log(
-                '📍 nearbyRecommendations:',
-                data.nearbyRecommendations,
-              );
-
-              // schedules가 문자열이면 파싱
-              let parsedSchedules = {};
-              if (data.schedules) {
-                try {
-                  parsedSchedules =
-                    typeof data.schedules === 'string'
-                      ? JSON.parse(data.schedules)
-                      : data.schedules;
-                  console.log('📅 파싱된 schedules:', parsedSchedules);
-                } catch (e) {
-                  console.error('❌ schedules 파싱 실패:', e);
-                }
+              });
+              
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
               }
+              
+              const data = await response.json();
+              console.log('✅ 관리자 모달: 백엔드 데이터 로드 성공:', data);
 
-              loadedPlan = {
-                id: data.planId || data.id,
-                title: data.title,
-                startDate: data.startDate,
-                endDate: data.endDate,
-                destination: data.location || data.destination,
-                budget: data.budget?.toString() || '0',
-                people:
-                  data.numberOfPeople?.toString() ||
-                  data.people?.toString() ||
-                  '0',
-                period: `${calculateDays(data.startDate, data.endDate)}일`,
-                days: convertSchedulesToDays(parsedSchedules, data.startDate),
-                likes: 0,
-                likedUsers: [],
-                isLiked: false,
-                author: {
-                  id: data.authorId || 'user',
-                  name: data.authorNickname || '사용자',
-                  profileImage: data.authorProfileImage || '👤',
-                },
-                styleLabels: data.interests ? [data.interests] : [],
-                aiHashtags: data.aiHashtags ? JSON.parse(data.aiHashtags) : [],
-                nearbyRecommendations: data.nearbyRecommendations
-                  ? JSON.parse(data.nearbyRecommendations)
-                  : [],
-                // AI 추천 데이터 추가
-                aiRecommendations: (() => {
-                  try {
-                    if (
-                      data.nearbyRecommendations &&
-                      data.nearbyRecommendations !== '[]'
-                    ) {
-                      const recommendations = JSON.parse(
-                        data.nearbyRecommendations,
-                      );
-                      if (
-                        Array.isArray(recommendations) &&
-                        recommendations.length > 0
-                      ) {
-                        return {
-                          planId: data.planId || data.id,
-                          recommendations: recommendations,
-                          generatedAt: new Date().toISOString(),
-                          destination: data.location || data.destination,
-                          visitedPlaces: [],
-                          travelStyles: data.interests ? [data.interests] : [],
-                        };
-                      }
-                    }
-                  } catch (e) {
-                    console.error('AI 추천 데이터 파싱 실패:', e);
-                  }
-                  return undefined;
-                })(),
-              };
-
-              setPlan(loadedPlan);
-              setIsLiked(false);
-              setLikeCount(0);
-            } else {
-              throw new Error('Failed to load plan');
+              if (data) {
+                // 관리자 모달에서는 간단한 형태로만 표시
+                loadedPlan = {
+                  id: data.id?.toString() || id,
+                  title: data.title || '여행 계획',
+                  destination: data.destination || '목적지',
+                  startDate: data.startDate || '',
+                  endDate: data.endDate || '',
+                  budget: data.budget?.toString() || '0',
+                  people: data.numberOfPeople?.toString() || '1',
+                  period: `${calculateDays(data.startDate, data.endDate)}일`,
+                  days: data.days || [],
+                  likes: 0,
+                  likedUsers: [],
+                  isLiked: false,
+                  author: {
+                    id: data.user?.id?.toString() || data.userId?.toString() || 'unknown',
+                    name: data.user?.nickname || data.authorNickname || '사용자',
+                    profileImage: data.user?.profileImage || data.authorProfileImage || '👤',
+                  },
+                };
+              }
+            } catch (error) {
+              console.error('❌ 관리자 모달: 백엔드 로드 실패:', error);
+              loadedPlan = null;
             }
-          } catch (error) {
-            console.error('❌ 백엔드 로드 실패:', error);
-            // 폴백: localStorage 체크
-            const savedPlan = localStorage.getItem('currentTravelPlan');
-            if (savedPlan) {
-              const parsedPlan = JSON.parse(savedPlan);
-              loadedPlan = parsedPlan;
-              setPlan(parsedPlan);
-              setIsLiked(parsedPlan.isLiked || false);
-              setLikeCount(parsedPlan.likes || 0);
-            } else {
-              // 기본 계획 사용
-              const defaultPlan = createDefaultPlan();
-              loadedPlan = defaultPlan;
-              setPlan(defaultPlan);
-              setIsLiked(defaultPlan.isLiked);
-              setLikeCount(defaultPlan.likes);
+          } else {
+            // ✅ 일반 사용자: 기존 백엔드 로직 전체 사용
+            console.log('👤 일반 사용자: 백엔드에서 여행 계획 로드');
+            
+            try {
+              const response = await api.get(`/api/plan/${id}`);
+              
+              if (response.data) {
+                const data = response.data;
+                console.log('✅ 백엔드 데이터 로드 성공:', data);
+
+                // 백엔드 데이터를 TravelPlan 형식으로 변환
+                console.log('📊 백엔드 원본 데이터:', data);
+                console.log('📍 nearbyRecommendations:', data.nearbyRecommendations);
+
+                // schedules가 문자열이면 파싱
+                let parsedSchedules = {};
+                if (data.schedules) {
+                  try {
+                    parsedSchedules = typeof data.schedules === 'string' 
+                      ? JSON.parse(data.schedules) 
+                      : data.schedules;
+                    console.log('📅 파싱된 schedules:', parsedSchedules);
+                  } catch (e) {
+                    console.error('❌ schedules 파싱 실패:', e);
+                  }
+                }
+
+                loadedPlan = {
+                  id: data.planId || data.id,
+                  title: data.title,
+                  startDate: data.startDate,
+                  endDate: data.endDate,
+                  destination: data.location || data.destination,
+                  budget: data.budget?.toString() || '0',
+                  people: data.numberOfPeople?.toString() || data.people?.toString() || '0',
+                  period: `${calculateDays(data.startDate, data.endDate)}일`,
+                  days: convertSchedulesToDays(parsedSchedules, data.startDate),
+                  likes: 0,
+                  likedUsers: [],
+                  isLiked: false,
+                  author: {
+                    id: data.authorId || 'user',
+                    name: data.authorNickname || '사용자',
+                    profileImage: data.authorProfileImage || '👤',
+                  },
+                  styleLabels: data.interests ? [data.interests] : [],
+                  aiHashtags: data.aiHashtags ? JSON.parse(data.aiHashtags) : [],
+                  nearbyRecommendations: data.nearbyRecommendations 
+                    ? JSON.parse(data.nearbyRecommendations) 
+                    : [],
+                  // AI 추천 데이터 추가
+                  aiRecommendations: (() => {
+                    try {
+                      if (data.nearbyRecommendations && data.nearbyRecommendations !== '[]') {
+                        const recommendations = JSON.parse(data.nearbyRecommendations);
+                        if (Array.isArray(recommendations) && recommendations.length > 0) {
+                          return {
+                            planId: data.planId || data.id,
+                            recommendations: recommendations,
+                            generatedAt: new Date().toISOString(),
+                            destination: data.location || data.destination,
+                            visitedPlaces: [],
+                            travelStyles: data.interests ? [data.interests] : [],
+                          };
+                        }
+                      }
+                    } catch (e) {
+                      console.error('AI 추천 데이터 파싱 실패:', e);
+                    }
+                    return undefined;
+                  })(),
+                };
+
+                setPlan(loadedPlan);
+                setIsLiked(false);
+                setLikeCount(0);
+              } else {
+                throw new Error('Failed to load plan');
+              }
+            } catch (error) {
+              console.error('❌ 백엔드 로드 실패:', error);
+              // 폴백: localStorage 체크
+              const savedPlan = localStorage.getItem('currentTravelPlan');
+              if (savedPlan) {
+                const parsedPlan = JSON.parse(savedPlan);
+                loadedPlan = parsedPlan;
+                setPlan(parsedPlan);
+                setIsLiked(parsedPlan.isLiked || false);
+                setLikeCount(parsedPlan.likes || 0);
+              } else {
+                // 기본 계획 사용
+                const defaultPlan = createDefaultPlan();
+                loadedPlan = defaultPlan;
+                setPlan(defaultPlan);
+                setIsLiked(defaultPlan.isLiked);
+                setLikeCount(defaultPlan.likes);
+              }
             }
           }
         } else {
@@ -479,52 +508,50 @@ const PlanPage: React.FC<PlanPageProps> = ({
         setIsLiked(defaultPlan.isLiked);
         setLikeCount(defaultPlan.likes);
       } finally {
-        // 피드 상태 정보 로드
-        try {
-          const planId = loadedPlan?.id || 'default';
-          const planNumericId =
-            typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
-          const feedId = parseInt(String(planNumericId)) || 1;
+        // 피드 상태 정보 로드 (관리자 모달이 아닐 때만)
+        if (!isModal) {
+          try {
+            const planId = loadedPlan?.id || 'default';
+            const planNumericId = typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
+            const feedId = parseInt(String(planNumericId)) || 1;
 
-          // 피드 상태 가져오기
-          const statusInfo = feedStatusService.getFeedStatus(feedId);
-          if (statusInfo) {
-            setFeedStatus(statusInfo);
+            // 피드 상태 가져오기
+            const statusInfo = feedStatusService.getFeedStatus(feedId);
+            if (statusInfo) {
+              setFeedStatus(statusInfo);
+            }
+
+            // 후기 작성 완료 여부 확인
+            const hasReview = feedStatusService.hasReviewWritten(feedId);
+            setReviewCompleted(hasReview);
+
+            // 기존 후기 데이터 로드
+            const existingReviews = JSON.parse(localStorage.getItem('travelReviews') || '[]');
+            const planReviews = existingReviews.filter(
+              (review: any) => review.feedId === feedId || review.planId === loadedPlan?.id,
+            );
+            setUserReviews(planReviews);
+
+            // 작성자 여부 확인 (로그인한 사용자와 비교)
+            const isCurrentUserAuthor = 
+              loadedPlan?.author?.id === user?.email ||
+              loadedPlan?.author?.name === '나' ||
+              loadedPlan?.author?.name === user?.nickname ||
+              loadedPlan?.author?.id === 'user' || // 기본 사용자 ID
+              !loadedPlan?.author?.id; // 작성자 정보가 없으면 현재 사용자로 간주
+
+            console.log('🔍 작성자 확인 디버깅:', {
+              loadedPlanAuthorId: loadedPlan?.author?.id,
+              loadedPlanAuthorName: loadedPlan?.author?.name,
+              userEmail: user?.email,
+              userNickname: user?.nickname,
+              isCurrentUserAuthor,
+            });
+
+            setIsAuthor(isCurrentUserAuthor);
+          } catch (statusError) {
+            console.error('피드 상태 로드 오류:', statusError);
           }
-
-          // 후기 작성 완료 여부 확인
-          const hasReview = feedStatusService.hasReviewWritten(feedId);
-          setReviewCompleted(hasReview);
-
-          // 기존 후기 데이터 로드
-          const existingReviews = JSON.parse(
-            localStorage.getItem('travelReviews') || '[]',
-          );
-          const planReviews = existingReviews.filter(
-            (review: any) =>
-              review.feedId === feedId || review.planId === loadedPlan?.id,
-          );
-          setUserReviews(planReviews);
-
-          // 작성자 여부 확인 (로그인한 사용자와 비교)
-          const isCurrentUserAuthor =
-            loadedPlan?.author?.id === user?.email ||
-            loadedPlan?.author?.name === '나' ||
-            loadedPlan?.author?.name === user?.nickname ||
-            loadedPlan?.author?.id === 'user' || // 기본 사용자 ID
-            !loadedPlan?.author?.id; // 작성자 정보가 없으면 현재 사용자로 간주
-
-          console.log('🔍 작성자 확인 디버깅:', {
-            loadedPlanAuthorId: loadedPlan?.author?.id,
-            loadedPlanAuthorName: loadedPlan?.author?.name,
-            userEmail: user?.email,
-            userNickname: user?.nickname,
-            isCurrentUserAuthor,
-          });
-
-          setIsAuthor(isCurrentUserAuthor);
-        } catch (statusError) {
-          console.error('피드 상태 로드 오류:', statusError);
         }
 
         setLoading(false);
@@ -532,7 +559,7 @@ const PlanPage: React.FC<PlanPageProps> = ({
     };
 
     loadTravelPlan();
-  }, [id]);
+  }, [id, isModal]); // ✅ isModal 의존성 추가
 
   // 목적지 카테고리 분류
   useEffect(() => {
@@ -543,18 +570,18 @@ const PlanPage: React.FC<PlanPageProps> = ({
           const categoryInfo = await openaiService.classifyDestinationCategory(
             plan.destination,
           );
-          setDestinationCategory(categoryInfo);
+          // setDestinationCategory(categoryInfo); // 사용되지 않음
           console.log('✅ 목적지 카테고리 분류 완료:', categoryInfo);
         } catch (error) {
           console.error('❌ 목적지 카테고리 분류 실패:', error);
           // 실패 시 기본 카테고리 설정
-          setDestinationCategory({
-            category: '관광',
-            icon: '📍',
-            background: 'linear-gradient(135deg, #45B7D1, #3682F8)',
-            textColor: '#FFFFFF',
-            borderColor: '#45B7D1',
-          });
+          // setDestinationCategory({ // 사용되지 않음
+          //   category: '관광',
+          //   icon: '📍',
+          //   background: 'linear-gradient(135deg, #45B7D1, #3682F8)',
+          //   textColor: '#FFFFFF',
+          //   borderColor: '#45B7D1',
+          // });
         }
       }
     };
@@ -739,14 +766,42 @@ const PlanPage: React.FC<PlanPageProps> = ({
         <div
           style={{
             display: 'flex',
+            flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            height: '400px',
-            fontSize: '18px',
-            color: '#666',
+            height: '200px',  // 높이를 절반으로 줄임
+            gap: '12px',  // 요소 간 간격
           }}
         >
-          여행 계획을 불러오는 중...
+          {/* 로딩 스피너 */}
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              border: '3px solid #f3f3f3',
+              borderTop: '3px solid #3682F8',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
+          {/* 로딩 텍스트 */}
+          <div
+            style={{
+              fontSize: '14px',  // 폰트 크기 줄임
+              color: '#8e8e8e',  // 더 연한 색상
+              fontWeight: '500',
+            }}
+          >
+            여행 계획을 불러오는 중...
+          </div>
+          
+          {/* 스피너 애니메이션을 위한 스타일 */}
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </S.Container>
     );
@@ -805,19 +860,20 @@ const PlanPage: React.FC<PlanPageProps> = ({
     }
   };
 
-  // 날짜 포맷팅 함수
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-    };
-    return date.toLocaleDateString('ko-KR', options);
-  };
+  // 날짜 포맷팅 함수 (현재 사용되지 않음)
+  // const formatDate = (dateString: string) => {
+  //   const date = new Date(dateString);
+  //   const options: Intl.DateTimeFormatOptions = {
+  //     year: 'numeric',
+  //     month: 'long',
+  //     day: 'numeric',
+  //     weekday: 'short',
+  //   };
+  //   return date.toLocaleDateString('ko-KR', options);
+  // };
 
-  // Mock 데이터 (HTML에서 참고)
+  // Mock 데이터 (HTML에서 참고) - 현재 사용되지 않음
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const mockPlan: TravelPlan = {
     id: '1',
     title: '제주도 힐링 여행',
@@ -1337,7 +1393,7 @@ const PlanPage: React.FC<PlanPageProps> = ({
       {plan && (
         <AIRecommendationSection
           planId={plan.id}
-          savedRecommendations={plan.aiRecommendations}
+          savedRecommendations={plan.aiRecommendations as any}
           destination={plan.destination}
           travelStyles={travelStyles}
           visitedPlaces={visitedPlaces}
