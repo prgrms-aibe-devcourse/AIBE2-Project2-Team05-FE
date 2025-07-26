@@ -85,6 +85,16 @@ public class TravelPlanService {
                 .extraMemo(request.getExtraMemo())
                 .matchingEnabled(request.getMatchingEnabled() != null ? request.getMatchingEnabled() : true)
                 .recruiting(true) // ✅ 매칭 모집 상태 추가
+                .status(PlanStatus.ACTIVE) // 🔧 기본 상태를 ACTIVE로 설정
+                .currentPeople(1) // 🔧 현재 참여 인원수 (작성자 포함)
+                .isPublic(true) // 🔧 공개 여부 (기본값: 공개)
+                // 🔧 통계 관련 필드들 기본값 설정
+                .viewCount(0) // 조회수 0
+                .likeCount(0) // 좋아요 수 0
+                .commentCount(0) // 댓글 수 0
+                .shareCount(0) // 공유 수 0
+                .priority(0) // 우선순위 0
+                .featured(false) // 추천 여부 false
                 // ✅ Google Places & OpenAI API 결과 저장
                 .styles(request.getStyles())
                 .styleLabels(request.getStyleLabels())

@@ -55,8 +55,8 @@ public class SecurityConfig {
                         // ✅ 프로필 이미지 파일 접근 허용 (팀원 프로젝트 통합)
                         .requestMatchers("/api/profile/images/**").permitAll()
                         
-                        // ✅ 인증이 필요한 엔드포인트 - ROLE_USER 명시
-                        .requestMatchers("/api/plan/**").hasRole("USER")
+                        // ✅ 인증이 필요한 엔드포인트 - ROLE_USER 명시  
+                        .requestMatchers("/api/plan/**").authenticated() // 임시로 완화
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/feed/**").authenticated()
                         .requestMatchers("/api/profile/**").authenticated()

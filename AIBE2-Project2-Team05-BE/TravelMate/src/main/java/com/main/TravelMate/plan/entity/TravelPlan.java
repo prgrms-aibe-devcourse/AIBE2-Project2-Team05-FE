@@ -45,6 +45,10 @@ public class TravelPlan {
 
     private Integer numberOfPeople;
 
+    // 현재 참여 인원수 (매칭된 인원수)
+    @Column(nullable = false)
+    private Integer currentPeople = 1; // 기본값: 작성자 1명
+
     @OneToMany(mappedBy = "travelPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TravelDay> days;
 
@@ -73,6 +77,39 @@ public class TravelPlan {
     // 매칭 모집 상태 필드 추가
     @Column(nullable = false)
     private Boolean recruiting = true; // 기본값 true로 설정
+
+    // 공개 여부 필드 추가
+    @Column(nullable = false)
+    private Boolean isPublic = true; // 기본값: 공개
+
+    // 통계 관련 필드들 (관리자/피드 기능에서 사용)
+    @Column(nullable = false)
+    private Integer viewCount = 0; // 조회수
+
+    @Column(nullable = false)
+    private Integer likeCount = 0; // 좋아요 수
+
+    @Column(nullable = false)
+    private Integer commentCount = 0; // 댓글 수
+
+    @Column(nullable = false)
+    private Integer shareCount = 0; // 공유 수
+
+    // 기타 가능한 필드들
+    @Column(nullable = true)
+    private Double rating; // 평점
+
+    @Column(columnDefinition = "TEXT")
+    private String tags; // 태그 (JSON 배열)
+
+    @Column(length = 50)
+    private String category; // 카테고리
+
+    @Column(nullable = false)
+    private Integer priority = 0; // 우선순위
+
+    @Column(nullable = false)
+    private Boolean featured = false; // 추천 여부
 
     // Legacy에서 가져온 추가 필드들
     @Column(unique = true)

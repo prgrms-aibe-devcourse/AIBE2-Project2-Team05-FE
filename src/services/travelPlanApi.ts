@@ -130,7 +130,7 @@ class TravelPlanApiService {
           ? travelPlan.styleLabels.join(',')
           : travelPlan.styles?.join(',') || '',
         numberOfPeople: parseInt(travelPlan.people) || 1,
-        budget: parseInt(travelPlan.budget) || 0,
+        budget: parseInt(travelPlan.budget.replace('만원', '').replace(',', '')) || 0,
         preferredGender: travelPlan.matchingInfo?.preferredGender || '상관없음',
         preferredAgeRange: travelPlan.matchingInfo?.preferredAge || '상관없음',
         preferredLanguage:
@@ -213,8 +213,8 @@ class TravelPlanApiService {
             : 'missing',
         });
 
-        alert('❌ 인증이 만료되었습니다. 다시 로그인해주세요.');
-        throw new Error('인증 실패: 다시 로그인이 필요합니다.');
+        console.error('❌ 인증이 만료되었습니다. 다시 로그인해주세요.');
+        throw new Error('❌ 인증 실패 - 토큰 문제');
       }
 
       // 네트워크 오류 등으로 백엔드 연결 실패 시 로컬스토리지 폴백
