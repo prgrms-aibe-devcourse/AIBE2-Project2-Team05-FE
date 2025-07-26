@@ -13,6 +13,7 @@ import { getPlaceImageFromBackend } from '../services/backendPlacesApi';
 import feedStatusService from '../services/feedStatusService';
 // import { generateMockUserFeeds } from '../data/mockProfileData'; // Mock 데이터 생성 비활성화로 제거
 import matePostService from '../services/matePostService'; // 추가
+import { DEFAULT_PLACE_IMAGE } from '../utils/imageUtils'; // 기본 이미지 추가
 import travelPlanApiService from '../services/travelPlanApi'; // 백엔드 API 연결
 
 interface Activity {
@@ -299,8 +300,7 @@ const MatchRecommendPage: React.FC = () => {
         age: Math.floor(Math.random() * 15) + 22, // 22-36세 랜덤
         location: destination,
         profileImage:
-          feed.avatar ||
-          'https://via.placeholder.com/400x300/cccccc/666666?text=No+Image',
+          feed.avatar || DEFAULT_PLACE_IMAGE,
         destination: destination,
         duration: duration,
         budget: budgetRange,
@@ -757,9 +757,7 @@ const MatchRecommendPage: React.FC = () => {
         if (backendImageUrl) {
           // 이미지가 없는 경우 처리
           if (backendImageUrl === 'NO_IMAGE') {
-            photos.push(
-              'https://via.placeholder.com/400x300/cccccc/666666?text=이미지+없음',
-            );
+            photos.push(DEFAULT_PLACE_IMAGE);
           } else {
             photos.push(backendImageUrl);
           }

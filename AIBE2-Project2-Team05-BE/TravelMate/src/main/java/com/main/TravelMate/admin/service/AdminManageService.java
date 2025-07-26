@@ -1,6 +1,7 @@
 package com.main.TravelMate.admin.service;
 
 import com.main.TravelMate.admin.dto.AdminManagedFeedDto;
+import com.main.TravelMate.admin.dto.AdminManagedUserDto;
 import com.main.TravelMate.admin.dto.AdminUserDto;
 import com.main.TravelMate.admin.dto.ManageFeedRequest;
 import com.main.TravelMate.admin.dto.ManageMatchingRequest;
@@ -19,6 +20,7 @@ import com.main.TravelMate.report.entity.Report;
 import com.main.TravelMate.report.repository.ReportRepository;
 import com.main.TravelMate.user.repository.UserRepository;
 import com.main.TravelMate.user.entity.User;
+import com.main.TravelMate.user.domain.UserStatus;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -78,16 +80,44 @@ public class AdminManageService {
         Admin admin = adminRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new IllegalArgumentException("관리자 정보 없음"));
 
+        // 사용자 상태를 실제로 변경
+        UserStatus newStatus;
+        try {
+            newStatus = UserStatus.valueOf(request.getStatus().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 상태값입니다: " + request.getStatus());
+        }
+        
+        user.setStatus(newStatus);
+        userRepository.save(user);
+
+        // 관리 기록 저장
         ManagedUser managed = managedUserRepository.findByUserId(user.getId())
-                .orElse(new ManagedUser());
+                .orElse(ManagedUser.builder()
+                        .user(user)
+                        .admin(admin)
+                        .status(request.getStatus())
+                        .reason(request.getReason())
+                        .updatedAt(LocalDateTime.now())
+                        .build());
 
-        managed.setUser(user);
-        managed.setAdmin(admin);
-        managed.setStatus(request.getStatus());
-        managed.setReason(request.getReason());
-        managed.setUpdatedAt(LocalDateTime.now());
+        // 기존 레코드가 있는 경우 업데이트
+        if (managed.getId() != null) {
+            managed.setStatus(request.getStatus());
+            managed.setReason(request.getReason());
+            managed.setUpdatedAt(LocalDateTime.now());
+        }
+        
         managedUserRepository.save(managed);
+        
+        System.out.println("=== ManagedUser 저장 완료 ===");
+        System.out.println("ManagedUser ID: " + managed.getId());
+        System.out.println("User ID: " + managed.getUser().getId());
+        System.out.println("Admin ID: " + managed.getAdmin().getId());
+        System.out.println("Status: " + managed.getStatus());
+        System.out.println("Reason: " + managed.getReason());
 
+        // 관리자 액션 로그 저장
         AdminActionLog log = AdminActionLog.builder()
                 .admin(admin)
                 .actionType("USER_" + request.getStatus())
@@ -97,6 +127,12 @@ public class AdminManageService {
                 .createdAt(LocalDateTime.now())
                 .build();
         adminActionLogRepository.save(log);
+        
+        System.out.println("=== 사용자 상태 변경 완료 ===");
+        System.out.println("사용자 ID: " + user.getId());
+        System.out.println("이전 상태: " + (user.getStatus() != null ? user.getStatus() : "NULL"));
+        System.out.println("새로운 상태: " + newStatus);
+        System.out.println("변경 사유: " + request.getReason());
     }
 
     // 임시 비활성화 - 매칭 기능 개발 중
@@ -242,6 +278,12 @@ public class AdminManageService {
         return userRepository.findAll().stream()
                 .map(AdminUserDto::new)
                 .toList(); // DTO로 변환하여 Jackson serialization 문제 해결
+    }
+
+    public List<AdminManagedUserDto> getManagedUsers() {
+        return managedUserRepository.findAll().stream()
+                .map(AdminManagedUserDto::new)
+                .toList();
     }
 
     public List<AdminFeedDto> getAllFeeds() {

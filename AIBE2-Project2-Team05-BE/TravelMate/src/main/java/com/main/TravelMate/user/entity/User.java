@@ -4,6 +4,7 @@ package com.main.TravelMate.user.entity;
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.profile.entity.Profile;
 import com.main.TravelMate.user.domain.Role;
+import com.main.TravelMate.user.domain.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role; // USER, GUIDE, ADMIN
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE; // 기본값은 ACTIVE
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Profile profile;

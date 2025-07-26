@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { getProfileImageUrl, handleImageError } from '../../utils/imageUtils';
 
 // 타입 정의
 interface UserProfile {
@@ -22,12 +22,14 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, feedCount }) => {
-  const navigate = useNavigate();
-
   return (
     <Container>
       <ProfileImage>
-        <img src={profile.profileImage} alt={profile.nickname} />
+        <img 
+          src={getProfileImageUrl(profile.profileImage)} 
+          alt={profile.nickname}
+          onError={(e) => handleImageError(e, 150)}
+        />
       </ProfileImage>
       <ProfileInfo>
         <ProfileTop>

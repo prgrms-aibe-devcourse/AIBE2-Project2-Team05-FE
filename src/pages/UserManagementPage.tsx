@@ -116,7 +116,7 @@ const UserManagementPage: React.FC = () => {
       console.log('New Status:', newStatus);
       console.log('Reason:', reason);
       
-      // JWT 토큰 파싱해서 사용자 정보 확인
+      // JWT 토큰 파싱해서 사용자 정보 확인 (디버깅용)
       if (token) {
         try {
           const tokenPayload = JSON.parse(atob(token.split('.')[1]));

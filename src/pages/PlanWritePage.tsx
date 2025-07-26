@@ -8,6 +8,7 @@ import * as S from './PlanWritePage.style';
 import PlaceMap from '../components/PlaceMap';
 import openaiService from '../services/openaiApi';
 import matePostService from '../services/matePostService';
+import { DEFAULT_PLACE_IMAGE } from '../utils/imageUtils'; // 기본 이미지 추가
 import travelPlanApiService, {
   TravelPlanData,
 } from '../services/travelPlanApi'; // 백엔드 여행 계획 API
@@ -892,11 +893,9 @@ const PlanWritePage: React.FC = () => {
         'https://via.placeholder.com/800x600/1ABC9C/FFFFFF?text=Melbourne',
     };
 
-    // 기본 이미지
-    return (
-      placeholderImageMap[destination] ||
-      'https://via.placeholder.com/800x600/95A5A6/FFFFFF?text=Travel'
-    );
+    // ✅ via.placeholder.com 대신 로컬 기본 이미지 사용으로 네트워크 에러 방지
+    console.log('🖼️ getPlaceholderImageUrl 호출됨:', destination, '→ 기본 이미지 반환');
+    return DEFAULT_PLACE_IMAGE;
   };
 
   // 태그 생성 함수
