@@ -30,6 +30,7 @@ public class TravelFeedResponseDto {
 
     private String imageUrl;
     private String caption;
+    private String status; // ✅ 피드 상태 추가
 
     private String createdBy;         // ✅ 이거 추가
     private String profileImage;      // ✅ 프로필용 이미지

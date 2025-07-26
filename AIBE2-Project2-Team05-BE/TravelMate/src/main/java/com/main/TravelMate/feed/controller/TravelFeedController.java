@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.main.TravelMate.feed.dto.CursorFeedResponseDto;
 
 @RestController
 @RequestMapping("/api/feed")
@@ -25,6 +26,48 @@ public class TravelFeedController {
 
     private final TravelFeedRepository feedRepository;
     private final TravelFeedService feedService; // ✅ 서비스 추가
+
+    // ✅ 기존 페이지 기반 피드 목록 조회
+    @GetMapping
+    public ResponseEntity<List<TravelFeedResponseDto>> getAllFeeds(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        List<TravelFeedResponseDto> feeds = feedService.getAllFeeds(page, size);
+        return ResponseEntity.ok(feeds);
+    }
+
+    // ✅ 새로운 커서 기반 피드 목록 조회 (대용량 최적화)
+    @GetMapping("/cursor")
+    public ResponseEntity<CursorFeedResponseDto> getFeedsWithCursor(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "15") int size
+    ) {
+        CursorFeedResponseDto response = feedService.getFeedsWithCursor(cursor, size);
+        return ResponseEntity.ok(response);
+    }
+
+    // ✅ 모든 피드 상태를 ACTIVE로 업데이트하는 엔드포인트 추가
+    @PostMapping("/update-status-active")
+    public ResponseEntity<String> updateAllFeedsToActive() {
+        try {
+            feedService.updateAllFeedsToActive();
+            return ResponseEntity.ok("모든 피드 상태가 ACTIVE로 업데이트되었습니다");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("피드 상태 업데이트 실패: " + e.getMessage());
+        }
+    }
+
+    // ✅ via.placeholder.com URL을 로컬 기본 이미지로 변경하는 엔드포인트 추가
+    @PostMapping("/fix-placeholder-images")
+    public ResponseEntity<String> fixPlaceholderImages() {
+        try {
+            feedService.fixPlaceholderImages();
+            return ResponseEntity.ok("모든 placeholder 이미지가 안정적인 로컬 이미지로 변경되었습니다");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("이미지 URL 수정 실패: " + e.getMessage());
+        }
+    }
 
     // ✅ 피드 이미지 업데이트 엔드포인트 추가
     @PostMapping("/update-images")
@@ -63,6 +106,17 @@ public class TravelFeedController {
             return ResponseEntity.ok("피드 생성 완료");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("피드 생성 실패: " + e.getMessage());
+        }
+    }
+
+    // ✅ travelPlanId로 피드 조회 API 추가
+    @GetMapping("/plan/{travelPlanId}")
+    public ResponseEntity<TravelFeedResponseDto> getFeedByPlanId(@PathVariable Long travelPlanId) {
+        try {
+            TravelFeedResponseDto feedResponse = feedService.getFeedByTravelPlanId(travelPlanId);
+            return ResponseEntity.ok(feedResponse);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
     }
 

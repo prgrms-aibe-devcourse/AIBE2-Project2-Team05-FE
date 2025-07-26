@@ -1,17 +1,24 @@
 package com.main.TravelMate.feed.service;
 
-
-
+import com.main.TravelMate.feed.dto.TravelFeedResponseDto;
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.feed.repository.TravelFeedRepository;
+import com.main.TravelMate.plan.dto.TravelDayDto;
+import com.main.TravelMate.plan.dto.TravelScheduleDto;
 import com.main.TravelMate.plan.entity.TravelDay;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.plan.entity.TravelSchedule;
 import com.main.TravelMate.plan.repository.TravelPlanRepository;
+import com.main.TravelMate.user.entity.User;
+import com.main.TravelMate.feed.dto.CursorFeedResponseDto;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,6 +32,212 @@ public class TravelFeedService {
 
     private final TravelFeedRepository feedRepository;
     private final TravelPlanRepository travelPlanRepository;
+
+    // ✅ travelPlanId로 피드 조회 메서드 추가
+    public TravelFeedResponseDto getFeedByTravelPlanId(Long travelPlanId) {
+        log.info("🔍 travelPlanId {}로 피드 조회 시작", travelPlanId);
+        
+        try {
+            // travel_plan_id로 피드 찾기
+            TravelFeed feed = feedRepository.findByTravelPlan_Id(travelPlanId)
+                    .orElseThrow(() -> new RuntimeException("해당 여행 계획에 대한 피드를 찾을 수 없습니다: " + travelPlanId));
+            
+            log.info("✅ travelPlanId {}에 대한 피드 조회 성공: feedId={}", travelPlanId, feed.getId());
+            
+            // 기존 convertToResponseDto 메서드 재사용
+            return convertToResponseDto(feed);
+        } catch (Exception e) {
+            log.error("❌ travelPlanId {}로 피드 조회 실패: {}", travelPlanId, e.getMessage(), e);
+            throw new RuntimeException("피드 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    // ✅ 피드 목록 조회 메서드 추가 (페이지네이션 지원)
+    public List<TravelFeedResponseDto> getAllFeeds(int page, int size) {
+        log.info("🔍 ACTIVE 피드 목록 조회 요청: page={}, size={}", page, size);
+        
+        try {
+            // 생성일시 기준 내림차순 정렬로 페이지네이션, ACTIVE 상태만 조회
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<TravelFeed> feedPage = feedRepository.findByStatusOrderByCreatedAtDesc("ACTIVE", pageable);
+            
+            log.info("📊 ACTIVE 피드 조회 결과: {}페이지, {}개 조회 (전체 {}개)", 
+                    page, feedPage.getContent().size(), feedPage.getTotalElements());
+            
+            // TravelFeed를 TravelFeedResponseDto로 변환
+            List<TravelFeedResponseDto> feedDtos = feedPage.getContent().stream()
+                    .map(this::convertToResponseDto)
+                    .collect(Collectors.toList());
+            
+            return feedDtos;
+        } catch (Exception e) {
+            log.error("❌ ACTIVE 피드 목록 조회 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("피드 목록 조회 실패", e);
+        }
+    }
+
+    // ✅ 커서 기반 피드 목록 조회 (대용량 데이터 최적화)
+    public CursorFeedResponseDto getFeedsWithCursor(Long cursor, int size) {
+        log.info("🔍 커서 기반 ACTIVE 피드 조회: cursor={}, size={}", cursor, size);
+        
+        try {
+            Pageable pageable = PageRequest.of(0, size + 1); // 하나 더 조회해서 다음 페이지 존재 확인
+            List<TravelFeed> feeds;
+            
+            if (cursor == null) {
+                // 첫 페이지: 가장 최신 피드부터
+                feeds = feedRepository.findByStatusOrderByIdDesc("ACTIVE", pageable);
+                log.info("📊 첫 페이지 조회: {}개 피드", feeds.size());
+            } else {
+                // 이후 페이지: cursor보다 작은 ID의 피드들
+                feeds = feedRepository.findByStatusAndIdLessThanOrderByIdDesc("ACTIVE", cursor, pageable);
+                log.info("📊 커서 {} 이후 조회: {}개 피드", cursor, feeds.size());
+            }
+            
+            // 다음 페이지 존재 여부 확인
+            boolean hasNext = feeds.size() > size;
+            if (hasNext) {
+                feeds = feeds.subList(0, size); // 실제 반환할 데이터만 유지
+            }
+            
+            // 다음 커서 설정 (마지막 아이템의 ID)
+            Long nextCursor = null;
+            if (hasNext && !feeds.isEmpty()) {
+                nextCursor = feeds.get(feeds.size() - 1).getId();
+            }
+            
+            // DTO 변환
+            List<TravelFeedResponseDto> feedDtos = feeds.stream()
+                    .map(this::convertToResponseDto)
+                    .collect(Collectors.toList());
+            
+            log.info("✅ 커서 기반 조회 완료: {}개 반환, nextCursor={}, hasNext={}", 
+                    feedDtos.size(), nextCursor, hasNext);
+            
+            return CursorFeedResponseDto.builder()
+                    .feeds(feedDtos)
+                    .nextCursor(nextCursor)
+                    .hasNext(hasNext)
+                    .totalCount(feedDtos.size())
+                    .build();
+                    
+        } catch (Exception e) {
+            log.error("❌ 커서 기반 ACTIVE 피드 목록 조회 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("피드 목록 조회 실패", e);
+        }
+    }
+
+    // ✅ TravelFeed를 TravelFeedResponseDto로 변환하는 헬퍼 메서드
+    private TravelFeedResponseDto convertToResponseDto(TravelFeed feed) {
+        TravelPlan plan = feed.getTravelPlan();
+        User user = feed.getUser();
+        
+        // 세부 일정 파싱
+        List<TravelDayDto> dayDtos = plan.getDays().stream().map(day -> {
+            List<TravelScheduleDto> scheduleDtos = day.getSchedules().stream().map(schedule ->
+                    TravelScheduleDto.builder()
+                            .time(schedule.getTime())
+                            .place(schedule.getPlace())
+                            .activity(schedule.getActivity())
+                            .memo(schedule.getMemo())
+                            .cost(schedule.getCost())
+                            .build()
+            ).toList();
+
+            return TravelDayDto.builder()
+                    .dayNumber(day.getDayNumber())
+                    .date(day.getDate())
+                    .schedules(scheduleDtos)
+                    .build();
+        }).toList();
+
+        // 피드 응답 DTO 구성
+        return TravelFeedResponseDto.builder()
+                .travelPlanId(plan.getId())
+                .title(plan.getTitle())
+                .location(plan.getLocation())
+                .description(plan.getDescription())
+                .interests(plan.getInterests())
+                .numberOfPeople(plan.getNumberOfPeople())
+                .budget(plan.getBudget())
+                .startDate(plan.getStartDate())
+                .endDate(plan.getEndDate())
+                .days(dayDtos)
+                .createdBy(user.getNickname())
+                .profileImage(user.getProfile() != null ? user.getProfile().getProfileImage() : null)
+                .imageUrl(feed.getImageUrl())
+                .caption(feed.getCaption())
+                .status(feed.getStatus()) // ✅ 피드 상태 포함
+                .authorName(plan.getAuthorName())
+                .build();
+    }
+
+    // ✅ 모든 피드 상태를 ACTIVE로 업데이트하는 메서드 추가
+    public void updateAllFeedsToActive() {
+        log.info("🔄 모든 피드 상태를 ACTIVE로 업데이트 시작");
+        
+        try {
+            List<TravelFeed> allFeeds = feedRepository.findAll();
+            log.info("📊 전체 피드 수: {}", allFeeds.size());
+            
+            int updatedCount = 0;
+            for (TravelFeed feed : allFeeds) {
+                if (!"ACTIVE".equals(feed.getStatus())) {
+                    feed.setStatus("ACTIVE");
+                    feedRepository.save(feed);
+                    updatedCount++;
+                    log.info("✅ 피드 ID {} 상태 업데이트: ACTIVE", feed.getId());
+                }
+            }
+            
+            log.info("🎯 모든 피드 상태 업데이트 완료: {}개 업데이트됨", updatedCount);
+        } catch (Exception e) {
+            log.error("❌ 모든 피드 상태 업데이트 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("피드 상태 업데이트 실패", e);
+        }
+    }
+
+    // ✅ via.placeholder.com URL을 로컬 기본 이미지로 변경하는 메서드 추가
+    public void fixPlaceholderImages() {
+        log.info("🔄 placeholder 이미지 URL을 로컬 이미지로 변경 시작");
+        
+        try {
+            List<TravelFeed> allFeeds = feedRepository.findAll();
+            log.info("📊 전체 피드 수: {}", allFeeds.size());
+            
+            int updatedCount = 0;
+            String localImageUrl = "/default-place-image.jpg";
+            
+            for (TravelFeed feed : allFeeds) {
+                String currentImageUrl = feed.getImageUrl();
+                
+                // via.placeholder.com을 포함한 URL이나 null인 경우 로컬 이미지로 변경
+                if (currentImageUrl == null || currentImageUrl.contains("via.placeholder.com")) {
+                    feed.setImageUrl(localImageUrl);
+                    feedRepository.save(feed);
+                    updatedCount++;
+                    log.info("✅ 피드 ID {} 이미지 URL 수정: {} → {}", 
+                            feed.getId(), currentImageUrl, localImageUrl);
+                }
+                
+                // TravelPlan의 이미지도 함께 확인하고 수정
+                if (feed.getTravelPlan() != null) {
+                    String planImageUrl = feed.getTravelPlan().getImageUrl();
+                    if (planImageUrl != null && planImageUrl.contains("via.placeholder.com")) {
+                        feed.getTravelPlan().setImageUrl(localImageUrl);
+                        travelPlanRepository.save(feed.getTravelPlan());
+                        log.info("✅ 여행계획 ID {} 이미지 URL 수정: {} → {}", 
+                                feed.getTravelPlan().getId(), planImageUrl, localImageUrl);
+                    }
+                }
+            }
+            
+            log.info("🎯 placeholder 이미지 URL 수정 완료: {}개 피드 업데이트됨", updatedCount);
+        } catch (Exception e) {
+            log.error("❌ placeholder 이미지 URL 수정 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("이미지 URL 수정 실패", e);
+        }
+    }
 
     public void createFeedFromPlan(TravelPlan plan) {
         log.info("🔄 여행 계획 '{}' (사용자: {}, ID: {})에 대한 피드 생성 시작", 

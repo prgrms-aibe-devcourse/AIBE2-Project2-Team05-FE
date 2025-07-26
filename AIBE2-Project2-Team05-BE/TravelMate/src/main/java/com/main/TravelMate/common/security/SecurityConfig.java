@@ -42,7 +42,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/openai/**").permitAll()
                         
                         // ✅ 피드 이미지 업데이트 엔드포인트 (인증 없이 접근 허용)
-                        .requestMatchers("/api/feed/update-images", "/api/feed/update-all-images", "/api/feed/update-all-feeds").permitAll()
+                        .requestMatchers("/api/feed/update-images", "/api/feed/update-all-images", "/api/feed/update-all-feeds", "/api/feed/update-status-active", "/api/feed/fix-placeholder-images").permitAll()
+                        
+                        // ✅ 피드 목록 조회 API (인증 없이 접근 허용)
+                        .requestMatchers("/api/feed").permitAll()
+                        .requestMatchers("/api/feed/cursor").permitAll() // 커서 기반 조회
+                        .requestMatchers("/api/feed/*").permitAll() // Specific feed by feedId
+                        .requestMatchers("/api/feed/plan/*").permitAll() // Specific feed by travelPlanId
                         
                         // ✅ 여행 계획 이미지 업데이트 엔드포인트 (인증 없이 접근 허용)
                         .requestMatchers("/api/plan/update-all-images", "/api/plan/update-missing-images", "/api/plan/update-missing-author-names", "/api/plan/debug-author-names").permitAll()
@@ -61,7 +67,7 @@ public class SecurityConfig {
                         // ✅ 인증이 필요한 엔드포인트 - ROLE_USER 명시  
                         .requestMatchers("/api/plan/**").authenticated() // 임시로 완화
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/feed/**").authenticated()
+                        .requestMatchers("/api/feed/**").authenticated() // 피드 생성/수정/삭제는 여전히 인증 필요
                         .requestMatchers("/api/profile/**").authenticated()
                         .requestMatchers("/api/match/**").authenticated()
                         
