@@ -316,7 +316,7 @@ const ReviewPage = () => {
   
   // 상태 끌어올리기: 부모 컴포넌트에서 리뷰 목록 상태를 관리합니다.
   const [writtenReviews, setWrittenReviews] = useState<Review[]>(dummyWrittenReviews);
-  const [receivedReviews, setReceivedReviews] = useState<Review[]>(dummyReceivedReviews);
+  const [receivedReviews, _setReceivedReviews] = useState<Review[]>(dummyReceivedReviews); // '_'로 미사용 변수 표시
 
   // 새 리뷰를 등록하는 함수
   const handleRegisterReview = (newReviewData: Omit<Review, 'id' | 'date' | 'photos'>) => {

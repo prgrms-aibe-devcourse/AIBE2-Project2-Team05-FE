@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import AdminLayout from '../components/admin/AdminLayout';
-import api from '../services/api'; // api 모듈 임포트
+import api from '../services/api';
 
 // 백엔드 User 엔티티와 타입을 맞춥니다.
 interface User {
@@ -111,9 +111,7 @@ const UserManagementPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // 디버깅: 토큰과 요청 정보 로그
-      console.log('=== 상태 변경 요청 디버깅 ===');
-      console.log('Token:', token);
+      console.log('=== 상태 변경 요청 ===');
       console.log('User ID:', userId);
       console.log('New Status:', newStatus);
       console.log('Reason:', reason);
@@ -154,11 +152,7 @@ const UserManagementPage: React.FC = () => {
       
       alert('사용자 상태가 변경되었습니다.');
     } catch (err: any) {
-      console.error('=== 상태 변경 실패 ===');
-      console.error('Error changing user status:', err);
-      console.error('Error response:', err.response);
-      console.error('Error status:', err.response?.status);
-      console.error('Error data:', err.response?.data);
+      console.error('상태 변경 실패:', err);
       
       if (err.response?.status === 403) {
         alert('권한이 없습니다. 관리자 계정으로 로그인했는지 확인해주세요.');
@@ -196,7 +190,7 @@ const UserManagementPage: React.FC = () => {
               textAlign: 'center', 
               padding: '3rem',
               fontSize: '16px',
-              color: '#6c757d'
+              color: '#64748b'
             }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>👤</div>
               <div style={{ fontWeight: '600', marginBottom: '8px' }}>등록된 사용자가 없습니다</div>
@@ -216,7 +210,7 @@ const UserManagementPage: React.FC = () => {
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
                 <td>{user.role}</td>
                 <td>
-                  <StatusBadge status={userStatus}>
+                  <StatusBadge $status={userStatus}>
                     {userStatus}
                   </StatusBadge>
                 </td>
@@ -258,7 +252,7 @@ const UserManagementPage: React.FC = () => {
               textAlign: 'center', 
               padding: '3rem',
               fontSize: '16px',
-              color: '#6c757d'
+              color: '#64748b'
             }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🛡️</div>
               <div style={{ fontWeight: '600', marginBottom: '8px' }}>관리 기록이 없습니다</div>
@@ -277,7 +271,7 @@ const UserManagementPage: React.FC = () => {
               </td>
               <td>{managedUser.admin.name}</td>
               <td>
-                <StatusBadge status={managedUser.status}>
+                <StatusBadge $status={managedUser.status}>
                   {managedUser.status}
                 </StatusBadge>
               </td>
@@ -296,13 +290,13 @@ const UserManagementPage: React.FC = () => {
       
       <TabContainer>
         <TabButton 
-          active={activeTab === 'all-users'} 
+          $active={activeTab === 'all-users'} 
           onClick={() => setActiveTab('all-users')}
         >
           전체 사용자<span>{allUsers.length}</span>
         </TabButton>
         <TabButton 
-          active={activeTab === 'managed-users'} 
+          $active={activeTab === 'managed-users'} 
           onClick={() => setActiveTab('managed-users')}
         >
           관리된 사용자<span>{managedUsers.length}</span>
@@ -315,8 +309,8 @@ const UserManagementPage: React.FC = () => {
         </LoadingMessage>
       ) : error ? (
         <ErrorMessage>
-          <p style={{ color: '#e74c3c', fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>{error}</p>
-          <p style={{ color: '#6c757d', fontSize: '14px' }}>전체 사용자: {allUsers.length}명, 관리된 사용자: {managedUsers.length}명</p>
+          <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>{error}</p>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>전체 사용자: {allUsers.length}명, 관리된 사용자: {managedUsers.length}명</p>
         </ErrorMessage>
       ) : (
         <TabContent>
@@ -329,9 +323,10 @@ const UserManagementPage: React.FC = () => {
 
 export default UserManagementPage;
 
+// 프로젝트 스타일 시스템에 맞춘 styled-components
 const Title = styled.h1`
-  margin-bottom: 2rem;
-  color: #2c3e50;
+  margin-bottom: 32px;
+  color: #1e293b;
   font-size: 28px;
   font-weight: 700;
   display: flex;
@@ -346,36 +341,36 @@ const Title = styled.h1`
 
 const TabContainer = styled.div`
   display: flex;
-  background: #f8f9fa;
+  background: #f8fafc;
   border-radius: 12px;
   padding: 4px;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
-const TabButton = styled.button<{ active: boolean }>`
+const TabButton = styled.button<{ $active: boolean }>`
   flex: 1;
   padding: 16px 24px;
   border: none;
-  background-color: ${({ active }) => (active ? '#fff' : 'transparent')};
-  color: ${({ active }) => (active ? '#2c3e50' : '#6c757d')};
+  background-color: ${({ $active }) => ($active ? '#fff' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#1e293b' : '#64748b')};
   cursor: pointer;
   border-radius: 8px;
-  font-weight: ${({ active }) => (active ? '600' : '500')};
+  font-weight: ${({ $active }) => ($active ? '600' : '500')};
   font-size: 15px;
   transition: all 0.3s ease;
-  box-shadow: ${({ active }) => (active ? '0 2px 8px rgba(0,0,0,0.1)' : 'none')};
+  box-shadow: ${({ $active }) => ($active ? '0 2px 8px rgba(0,0,0,0.1)' : 'none')};
   position: relative;
 
   &:hover {
-    background-color: ${({ active }) => (active ? '#fff' : '#e9ecef')};
+    background-color: ${({ $active }) => ($active ? '#fff' : '#e2e8f0')};
     transform: translateY(-1px);
   }
 
   span {
     display: inline-block;
     margin-left: 8px;
-    background: ${({ active }) => (active ? '#007bff' : '#6c757d')};
+    background: ${({ $active }) => ($active ? '#3682f8' : '#64748b')};
     color: white;
     font-size: 12px;
     padding: 4px 8px;
@@ -385,7 +380,7 @@ const TabButton = styled.button<{ active: boolean }>`
 `;
 
 const TabContent = styled.div`
-  margin-top: 1rem;
+  margin-top: 16px;
 `;
 
 const LoadingMessage = styled.div`
@@ -393,21 +388,28 @@ const LoadingMessage = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 48px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   &::before {
     content: "⏳";
     font-size: 48px;
     margin-bottom: 16px;
+    animation: spin 2s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
   
   p {
     font-size: 18px;
-    color: #6c757d;
+    color: #64748b;
     margin: 0;
+    font-weight: 500;
   }
 `;
 
@@ -416,10 +418,10 @@ const ErrorMessage = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 48px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   &::before {
     content: "⚠️";
@@ -432,53 +434,67 @@ const UserTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   th, td {
-    border: 1px solid #ddd;
-    padding: 12px;
+    padding: 16px;
     text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e2e8f0;
   }
   
   th {
-    background-color: #f8f9fa;
-    font-weight: bold;
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
   }
   
-  tr:nth-child(even) {
-    background-color: #f9f9f9;
+  tr:last-child td {
+    border-bottom: none;
+  }
+  
+  tr:hover {
+    background-color: #f8fafc;
   }
 `;
 
-const ActionButton = styled.button<{ danger?: boolean }>`
+const ActionButton = styled.button<{ $danger?: boolean }>`
   padding: 6px 12px;
-  margin-right: 4px;
+  margin-right: 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  background-color: ${({ danger }) => (danger ? '#dc3545' : '#007bff')};
+  background-color: ${({ $danger }) => ($danger ? '#ef4444' : '#3682f8')};
   color: white;
   font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 
   &:hover {
     opacity: 0.8;
+    transform: translateY(-1px);
   }
 `;
 
-const StatusBadge = styled.span<{ status?: string }>`
+const StatusBadge = styled.span<{ $status?: string }>`
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 600;
   color: white;
-  background-color: ${({ status }) => {
-    switch (status) {
-      case 'ACTIVE': return '#28a745';
-      case 'BANNED': return '#dc3545';
-      case 'INACTIVE': return '#6c757d';
-      default: return '#ffc107';
+  background-color: ${({ $status }) => {
+    switch ($status) {
+      case 'ACTIVE': 
+        return '#10b981';
+      case 'BANNED': 
+        return '#ef4444';
+      case 'INACTIVE': 
+        return '#6b7280';
+      default: 
+        return '#f59e0b';
     }
   }};
 `; 

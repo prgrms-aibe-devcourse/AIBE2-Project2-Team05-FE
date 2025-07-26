@@ -65,12 +65,14 @@ const LoginForm: React.FC = () => {
 
       const { accessToken, role } = response.data;
       if (accessToken) {
+        // ✅ User 객체 형태로 전달
         const userData = {
-          email,
+          email: email,
           role: role.toString(),
         };
+        console.log('🔐 로그인 성공, 사용자 데이터:', userData);
         login(accessToken, userData);
-        navigate('/');
+        navigate('/'); // 로그인 성공 시 메인 페이지로 이동
       } else {
         setError('로그인에 실패했습니다: 토큰이 없습니다.');
       }

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState /* , useEffect, useRef */ } from 'react'; // 임시 주석 처리 - 미사용
 import { AnimatePresence } from 'framer-motion';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+// import { Client } from '@stomp/stompjs'; // 임시 주석 처리 - 미사용
+// import SockJS from 'sockjs-client'; // 임시 주석 처리 - 미사용
 import {
   ChatContainer,
   ChatListPanel,

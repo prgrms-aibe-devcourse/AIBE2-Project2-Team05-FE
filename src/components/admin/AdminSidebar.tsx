@@ -141,12 +141,12 @@ const AdminSidebar: React.FC = () => {
                 </MenuItem>
                 <MenuItem>
                     <NavLink to="/admin/feeds">
-                        <i className="ri-image-line"></i> 콘텐츠 관리
+                        <i className="ri-file-list-3-line"></i> 여행 피드 관리
                     </NavLink>
                 </MenuItem>
                 <MenuItem>
                     <NavLink to="/admin/reports">
-                        <i className="ri-alarm-warning-line"></i> 신고 관리
+                        <i className="ri-alarm-warning-line"></i> 신고 처리
                     </NavLink>
                 </MenuItem>
             </MenuItems>

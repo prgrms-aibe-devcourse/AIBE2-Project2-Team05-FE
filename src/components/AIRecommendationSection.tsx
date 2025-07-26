@@ -1,0 +1,766 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import styled from 'styled-components';
+import { motion } from 'framer-motion';
+import PlaceDetailModal from './PlaceDetailModal';
+import { AIRecommendationData } from '../types/plan';
+import openaiService from '../services/openaiApi';
+
+// 추천 장소 타입 정의 (로컬 인터페이스)
+interface LocalRecommendedPlace {
+  name: string;
+  description: string;
+  category: string;
+  distance?: string;
+  verified?: boolean;
+  source?: string;
+}
+
+interface AIRecommendationSectionProps {
+  planId?: string; // 저장된 플랜 ID
+  savedRecommendations?: AIRecommendationData; // 저장된 추천 데이터
+  destination: string;
+  travelStyles: string[];
+  visitedPlaces: string[]; // 여행 계획의 실제 방문 예정 장소들
+}
+
+const AIRecommendationSection: React.FC<AIRecommendationSectionProps> = ({
+  planId,
+  savedRecommendations,
+  destination,
+  travelStyles,
+  visitedPlaces,
+}) => {
+  const [recommendations, setRecommendations] = useState<
+    LocalRecommendedPlace[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 저장된 추천 데이터 로드
+  const loadSavedRecommendations = useCallback(() => {
+    console.log('🔄 저장된 AI 추천 데이터 로드 시작...');
+
+    // 1. props로 전달된 savedRecommendations 우선 사용
+    if (savedRecommendations && savedRecommendations.recommendations) {
+      console.log(
+        '✅ Props에서 추천 데이터 발견:',
+        savedRecommendations.recommendations.length,
+        '개',
+      );
+      setRecommendations(savedRecommendations.recommendations);
+      return;
+    }
+
+    // 2. planId가 있으면 localStorage에서 해당 플랜의 추천 데이터 로드
+    if (planId) {
+      try {
+        const planDataStr = localStorage.getItem(`plan_${planId}`);
+        if (planDataStr) {
+          const planData = JSON.parse(planDataStr);
+
+          // ✅ 우선 planData.nearbyRecommendations 확인 (PlanWritePage에서 저장한 데이터)
+          if (
+            planData.nearbyRecommendations &&
+            Array.isArray(planData.nearbyRecommendations)
+          ) {
+            console.log(
+              '✅ 메인 플랜에서 추천 데이터 발견:',
+              planData.nearbyRecommendations.length,
+              '개',
+            );
+            setRecommendations(planData.nearbyRecommendations);
+            return;
+          }
+
+          // 🔄 기존 방식도 지원 (하위 호환성)
+          if (
+            planData.aiRecommendations &&
+            planData.aiRecommendations.recommendations
+          ) {
+            console.log(
+              '✅ 기존 형식 추천 데이터 발견:',
+              planData.aiRecommendations.recommendations.length,
+              '개',
+            );
+            setRecommendations(planData.aiRecommendations.recommendations);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('localStorage에서 플랜 데이터 로드 중 오류:', error);
+      }
+    }
+
+    // 3. 저장된 추천이 없는 경우
+    console.log('⚠️ 저장된 AI 추천 데이터가 없습니다.');
+    setRecommendations([]);
+  }, [planId, savedRecommendations]);
+
+  // 새로운 AI 추천 생성 및 저장
+  const generateNewRecommendations = async () => {
+    if (!destination || travelStyles.length === 0) {
+      console.warn('⚠️ 목적지나 여행 스타일 정보가 없습니다.');
+      return;
+    }
+
+    setLoading(true);
+    console.log('🤖 새로운 AI 추천 생성 시작...', {
+      destination,
+      travelStyles,
+      visitedPlaces,
+    });
+
+    try {
+      // OpenAI API를 통해 추천 생성 (visitedPlaces를 days 형식으로 변환)
+      const travelPlanData = {
+        days: [
+          {
+            day: 1,
+            activities: visitedPlaces.map((place) => ({ name: place })),
+          },
+        ],
+      };
+
+      const aiRecommendations =
+        await openaiService.generateNearbyRecommendations(
+          destination,
+          travelStyles,
+          travelPlanData,
+        );
+
+      if (aiRecommendations && aiRecommendations.length > 0) {
+        console.log('✅ AI 추천 생성 성공:', aiRecommendations.length, '개');
+
+        // LocalRecommendedPlace 형식으로 변환
+        const formattedRecommendations: LocalRecommendedPlace[] =
+          aiRecommendations.map((rec, index) => ({
+            name: rec.name,
+            description: rec.description,
+            category: rec.category || '관광명소',
+            distance: rec.distance || '정보 없음',
+            verified: rec.verified || false,
+            source: 'OpenAI',
+          }));
+
+        setRecommendations(formattedRecommendations);
+
+        // ✅ localStorage에 저장 (planId가 있는 경우) - 메인 planData에 통합 저장
+        if (planId) {
+          try {
+            // 기존 planData 로드
+            const existingPlanStr = localStorage.getItem(`plan_${planId}`);
+            if (existingPlanStr) {
+              const planData = JSON.parse(existingPlanStr);
+
+              // nearbyRecommendations 업데이트
+              planData.nearbyRecommendations = formattedRecommendations;
+              planData.lastRecommendationUpdate = new Date().toISOString();
+
+              // planData 다시 저장
+              localStorage.setItem(`plan_${planId}`, JSON.stringify(planData));
+              console.log('💾 메인 planData에 AI 추천 업데이트 완료:', planId);
+            } else {
+              console.warn(
+                '⚠️ 메인 planData를 찾을 수 없어 별도 저장:',
+                planId,
+              );
+              // 메인 planData가 없으면 기존 방식으로 저장
+              const recommendationData = {
+                destination,
+                travelStyles,
+                visitedPlaces,
+                recommendations: formattedRecommendations,
+                generatedAt: new Date().toISOString(),
+              };
+              localStorage.setItem(
+                `ai_recommendations_${planId}`,
+                JSON.stringify(recommendationData),
+              );
+            }
+          } catch (error) {
+            console.error('AI 추천 저장 중 오류:', error);
+          }
+        }
+      } else {
+        console.warn('⚠️ AI 추천 결과가 없습니다.');
+        setRecommendations([]);
+      }
+    } catch (error) {
+      console.error('❌ AI 추천 생성 실패:', error);
+      setRecommendations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedRecommendations();
+  }, [loadSavedRecommendations]);
+
+  // 장소 클릭 핸들러
+  const handlePlaceClick = (placeName: string) => {
+    console.log('🏛️ 장소 클릭:', placeName);
+    setSelectedPlace(placeName);
+    setIsModalOpen(true);
+  };
+
+  // 모달 닫기 핸들러
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedPlace(null);
+  };
+
+  // 카테고리별로 추천 장소 그룹화 (각 카테고리당 최대 9개)
+  const groupRecommendationsByCategory = () => {
+    const grouped: { [key: string]: LocalRecommendedPlace[] } = {};
+    
+    recommendations.forEach((place) => {
+      const category = place.category || '기타';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      // 각 카테고리당 최대 9개 (3x3)
+      if (grouped[category].length < 9) {
+        grouped[category].push(place);
+      }
+    });
+    
+    return grouped;
+  };
+
+  // 카테고리별 아이콘과 색상
+  const getCategoryStyle = (category: string) => {
+    const categoryLower = category.toLowerCase();
+
+    // 영어/한글 카테고리 매핑
+    if (
+      categoryLower.includes('restaurant') ||
+      categoryLower.includes('맛집') ||
+      categoryLower.includes('food')
+    ) {
+      return {
+        icon: '🍽️',
+        background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+        textColor: '#FFFFFF',
+        borderColor: '#FF6B6B',
+      };
+    }
+    if (
+      categoryLower.includes('activity') ||
+      categoryLower.includes('액티비티') ||
+      categoryLower.includes('sport')
+    ) {
+      return {
+        icon: '🏃‍♀️',
+        background: 'linear-gradient(135deg, #4ECDC4, #44A08D)',
+        textColor: '#FFFFFF',
+        borderColor: '#4ECDC4',
+      };
+    }
+    if (
+      categoryLower.includes('attraction') ||
+      categoryLower.includes('관광') ||
+      categoryLower.includes('tourist')
+    ) {
+      return {
+        icon: '🏛️',
+        background: 'linear-gradient(135deg, #45B7D1, #3682F8)',
+        textColor: '#FFFFFF',
+        borderColor: '#45B7D1',
+      };
+    }
+    if (
+      categoryLower.includes('shopping') ||
+      categoryLower.includes('쇼핑') ||
+      categoryLower.includes('mall')
+    ) {
+      return {
+        icon: '🛍️',
+        background: 'linear-gradient(135deg, #9B59B6, #8E44AD)',
+        textColor: '#FFFFFF',
+        borderColor: '#9B59B6',
+      };
+    }
+    if (
+      categoryLower.includes('nature') ||
+      categoryLower.includes('자연') ||
+      categoryLower.includes('park')
+    ) {
+      return {
+        icon: '🌲',
+        background: 'linear-gradient(135deg, #27AE60, #2ECC71)',
+        textColor: '#FFFFFF',
+        borderColor: '#27AE60',
+      };
+    }
+    if (
+      categoryLower.includes('entertainment') ||
+      categoryLower.includes('엔터') ||
+      categoryLower.includes('club')
+    ) {
+      return {
+        icon: '🎭',
+        background: 'linear-gradient(135deg, #E91E63, #F06292)',
+        textColor: '#FFFFFF',
+        borderColor: '#E91E63',
+      };
+    }
+    if (
+      categoryLower.includes('culture') ||
+      categoryLower.includes('문화') ||
+      categoryLower.includes('museum')
+    ) {
+      return {
+        icon: '🎨',
+        background: 'linear-gradient(135deg, #F39C12, #E67E22)',
+        textColor: '#FFFFFF',
+        borderColor: '#F39C12',
+      };
+    }
+    if (
+      categoryLower.includes('hotel') ||
+      categoryLower.includes('숙박') ||
+      categoryLower.includes('accommodation')
+    ) {
+      return {
+        icon: '🏨',
+        background: 'linear-gradient(135deg, #34495E, #2C3E50)',
+        textColor: '#FFFFFF',
+        borderColor: '#34495E',
+      };
+    }
+    if (
+      categoryLower.includes('cafe') ||
+      categoryLower.includes('카페') ||
+      categoryLower.includes('coffee')
+    ) {
+      return {
+        icon: '☕',
+        background: 'linear-gradient(135deg, #8D4004, #A0522D)',
+        textColor: '#FFFFFF',
+        borderColor: '#8D4004',
+      };
+    }
+
+    // 기본 카테고리
+    return {
+      icon: '📍',
+      background: 'linear-gradient(135deg, #95A5A6, #7F8C8D)',
+      textColor: '#FFFFFF',
+      borderColor: '#95A5A6',
+    };
+  };
+
+  // 추천이 없는 경우의 렌더링
+  if (recommendations.length === 0) {
+    return (
+      <Container>
+        <Header>
+          <Title>🤖 AI 추천 근처 가볼만한 곳</Title>
+        </Header>
+        <EmptyState>
+          <EmptyIcon>🔍</EmptyIcon>
+          <EmptyText>AI 추천 데이터가 없습니다</EmptyText>
+          <EmptyDescription>
+            AI가 {destination} 근처의 맞춤 장소를 추천해드릴게요!
+            <br />✨ 아래 버튼을 클릭해서 새로운 추천을 받아보세요!
+          </EmptyDescription>
+          <RefreshButton
+            onClick={generateNewRecommendations}
+            disabled={loading}
+            style={{ marginTop: '16px' }}
+          >
+            {loading ? '🔄 생성 중...' : '🤖 AI 추천받기'}
+          </RefreshButton>
+        </EmptyState>
+      </Container>
+    );
+  }
+
+  return (
+    <>
+      <Container>
+        <Header>
+          <Title>🤖 AI 추천 근처 가볼만한 곳</Title>
+          <RefreshButton
+            onClick={generateNewRecommendations}
+            disabled={loading}
+          >
+            {loading ? '🔄 생성 중...' : '✨ 새로 추천받기'}
+          </RefreshButton>
+        </Header>
+
+        {loading ? (
+          <LoadingContainer>
+            <LoadingSpinner />
+            <LoadingText>
+              {destination} 근처 맞춤 추천 장소를 찾고 있습니다...
+            </LoadingText>
+          </LoadingContainer>
+        ) : recommendations.length > 0 ? (
+          <>
+            {Object.entries(groupRecommendationsByCategory()).map(([category, places]) => (
+              <CategorySection key={category}>
+                <CategoryHeader>
+                  <CategoryTitle>
+                    <CategoryIcon>
+                      {getCategoryStyle(category).icon}
+                    </CategoryIcon>
+                    {category}
+                  </CategoryTitle>
+                  <CategoryCount>{places.length}개 장소</CategoryCount>
+                </CategoryHeader>
+                <PlacesGrid>
+                  {places.map((place, index) => (
+                    <PlaceCard
+                      key={`${category}-${index}`}
+                      onClick={() => handlePlaceClick(place.name)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <PlaceHeader>
+                        <PlaceName>{place.name}</PlaceName>
+                        <CategoryBadge
+                          categoryStyle={getCategoryStyle(place.category)}
+                        >
+                          <CategoryIcon>
+                            {getCategoryStyle(place.category).icon}
+                          </CategoryIcon>
+                          {place.category}
+                        </CategoryBadge>
+                      </PlaceHeader>
+                      <PlaceDescription>{place.description}</PlaceDescription>
+                      <PlaceFooter>
+                        <Distance>📍 {place.distance}</Distance>
+                        <VerificationBadge $verified={place.verified || false}>
+                          {place.verified ? '✅ 실제 장소' : '❓ 확인 중'}
+                        </VerificationBadge>
+                      </PlaceFooter>
+                    </PlaceCard>
+                  ))}
+                </PlacesGrid>
+              </CategorySection>
+            ))}
+            <FooterNote>
+              💡 AI가 {destination} 근처에서 카테고리별로 추천하는 장소들입니다. 클릭하면
+              상세 정보를 확인할 수 있어요!
+            </FooterNote>
+          </>
+        ) : (
+          <EmptyState>
+            <EmptyIcon>🗺️</EmptyIcon>
+            <EmptyText>
+              아직 추천할 장소가 없습니다.
+              <br />
+              여행 계획에 방문 장소를 추가해보세요!
+            </EmptyText>
+          </EmptyState>
+        )}
+      </Container>
+
+      {/* 장소 상세 정보 모달 */}
+      <PlaceDetailModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        placeName={selectedPlace || ''}
+        region={destination}
+      />
+    </>
+  );
+};
+
+// 스타일 컴포넌트들
+const Container = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px auto; /* 중앙 정렬 */
+  border: 1px solid #e5e7eb;
+  width: 75%; /* 75%로 적절하게 조정 */
+  max-width: 1100px; /* 최대 너비를 늘림 */
+  min-width: 800px; /* 최소 너비 보장으로 깨짐 방지 */
+  
+  /* 반응형 처리 */
+  @media (max-width: 1400px) {
+    width: 85%; /* 중간 화면에서는 85% */
+    min-width: 700px;
+  }
+  
+  @media (max-width: 1024px) {
+    width: 95%; /* 태블릿에서는 95% */
+    min-width: 600px;
+  }
+  
+  @media (max-width: 768px) {
+    width: 98%; /* 모바일에서는 98% */
+    min-width: auto; /* 모바일에서는 최소 너비 해제 */
+    padding: 16px;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+`;
+
+const Title = styled.h2`
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const RefreshButton = styled.button`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  padding: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #3682f8;
+    transform: scale(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 32px;
+  height: 32px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3682f8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingText = styled.div`
+  color: #64748b;
+  font-size: 14px;
+`;
+
+const PlacesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3x3 배치를 위한 고정 3컬럼 */
+  gap: 12px; /* 16px에서 12px로 줄임 */
+  margin-bottom: 16px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr); /* 태블릿에서는 2컬럼 */
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr; /* 모바일에서는 1컬럼 */
+    gap: 8px; /* 모바일에서는 더 작은 gap */
+  }
+`;
+
+const PlaceCard = styled(motion.div)`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px; /* 16px에서 12px로 줄임 */
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #3682f8;
+    box-shadow: 0 4px 12px rgba(54, 130, 248, 0.1);
+    transform: translateY(-2px);
+  }
+`;
+
+const PlaceHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const PlaceName = styled.h3`
+  margin: 0 0 4px 0;
+  font-size: 16px; /* 18px에서 16px로 줄임 */
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.3;
+`;
+
+interface CategoryStyle {
+  icon: string;
+  background: string;
+  textColor: string;
+  borderColor: string;
+}
+
+const CategoryBadge = styled.span<{ categoryStyle: CategoryStyle }>`
+  background: ${(props) => props.categoryStyle.background};
+  color: ${(props) => props.categoryStyle.textColor};
+  border: 1px solid ${(props) => props.categoryStyle.borderColor};  /* 2px → 1px로 얇게 */
+  padding: 4px 8px;  /* 6px 12px → 4px 8px로 작게 */
+  border-radius: 16px;  /* 20px → 16px로 작게 */
+  font-size: 11px;  /* 12px → 11px로 작게 */
+  font-weight: 600;  /* 700 → 600으로 약간 연하게 */
+  display: flex;
+  align-items: center;
+  gap: 4px;  /* 6px → 4px로 간격 줄임 */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);  /* 그림자도 더 작게 */
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;  /* 0.5px → 0.3px로 줄임 */
+  z-index: 1;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  /* 호버 그림자도 줄임 */
+  }
+`;
+
+const CategoryIcon = styled.span`
+  font-size: 12px;  /* 14px → 12px로 작게 */
+  line-height: 1;
+`;
+
+const PlaceDescription = styled.p`
+  margin: 0 0 12px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const PlaceFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Distance = styled.span`
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const VerificationBadge = styled.span<{ $verified: boolean }>`
+  background: ${(props) =>
+    props.$verified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
+  color: ${(props) => (props.$verified ? '#059669' : '#EF4444')};
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: ${(props) =>
+    props.$verified
+      ? '1px solid rgba(16, 185, 129, 0.2)'
+      : '1px solid rgba(239, 68, 68, 0.2)'};
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+`;
+
+const EmptyText = styled.h3`
+  margin: 0 0 8px 0;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 600;
+`;
+
+const EmptyDescription = styled.p`
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+`;
+
+const FooterNote = styled.div`
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+`;
+
+// 카테고리별 섹션 스타일 컴포넌트들
+const CategorySection = styled.div`
+  margin-bottom: 32px;
+  
+  &:last-child {
+    margin-bottom: 16px;
+  }
+`;
+
+const CategoryHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+`;
+
+const CategoryTitle = styled.h3`
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CategoryCount = styled.span`
+  background: rgba(54, 130, 248, 0.1);
+  color: #3682f8;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+export default AIRecommendationSection;

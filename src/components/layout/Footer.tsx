@@ -10,44 +10,70 @@ const Footer = () => {
           <p>새로운 여행 동반자를 찾고, 특별한 여행 경험을 만들어보세요.</p>
           <SocialLinks>
             {/* 아이콘 라이브러리 추가 후 <i className="ri-instagram-line"></i> 등으로 대체 */}
-            <a href="#">Insta</a>
+            {/* 임시 주석 처리 - 실제 소셜 미디어 링크 추가 시 활성화 */}
+            {/* <a href="#">Insta</a>
             <a href="#">Fb</a>
             <a href="#">Twit</a>
-            <a href="#">YT</a>
+            <a href="#">YT</a> */}
+            <span>소셜 미디어 링크 준비 중</span>
           </SocialLinks>
         </FooterCol>
         <FooterCol>
           <h3>서비스</h3>
           <ul>
-            <li><Link to="/planning">여행 계획</Link></li>
-            <li><Link to="/matching">매칭 시스템</Link></li>
-            <li><Link to="/chat">채팅</Link></li>
-            <li><Link to="/feed">여행 피드</Link></li>
-            <li><Link to="/reviews">리뷰</Link></li>
+            <li>
+              <Link to="/planning">여행 계획</Link>
+            </li>
+            <li>
+              <Link to="/matching">매칭 시스템</Link>
+            </li>
+            <li>
+              <Link to="/chat">채팅</Link>
+            </li>
+            <li>
+              <Link to="/feed">여행 피드</Link>
+            </li>
+            <li>
+              <Link to="/reviews">리뷰</Link>
+            </li>
           </ul>
         </FooterCol>
         <FooterCol>
           <h3>지원</h3>
           <ul>
-            <li><Link to="/faq">자주 묻는 질문</Link></li>
-            <li><Link to="/support">고객 지원</Link></li>
-            <li><Link to="/safety">안전 가이드</Link></li>
-            <li><Link to="/tips">매칭 팁</Link></li>
+            <li>
+              <Link to="/faq">자주 묻는 질문</Link>
+            </li>
+            <li>
+              <Link to="/support">고객 지원</Link>
+            </li>
+            <li>
+              <Link to="/safety">안전 가이드</Link>
+            </li>
+            <li>
+              <Link to="/tips">매칭 팁</Link>
+            </li>
           </ul>
         </FooterCol>
         <FooterCol>
           <h3>법적 정보</h3>
           <ul>
-            <li><Link to="/terms">이용약관</Link></li>
-            <li><Link to="/privacy">개인정보처리방침</Link></li>
-            <li><Link to="/cookies">쿠키 정책</Link></li>
-            <li><Link to="/copyright-info">저작권 정보</Link></li>
+            <li>
+              <Link to="/terms">이용약관</Link>
+            </li>
+            <li>
+              <Link to="/privacy">개인정보처리방침</Link>
+            </li>
+            <li>
+              <Link to="/cookies">쿠키 정책</Link>
+            </li>
+            <li>
+              <Link to="/copyright-info">저작권 정보</Link>
+            </li>
           </ul>
         </FooterCol>
       </FooterContainer>
-      <Copyright>
-        &copy; 2024 트래블메이트. All rights reserved.
-      </Copyright>
+      <Copyright>&copy; 2024 트래블메이트. All rights reserved.</Copyright>
     </FooterWrapper>
   );
 };
@@ -57,7 +83,7 @@ export default Footer;
 const FooterWrapper = styled.footer`
   background-color: #2c3e50;
   color: #ecf0f1;
-  padding: 80px 60px 20px;
+  padding: 80px 20px 20px;
   font-family: 'NotoSansHans', sans-serif;
 `;
 
@@ -122,4 +148,4 @@ const Copyright = styled.div`
   border-top: 1px solid #34495e;
   font-size: 14px;
   color: #7f8c8d;
-`; 
+`;

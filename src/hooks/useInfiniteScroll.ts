@@ -27,13 +27,7 @@ const useInfiniteScroll = ({
         // entries는 여러 개의 감시 대상 요소를 배열로 포함할 수 있습니다.
         // 우리는 하나의 대상만 감시하므로 첫 번째 요소만 확인합니다.
         const entry = entries[0];
-        console.log('IntersectionObserver 감지:', {
-          isIntersecting: entry.isIntersecting,
-          intersectionRatio: entry.intersectionRatio
-        });
-        
         if (entry.isIntersecting) {
-          console.log('무한 스크롤 콜백 실행');
           // 대상 요소가 뷰포트와 교차하면 콜백 함수를 실행합니다.
           callback();
         }

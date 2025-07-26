@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import AdminLayout from '../components/admin/AdminLayout';
-import api from '../services/api'; // api 모듈 임포트
+import api from '../services/api';
 
 // 백엔드 Report 엔티티와 타입을 맞춥니다.
 interface Report {
@@ -98,7 +98,7 @@ const ReportManagementPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      console.log('=== 신고 처리 요청 디버깅 ===');
+      console.log('=== 신고 처리 요청 ===');
       console.log('Report ID:', reportId);
       console.log('New Status:', newStatus);
       console.log('Action Taken:', actionTaken);
@@ -108,8 +108,6 @@ const ReportManagementPage: React.FC = () => {
         status: newStatus,
         actionTaken: actionTaken
       };
-      
-      console.log('Request Data:', requestData);
       
       const response = await api.post('/api/admin/manage/report', requestData, {
         headers: {
@@ -126,11 +124,7 @@ const ReportManagementPage: React.FC = () => {
       
       alert('신고가 처리되었습니다.');
     } catch (err: any) {
-      console.error('=== 신고 처리 실패 ===');
-      console.error('Error processing report:', err);
-      console.error('Error response:', err.response);
-      console.error('Error status:', err.response?.status);
-      console.error('Error data:', err.response?.data);
+      console.error('신고 처리 실패:', err);
       
       if (err.response?.status === 403) {
         alert('권한이 없습니다. 관리자 계정으로 로그인했는지 확인해주세요.');
@@ -210,7 +204,7 @@ const ReportManagementPage: React.FC = () => {
               <h3>처리 정보</h3>
               <DetailItem>
                 <strong>현재 상태:</strong> 
-                <StatusBadge status={selectedReport.status}>
+                <StatusBadge $status={selectedReport.status}>
                   {getStatusText(selectedReport.status)}
                 </StatusBadge>
               </DetailItem>
@@ -241,7 +235,7 @@ const ReportManagementPage: React.FC = () => {
                   해결완료
                 </ActionButton>
                 <ActionButton 
-                  danger 
+                  $danger 
                   onClick={() => handleQuickAction(selectedReport, 'REJECTED', '신고 내용 부적절 - 반려')}
                 >
                   반려
@@ -303,7 +297,7 @@ const ReportManagementPage: React.FC = () => {
                     textAlign: 'center', 
                     padding: '3rem',
                     fontSize: '16px',
-                    color: '#6c757d'
+                    color: '#64748b'
                   }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
                     <div style={{ fontWeight: '600', marginBottom: '8px' }}>신고가 없습니다</div>
@@ -319,7 +313,7 @@ const ReportManagementPage: React.FC = () => {
                     <td>{report.reportedUser.nickname}</td>
                     <td>{new Date(report.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <StatusBadge status={report.status}>
+                      <StatusBadge $status={report.status}>
                         {getStatusText(report.status)}
                       </StatusBadge>
                     </td>
@@ -332,7 +326,7 @@ const ReportManagementPage: React.FC = () => {
                           <ActionButton onClick={() => handleQuickAction(report, 'RESOLVED', '조치 완료')}>
                             해결
                           </ActionButton>
-                          <ActionButton danger onClick={() => handleQuickAction(report, 'REJECTED', '반려')}>
+                          <ActionButton $danger onClick={() => handleQuickAction(report, 'REJECTED', '반려')}>
                             반려
                           </ActionButton>
                         </>
@@ -353,9 +347,10 @@ const ReportManagementPage: React.FC = () => {
 
 export default ReportManagementPage;
 
+// 프로젝트 스타일 시스템에 맞춘 styled-components
 const Title = styled.h1`
-  margin-bottom: 2rem;
-  color: #2c3e50;
+  margin-bottom: 32px;
+  color: #1e293b;
   font-size: 28px;
   font-weight: 700;
   display: flex;
@@ -371,49 +366,46 @@ const Title = styled.h1`
 const StatsContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 24px;
+  margin-bottom: 32px;
 `;
 
 const StatCard = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem 1.5rem;
+  background: linear-gradient(135deg, #3682f8 0%, #764ba2 100%);
+  padding: 32px 24px;
   border-radius: 16px;
   text-align: center;
   min-width: 180px;
   color: white;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(54, 130, 248, 0.3);
   transition: all 0.3s ease;
   
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 24px rgba(54, 130, 248, 0.4);
   }
   
   &:nth-child(1) {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    color: #8b4513;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     
     &:hover {
-      box-shadow: 0 12px 32px rgba(252, 182, 159, 0.4);
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
     }
   }
   
   &:nth-child(2) {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    color: #2c5530;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     
     &:hover {
-      box-shadow: 0 12px 32px rgba(168, 237, 234, 0.4);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
     }
   }
   
   &:nth-child(3) {
-    background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
-    color: #5d4037;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
     
     &:hover {
-      box-shadow: 0 12px 32px rgba(210, 153, 194, 0.4);
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
     }
   }
 `;
@@ -421,12 +413,12 @@ const StatCard = styled.div`
 const StatNumber = styled.div`
   font-size: 2.5rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
   text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
 const StatLabel = styled.div`
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 600;
   opacity: 0.9;
   text-transform: uppercase;
@@ -437,7 +429,7 @@ const TableContainer = styled.div`
   background: white;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 const LoadingMessage = styled.div`
@@ -445,10 +437,10 @@ const LoadingMessage = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 48px;
   background: white;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   &::before {
     content: "⏳";
@@ -464,7 +456,7 @@ const LoadingMessage = styled.div`
   
   p {
     font-size: 18px;
-    color: #6c757d;
+    color: #64748b;
     margin: 0;
     font-weight: 500;
   }
@@ -475,10 +467,10 @@ const ErrorMessage = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 48px;
   background: white;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   &::before {
     content: "⚠️";
@@ -490,48 +482,66 @@ const ErrorMessage = styled.div`
 const ReportTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+
   th, td {
-    border: 1px solid #ddd;
-    padding: 12px;
+    padding: 16px;
     text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e2e8f0;
   }
+
   th {
-    background-color: #f8f9fa;
-    font-weight: bold;
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
   }
-  tr:nth-child(even) {
-    background-color: #f9f9f9;
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover {
+    background-color: #f8fafc;
   }
 `;
 
-const ActionButton = styled.button<{ danger?: boolean }>`
+const ActionButton = styled.button<{ $danger?: boolean }>`
   padding: 6px 12px;
-  margin-right: 4px;
+  margin-right: 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  background-color: ${({ danger }) => (danger ? '#dc3545' : '#007bff')};
+  background-color: ${({ $danger }) => ($danger ? '#ef4444' : '#3682f8')};
   color: white;
   font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 
   &:hover {
     opacity: 0.8;
+    transform: translateY(-1px);
   }
 `;
 
-const StatusBadge = styled.span<{ status?: string }>`
+const StatusBadge = styled.span<{ $status?: string }>`
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 600;
   color: white;
-  background-color: ${({ status }) => {
-    switch (status) {
-      case 'PENDING': return '#ffc107';
-      case 'REVIEWED': return '#17a2b8';
-      case 'RESOLVED': return '#28a745';
-      case 'REJECTED': return '#6c757d';
-      default: return '#6c757d';
+  background-color: ${({ $status }) => {
+    switch ($status) {
+      case 'PENDING': 
+        return '#f59e0b';
+      case 'REVIEWED': 
+        return '#06b6d4';
+      case 'RESOLVED': 
+        return '#10b981';
+      case 'REJECTED': 
+        return '#6b7280';
+      default: 
+        return '#6b7280';
     }
   }};
 `;
@@ -543,81 +553,99 @@ const DetailModal = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 `;
 
 const DetailContent = styled.div`
   background: white;
-  border-radius: 8px;
+  border-radius: 16px;
   width: 90%;
   max-width: 800px;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 `;
 
 const DetailHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #ddd;
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  
+  h2 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 24px;
+    font-weight: 700;
+  }
 `;
 
 const CloseButton = styled.button`
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: #64748b;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   
   &:hover {
-    color: #000;
+    color: #1e293b;
+    background-color: #f1f5f9;
   }
 `;
 
 const DetailBody = styled.div`
-  padding: 1.5rem;
+  padding: 24px;
 `;
 
 const DetailSection = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 32px;
   
   h3 {
-    margin-bottom: 1rem;
-    color: #333;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 0.5rem;
+    margin-bottom: 16px;
+    color: #1e293b;
+    border-bottom: 2px solid #3682f8;
+    padding-bottom: 8px;
+    font-size: 18px;
+    font-weight: 600;
   }
 `;
 
 const DetailItem = styled.div`
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
   
   strong {
-    color: #555;
+    color: #374151;
+    font-weight: 600;
   }
 `;
 
 const DescriptionBox = styled.div`
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 4px;
-  border-left: 4px solid #007bff;
-  margin-top: 0.5rem;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #3682f8;
+  margin-top: 8px;
   white-space: pre-wrap;
+  color: #374151;
+  line-height: 1.6;
 `;
 
 const ActionSection = styled.div`
-  border-top: 1px solid #ddd;
-  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 12px;
+  margin-top: 16px;
 `; 

@@ -25,12 +25,8 @@ const Layout = () => {
 export default Layout;
 
 const MainContent = styled.main<{ showSidebar: boolean }>`
-  padding-top: ${(props) => (props.showSidebar ? '40px' : '80px')};
-  padding-left: ${(props) =>
-    props.showSidebar
-      ? '280px'
-      : '60px'}; /* Sidebar 240px + Content Padding 40px */
-  padding-right: 60px;
+  margin-left: ${(props) =>
+    props.showSidebar ? '215px' : '0'}; /* 사이드바 200px + 여백 15px */
   min-height: 100vh;
   transition: all 0.3s ease;
 `;

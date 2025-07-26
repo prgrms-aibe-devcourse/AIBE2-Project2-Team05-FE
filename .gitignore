@@ -1,38 +1,219 @@
-# Maven
-target/
-.mvn/wrapper/maven-wrapper.jar
+# TravelMate React 19 + TypeScript + Spring Boot 프로젝트
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# STS
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
 
-# IntelliJ IDEA
-.idea
-.idea/
-*.iws
-*.iml
-*.ipr
+# Testing
+/coverage
+*.lcov
+.nyc_output
 
-# NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Production builds
+/build
+/dist
+*.tgz
+*.tar.gz
 
-# VS Code
+# Environment variables
+.env
+.env.production
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Icon?
+
+# Editor directories and files
 .vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
 
-# Compiled class file
+# TypeScript
+*.tsbuildinfo
+.tscache/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Storybook build outputs
+.out
+.storybook-out
+storybook-static
+
+# Temporary folders
+tmp/
+temp/
+
+# React specific
+.eslintcache
+
+# Styled Components
+.styled-components/
+
+# Backup files
+*.backup
+*.bak
+
+# ================================
+# Taskmaster 관련
+# ================================
+
+# Taskmaster 개인 작업 파일들 (선택적으로 제외)
+.taskmaster/tasks/
+.taskmaster/reports/
+.taskmaster/state.json
+*/.taskmaster/tasks/
+*/.taskmaster/reports/
+*/.taskmaster/state.json
+
+# Taskmaster 설정은 팀과 공유 (포함)
+!.taskmaster/config.json
+!.taskmaster/templates/
+!.taskmaster/docs/
+
+# 개별 태스크 파일들
+*.taskmaster.json
+*.tm.json
+
+# Taskmaster 로그
+taskmaster.log
+tm.log
+
+# ================================
+# Cursor IDE 관련
+# ================================
+
+# Cursor IDE 개인 설정 파일들
+.cursor/settings.json
+.cursor/keybindings.json
+.cursor/snippets/
+.cursor/extensions.json
+*/.cursor/settings.json
+*/.cursor/keybindings.json
+*/.cursor/snippets/
+*/.cursor/extensions.json
+
+# Cursor 워크스페이스 설정
+.cursor-workspace
+*.cursor-workspace
+
+# Cursor MCP 설정 (API 키 포함으로 주의)
+# 팀과 공유하려면 주석 해제
+# !.cursor/mcp.json
+
+# Cursor 규칙 파일들은 팀과 공유 (포함)
+!.cursor/rules/
+
+# Cursor 플러그인 캐시
+.cursor-cache/
+*/.cursor-cache/
+
+# Cursor 임시 파일들
+*.cursor-tmp
+.cursor-tmp/
+
+# ================================
+# Windsurf IDE 관련
+# ================================
+
+# Windsurf IDE 개인 설정 파일들
+.windsurf/settings.json
+.windsurf/keybindings.json
+.windsurf/snippets/
+.windsurf/extensions.json
+*/.windsurf/settings.json
+*/.windsurf/keybindings.json
+*/.windsurf/snippets/
+*/.windsurf/extensions.json
+
+# Windsurf MCP 설정 (API 키 포함으로 주의)
+# 팀과 공유하려면 주석 해제
+# !.windsurf/mcp.json
+
+# Windsurf 규칙 파일들은 팀과 공유 (포함)
+!.windsurf/rules/
+
+# Windsurf 플러그인 캐시
+.windsurf-cache/
+*/.windsurf-cache/
+
+# Windsurf 임시 파일들
+*.windsurf-tmp
+.windsurf-tmp/
+
+# ================================
+# Java/Spring Boot 관련
+# ================================
+
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Maven files (Maven 사용 시)
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Java 컴파일된 클래스 파일들
 *.class
 
-# Log file
+# Log files
 *.log
+hs_err_pid*
+replay_pid*
 
 # BlueJ files
 *.ctxt
@@ -51,13 +232,108 @@ target/
 
 # virtual machine crash logs
 hs_err_pid*
-replay_pid*
 
-# 백엔드 MySQL 데이터 폴더 무시
-/backend/mysql-data/
+# Spring Boot
+/bin/
+!**/src/main/**
+!**/src/test/**
 
-# Firebase service account key
-/backend/config/
-/config/
-/backend/src/main/resources/application.properties
-/backend/docker-compose.yaml
+# Spring Boot DevTools
+.spring-boot-devtools.properties
+
+# H2 Database files (개발용 DB)
+*.db
+*.trace.db
+*.lock.db
+
+# ================================
+# IDE 관련 (추가)
+# ================================
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.idea_modules/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code (추가)
+.vscode/
+*.code-workspace
+
+# ================================
+# 업로드 및 생성된 파일들
+# ================================
+
+# 사용자 업로드 파일들 (프로필 이미지 등)
+uploads/
+**/uploads/
+
+# 백엔드 실행 로그
+nohup.out
+
+# 임시 JSON 파일들
+profile_response.json
+*.tmp.json
+
+# ================================
+# 데이터베이스 관련
+# ================================
+
+# SQLite
+*.sqlite
+*.sqlite3
+
+# MySQL dump files
+*.sql
+
+# PostgreSQL
+*.pgdump
+
+# ================================
+# 개발/배포 관련
+# ================================
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Kubernetes
+*.yaml.tmp
+*.yml.tmp
+
+# 환경 설정 파일들
+application-local.yml
+application-dev.yml
+application-prod.yml
+!application.yml
+
+# SSL 인증서
+*.pem
+*.key
+*.crt
+*.p12
+
+# 기타 보안 관련
+secrets/
+*.secret 
