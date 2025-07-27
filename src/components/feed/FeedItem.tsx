@@ -6,7 +6,6 @@ import { FeedItem as FeedItemType } from '../../services/feedApi';
 import ImageModal from '../profile/ImageModal';
 import LazyImage from '../common/LazyImage';
 import PlanPage from '../../pages/PlanPage';
-import { getProfileImageUrl, handleImageError } from '../../utils/imageUtils';
 
 interface FeedItemProps {
   feed: FeedItemType;

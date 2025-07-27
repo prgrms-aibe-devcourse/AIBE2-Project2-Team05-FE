@@ -1,18 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 // import { Link } from 'react-router-dom'; // 임시 주석 처리 - 미사용
 // 프로필 API 추가
 import profileApiService from '../services/profileApi';
 import { FeedWithTravelStatus } from '../types/feed';
-// 이미지 업로드 API 추가
-import { uploadImages } from '../services/feedStatusApi';
-// 이미지 유틸리티 추가
-import { getProfileImageUrl, handleImageError } from '../utils/imageUtils';
-
-
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -36,8 +30,6 @@ const MyPage = () => {
   const { logout, updateUser, user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  // 파일 입력을 위한 ref 추가
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 프로필 데이터 상태
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -91,7 +83,7 @@ const MyPage = () => {
 
         // 백엔드 데이터로 상태 업데이트
         setProfileData({
-          name: profileResponse.realName || '', // DB의 realName 필드 사용
+          name: profileResponse.realName || '',
           nickname: profileResponse.nickname || '',
           age: profileResponse.age ? profileResponse.age.toString() : '',
           gender: profileResponse.gender || '남성',
@@ -178,20 +170,16 @@ const MyPage = () => {
     setIsSaving(true);
 
     try {
-      // ✅ 백엔드 API로 프로필 업데이트 (실명은 제외)
+      // ✅ 백엔드 API로 프로필 업데이트
       await profileApiService.updateProfile({
         nickname: profileData.nickname.trim(),
-        // realName은 회원가입 시에만 설정되므로 제외
+        realName: profileData.name,
         age: profileData.age ? parseInt(profileData.age) : 0,
         gender: profileData.gender,
         bio: profileData.bio,
         // TODO: 선호 여행지와 여행 스타일을 문자열로 변환
         preferredDestinations: profileData.preferredDestinations.join(','),
         travelStyle: profileData.travelStyles.join(','),
-        // ✅ 프로필 이미지 URL도 포함
-        profileImage: profileData.profileImage && (profileData.profileImage.startsWith('http') || profileData.profileImage.startsWith('/')) 
-          ? profileData.profileImage 
-          : undefined,
       });
 
       // localStorage에도 저장 (로컬 캐시용, 현재 사용자 이메일 포함)
@@ -210,14 +198,13 @@ const MyPage = () => {
 
       // 성공 메시지
       alert(
-        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 이미지가 DB에 저장되었습니다\n• 나이, 성별, 자기소개가 DB에 저장되었습니다\n• 선호 여행지와 여행 스타일이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
+        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
       );
 
       console.log('💾 프로필 업데이트 완료:', {
         nickname: profileData.nickname,
         realName: profileData.name,
         bio: profileData.bio,
-        profileImage: profileData.profileImage,
       });
     } catch (error) {
       console.error('❌ 프로필 저장 중 오류:', error);
@@ -256,64 +243,6 @@ const MyPage = () => {
       logout(); // 로그아웃 후 홈으로 이동
       window.location.href = '/';
     }
-  };
-
-  // 프로필 이미지 업로드 핸들러 추가
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) {
-      console.log('📁 파일이 선택되지 않았습니다.');
-      return;
-    }
-
-    const file = files[0]; // 첫 번째 파일만 사용
-    
-    // 파일 타입 검증
-    if (!file.type.startsWith('image/')) {
-      alert('이미지 파일만 업로드 가능합니다.');
-      return;
-    }
-
-    // 파일 크기 검증 (5MB 제한)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('파일 크기는 5MB 이하여야 합니다.');
-      return;
-    }
-
-    try {
-      console.log('📤 프로필 이미지 업로드 시작:', file.name);
-      
-      // 이미지 업로드 API 호출
-      const imageUrls = await uploadImages([file]);
-      
-      if (imageUrls.length > 0) {
-        // 업로드된 이미지 URL로 프로필 데이터 업데이트
-        const newProfileData = {
-          ...profileData,
-          profileImage: imageUrls[0] // 첫 번째 이미지 URL 사용
-        };
-        
-        setProfileData(newProfileData);
-        
-        // 백엔드에 프로필 업데이트
-        await profileApiService.updateProfile({
-          profileImage: imageUrls[0]
-        });
-        
-        console.log('✅ 프로필 이미지 업로드 성공:', imageUrls[0]);
-        alert('프로필 이미지가 성공적으로 업로드되었습니다!');
-      } else {
-        throw new Error('이미지 업로드 실패');
-      }
-    } catch (error) {
-      console.error('❌ 프로필 이미지 업로드 실패:', error);
-      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
-    }
-  };
-
-  // 이미지 업로드 버튼 클릭 핸들러
-  const handlePhotoUploadClick = () => {
-    fileInputRef.current?.click();
   };
 
   // 로딩 중일 때 로딩 화면 표시
@@ -359,42 +288,17 @@ const MyPage = () => {
         {/* 프로필 설정 */}
         <ProfileSection>
           <ProfilePhoto>
-            {/* 프로필 이미지 표시 - URL인 경우 이미지, 아니면 이모지 */}
-            {profileData.profileImage && (profileData.profileImage.startsWith('http') || profileData.profileImage.startsWith('/')) ? (
-              <ProfileImage 
-                src={getProfileImageUrl(profileData.profileImage)} 
-                alt="프로필 이미지"
-                onError={(e) => handleImageError(e, 200)}
-              />
-            ) : null}
-            <div style={{ 
-              fontSize: '60px', 
-              display: profileData.profileImage && (profileData.profileImage.startsWith('http') || profileData.profileImage.startsWith('/')) ? 'none' : 'block'
-            }}>
-              {profileData.profileImage || '👤'}
-            </div>
-            <PhotoUploadButton onClick={handlePhotoUploadClick}>📷 사진 변경</PhotoUploadButton>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-              accept="image/*"
-            />
+            <div style={{ fontSize: '60px' }}>{profileData.profileImage}</div>
+            <PhotoUploadButton>📷 사진 변경</PhotoUploadButton>
           </ProfilePhoto>
 
           <InputGroup>
-            <Label>이름 (회원가입 시 설정, 수정 불가)</Label>
+            <Label>이름</Label>
             <Input
               type="text"
               value={profileData.name}
-              readOnly
-              style={{ 
-                backgroundColor: '#f8f9fa', 
-                color: '#6c757d',
-                cursor: 'not-allowed'
-              }}
-              placeholder={profileData.name ? "회원가입 시 설정된 실명" : "회원가입에서 설정한 실명이 표시됩니다"}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="실명을 입력해주세요"
             />
           </InputGroup>
 
@@ -547,17 +451,6 @@ const ProfilePhoto = styled.div`
   flex-shrink: 0;
   text-align: center;
 `;
-
-const ProfileImage = styled.img`
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 50%;
-  margin-bottom: 15px;
-  border: 3px solid #3498db;
-`;
-
-
 
 const PhotoUploadButton = styled.button`
   background-color: #3498db;

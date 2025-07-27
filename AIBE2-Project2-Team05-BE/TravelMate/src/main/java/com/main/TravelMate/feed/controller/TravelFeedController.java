@@ -120,18 +120,6 @@ public class TravelFeedController {
         }
     }
 
-    // ✅ 피드 삭제 엔드포인트 추가 (travelPlanId로 삭제)
-    @DeleteMapping("/plan/{travelPlanId}")
-    public ResponseEntity<String> deleteFeedByTravelPlanId(@PathVariable Long travelPlanId, Authentication authentication) {
-        try {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            feedService.deleteFeedByTravelPlanId(travelPlanId, userDetails.getUser().getId());
-            return ResponseEntity.ok("피드가 성공적으로 삭제되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("피드 삭제 실패: " + e.getMessage());
-        }
-    }
-
     @GetMapping("/{feedId}")
     public ResponseEntity<TravelFeedResponseDto> getFeed(@PathVariable Long feedId) {
         TravelFeed feed = feedRepository.findById(feedId)

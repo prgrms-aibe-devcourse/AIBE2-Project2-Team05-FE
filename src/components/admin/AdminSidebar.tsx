@@ -117,7 +117,7 @@ const AdminSidebar: React.FC = () => {
             <SidebarHeader>
                 <Logo>
                     <LogoIcon><i className="ri-plane-line"></i></LogoIcon>
-                    <LogoText>트래블메이트</LogoText>
+                    <LogoText>트립매치</LogoText>
                 </Logo>
                 <AdminProfile>
                     <AdminAvatar><i className="ri-user-line"></i></AdminAvatar>

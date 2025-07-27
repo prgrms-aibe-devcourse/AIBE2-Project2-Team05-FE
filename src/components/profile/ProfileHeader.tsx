@@ -9,7 +9,6 @@ interface UserProfile {
   nickname: string;
   profileImage: string;
   bio: string;
-  age?: number; // 나이 필드 추가
   postsCount: number;
   followersCount: number;
   followingCount: number;
@@ -24,8 +23,7 @@ interface ProfileHeaderProps {
     postsCount: number;
     followersCount: number;
     followingCount: number;
-    isCurrentUser?: boolean;
-    age?: number; // ✅ age 속성 추가
+    isCurrentUser?: boolean; // ✅ 누락된 속성 추가
   };
   feedCount: number; // 실제 피드 개수를 전달받음
 }
@@ -45,12 +43,14 @@ const ProfileHeader = memo<ProfileHeaderProps>(({ profile, feedCount }) => {
         <ProfileTop>
           <Username>{profile.nickname}</Username>
           <UserDetails>
-            {profile.age && (
-              <DetailItem>
-                <i className="ri-calendar-line"></i>
-                {profile.age}세
-              </DetailItem>
-            )}
+            <DetailItem>
+              <i className="ri-calendar-line"></i>
+              25세
+            </DetailItem>
+            <DetailItem>
+              <i className="ri-map-pin-line"></i>
+              서울, 대한민국
+            </DetailItem>
           </UserDetails>
         </ProfileTop>
         
