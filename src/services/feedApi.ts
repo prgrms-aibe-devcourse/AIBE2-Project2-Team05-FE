@@ -1,4 +1,5 @@
 import api from './api';
+import { getProfileImageUrl } from '../utils/imageUtils';
 
 // 백엔드 피드 응답 타입 정의
 export interface BackendFeedResponse {
@@ -70,7 +71,7 @@ export const getFeeds = async (
     const feeds: FeedItem[] = response.data.map((feed, index) => ({
       id: feed.travelPlanId || (page * size + index + 1), // ID가 없으면 임시 ID 생성
       author: feed.createdBy || feed.authorName || '익명',
-      avatar: feed.profileImage || `https://i.pravatar.cc/150?u=${feed.createdBy}`,
+      avatar: feed.profileImage ? getProfileImageUrl(feed.profileImage) : `https://i.pravatar.cc/150?u=${feed.createdBy}`,
       image: feed.imageUrl || '/default-place-image.jpg',
       likes: Math.floor(Math.random() * 50) + 10, // 임시 좋아요 수
       caption: feed.caption || `${feed.title} - ${feed.location}`,

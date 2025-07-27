@@ -195,9 +195,21 @@ class ProfileApiService {
     try {
       console.log('🗑️ 피드 삭제 시작:', feedId);
 
-      await api.delete(`/api/feeds/${feedId}`);
+      // feedId에서 travelPlanId 추출 (형식: "feed-{travelPlanId}-{index}")
+      let travelPlanId: string | number = feedId;
+      
+      if (typeof feedId === 'string' && feedId.startsWith('feed-')) {
+        const parts = feedId.split('-');
+        if (parts.length >= 2) {
+          travelPlanId = parts[1]; // travelPlanId 추출
+          console.log('🔍 travelPlanId 추출:', travelPlanId);
+        }
+      }
 
-      console.log('✅ 피드 삭제 성공:', feedId);
+      // 백엔드 엔드포인트를 올바르게 수정
+      await api.delete(`/api/feed/plan/${travelPlanId}`);
+
+      console.log('✅ 피드 삭제 성공:', feedId, '-> travelPlanId:', travelPlanId);
     } catch (error: any) {
       console.error('❌ 피드 삭제 실패:', error);
       throw new Error(

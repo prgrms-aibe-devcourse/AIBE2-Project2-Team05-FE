@@ -36,6 +36,9 @@ const PostsGrid = memo<PostsGridProps>(({
 }) => {
   const navigate = useNavigate();
   
+  // 디버깅: isCurrentUser 값 확인
+  console.log('🔍 PostsGrid - isCurrentUser:', isCurrentUser);
+  
   // 현재 탭에 해당하는 피드들만 필터링
   const filteredFeeds = feeds.filter((feed) => feed.travelType === activeTab);
 
@@ -70,6 +73,7 @@ const PostsGrid = memo<PostsGridProps>(({
           <Grid>
             {filteredFeeds.map((feed, index) => {
               console.log(`🖼️ 렌더링 피드 ${index + 1}:`, feed.id, feed.caption);
+              console.log(`🗑️ 피드 ${feed.id} - 삭제 버튼 렌더링:`, isCurrentUser);
               return (
                 <PostItem
                   key={feed.id}
@@ -104,6 +108,7 @@ const PostsGrid = memo<PostsGridProps>(({
                         🗑️
                       </DeleteButton>
                     )}
+
                   </PostOverlay>
                 </PostItem>
               );
@@ -187,6 +192,7 @@ const PostOverlay = styled.div`
   flex-direction: column;
   justify-content: space-between;
   padding: 12px;
+  pointer-events: none; /* 호버링 문제 방지 */
 
   ${PostItem}:hover & {
     opacity: 1;
@@ -234,6 +240,7 @@ const DeleteButton = styled.button`
   justify-content: center;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
+  pointer-events: auto; /* 부모의 pointer-events: none을 무시하고 클릭 가능하게 */
 
   &:hover {
     background: rgba(239, 68, 68, 1);

@@ -6,6 +6,7 @@ import { FeedItem as FeedItemType } from '../../services/feedApi';
 import ImageModal from '../profile/ImageModal';
 import LazyImage from '../common/LazyImage';
 import PlanPage from '../../pages/PlanPage';
+import { getProfileImageUrl, handleImageError } from '../../utils/imageUtils';
 
 interface FeedItemProps {
   feed: FeedItemType;
@@ -119,7 +120,11 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
       {/* ✅ Link 제거하고 직접 클릭 이벤트 처리 */}
       <FeedCard onClick={handleFeedClick}>
         <FeedHeader>
-          <Avatar src={feed.avatar} alt={feed.author} />
+          <Avatar 
+            src={feed.avatar} 
+            alt={feed.author}
+            onError={(e) => handleImageError(e, 32)}
+          />
           <AuthorInfo>
             <AuthorName>{feed.author}</AuthorName>
             <LocationInfo>{feed.location}</LocationInfo>

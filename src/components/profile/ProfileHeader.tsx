@@ -24,7 +24,8 @@ interface ProfileHeaderProps {
     postsCount: number;
     followersCount: number;
     followingCount: number;
-    isCurrentUser?: boolean; // ✅ 누락된 속성 추가
+    isCurrentUser?: boolean;
+    age?: number; // ✅ age 속성 추가
   };
   feedCount: number; // 실제 피드 개수를 전달받음
 }

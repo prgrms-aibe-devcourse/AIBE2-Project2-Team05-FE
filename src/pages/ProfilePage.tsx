@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import profileApiService from '../services/profileApi';
 import PlanPage from './PlanPage';
+import { getProfileImageUrl } from '../utils/imageUtils';
 
 // 모듈화된 컴포넌트들 import
 import {
@@ -158,7 +159,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
             const feedData: UserFeed = {
               id: `feed-${feed.travelPlanId}-${index}`,
               author: profileData.nickname || 'Unknown',
-              avatar: profileData.profileImage || '/default-avatar.jpg',
+              avatar: profileData.profileImage ? getProfileImageUrl(profileData.profileImage) : '/default-avatar.jpg',
               image: feed.imageUrl || '/default-place-image.jpg',
               caption: caption,
               likes: 0,
@@ -207,7 +208,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           id: profileData.id,
           username: profileData.email || 'user',
           nickname: profileData.nickname || 'User',
-          profileImage: profileData.profileImage || defaultProfileImage,
+          profileImage: profileData.profileImage ? getProfileImageUrl(profileData.profileImage) : defaultProfileImage,
           bio: profileData.bio || '안녕하세요 👋',
           age: profileData.age || undefined, // 나이 정보 추가
           postsCount: 0,

@@ -11,7 +11,7 @@ import openaiService from '../services/openaiApi';
 import { TravelStatus } from '../types/feed';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api'; // api 인스턴스 추가
-import { getValidImageUrl } from '../utils/imageUtils'; // 이미지 유틸리티 추가
+import { getValidImageUrl, getProfileImageUrl, handleImageError } from '../utils/imageUtils'; // 이미지 유틸리티 추가
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -1611,17 +1611,23 @@ const PlanPage: React.FC<PlanPageProps> = ({
       >
         <div
           style={{
-            fontSize: '24px',
             width: '40px',
             height: '40px',
             borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflow: 'hidden',
             backgroundColor: '#e9ecef',
           }}
         >
-          {plan.author.profileImage}
+          <img
+            src={getProfileImageUrl(plan.author.profileImage)}
+            alt={plan.author.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+            onError={(e) => handleImageError(e, 40)}
+          />
         </div>
         <div>
           <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
