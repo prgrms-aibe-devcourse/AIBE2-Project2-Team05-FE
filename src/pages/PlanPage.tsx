@@ -1274,19 +1274,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         </S.AuthorSection>
       )}
 
-      {/* 🔍 디버깅 정보 (개발 시에만 표시) */}
-      {process.env.NODE_ENV === 'development' && isModal && (
-        <div style={{ 
-          padding: '10px', 
-          backgroundColor: '#f0f0f0', 
-          fontSize: '12px', 
-          color: '#666',
-          borderBottom: '1px solid #ddd'
-        }}>
-          디버깅: isModal={String(isModal)}, authorInfo={authorInfo ? 'exists' : 'null'}
-          {authorInfo && `, author: ${authorInfo.author}, age: ${authorInfo.age}`}
-        </div>
-      )}
+
 
       {/* 헤더 */}
       <S.MainInfo>

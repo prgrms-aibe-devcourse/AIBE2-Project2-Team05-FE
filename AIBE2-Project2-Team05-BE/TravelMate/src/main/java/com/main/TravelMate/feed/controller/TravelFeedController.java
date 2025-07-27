@@ -22,6 +22,7 @@ import com.main.TravelMate.feed.dto.CursorFeedResponseDto;
 @RestController
 @RequestMapping("/api/feed")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}) // CORS 명시적 허용
 public class TravelFeedController {
 
     private final TravelFeedRepository feedRepository;

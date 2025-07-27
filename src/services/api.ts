@@ -17,6 +17,23 @@ const api = axios.create({
 // 여기서는 localStorage에서 토큰을 꺼내 헤더에 담아주는 역할을 합니다.
 api.interceptors.request.use(
   (config) => {
+    // 🔓 토큰이 필요하지 않은 공개 API 목록
+    const publicPaths = [
+      '/api/users/signup',        // 회원가입
+      '/api/auth/login',          // 로그인
+      '/api/auth/signup',         // 기존 회원가입  
+      '/api/admin/login',         // 관리자 로그인
+      '/api/admin/signup',        // 관리자 회원가입
+      '/api/auth/oauth',          // OAuth 관련
+      '/api/places',              // 장소 검색
+      '/api/feed',                // 피드 목록 조회 (공개)
+      '/api/profile/user',        // 공개 프로필 조회
+      '/uploads',                 // 파일 접근
+    ];
+
+    // 현재 요청 URL이 공개 API인지 확인
+    const isPublicAPI = publicPaths.some(path => config.url?.includes(path));
+
     // ✅ accessToken을 우선적으로 사용
     const accessToken = localStorage.getItem('accessToken');
     const token = localStorage.getItem('token'); // 하위 호환성
@@ -24,8 +41,8 @@ api.interceptors.request.use(
     // ✅ 사용할 토큰 결정 (accessToken이 우선)
     const finalToken = accessToken || token;
 
-    // 토큰이 존재한다면,
-    if (finalToken) {
+    // 공개 API가 아니고 토큰이 존재한다면 토큰을 추가
+    if (!isPublicAPI && finalToken) {
       // 모든 요청의 Authorization 헤더에 'Bearer [토큰]' 형태로 토큰을 추가합니다.
       config.headers['Authorization'] = `Bearer ${finalToken}`;
 
@@ -33,26 +50,20 @@ api.interceptors.request.use(
       console.log('🔐 API 요청에 토큰 포함:', {
         method: config.method?.toUpperCase(),
         url: config.url,
-        baseURL: config.baseURL,
-        fullURL: `${config.baseURL}${config.url}`,
         tokenSource: accessToken ? 'accessToken' : 'token',
         tokenLength: finalToken?.length || 0,
-        tokenPreview: finalToken ? finalToken.substring(0, 50) + '...' : 'null',
-        headers: {
-          Authorization: config.headers['Authorization'],
-          'Content-Type': config.headers['Content-Type'],
-        },
       });
-    } else {
-      console.error('❌ API 요청에 토큰 없음:', {
+    } else if (!isPublicAPI && !finalToken) {
+      // 비공개 API인데 토큰이 없는 경우만 경고
+      console.warn('⚠️ 인증이 필요한 API에 토큰 없음:', {
         method: config.method?.toUpperCase(),
         url: config.url,
-        localStorage: {
-          token: localStorage.getItem('token'),
-          accessToken: localStorage.getItem('accessToken'),
-          user: localStorage.getItem('user'),
-          allKeys: Object.keys(localStorage),
-        },
+      });
+    } else if (isPublicAPI) {
+      // 공개 API인 경우 토큰 없이 요청
+      console.log('🔓 공개 API 요청 (토큰 불필요):', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
       });
     }
 

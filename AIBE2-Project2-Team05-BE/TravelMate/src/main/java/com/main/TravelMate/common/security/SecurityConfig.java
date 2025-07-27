@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,6 +20,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -27,55 +30,39 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers("/api/users/signup")    // 회원가입만 Spring Security에서 완전 제외
+                .requestMatchers("/api/auth/login")      // 로그인만 제외  
+                .requestMatchers("/uploads/**")          // 파일 업로드 경로 제외
+                .requestMatchers("/api/profile/create/**")  // 프로필 생성 API 제외
+                .requestMatchers("/api/profile/create-all")  // 프로필 일괄 생성 API 제외
+                .requestMatchers("/api/places/**")       // 장소 API 제외 (Google Places API)
+                .requestMatchers("/actuator/**");        // actuator 제외
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ actuator 엔드포인트 명시적 허용
-                        .requestMatchers("/actuator", "/actuator/**").permitAll()
-                        // ✅ 인증 관련 엔드포인트
-                        .requestMatchers("/api/admin/login", "/api/admin/signup").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/oauth/**", "/api/auth/health").permitAll()
-                        // ✅ Google Places API
+                        // 🔓 공개 API (인증 불필요)
+                        .requestMatchers("/api/users/signup").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        // 🔧 프로필 생성 API (테스트용)
+                        .requestMatchers("/api/profile/create/**").permitAll()
+                        .requestMatchers("/api/profile/create-all").permitAll()
+                        // 🗺️ 장소 API (Google Places API)
                         .requestMatchers("/api/places/**").permitAll()
-                        .requestMatchers("/api/openai/**").permitAll()
-                        
-                        // ✅ 피드 이미지 업데이트 엔드포인트 (인증 없이 접근 허용)
-                        .requestMatchers("/api/feed/update-images", "/api/feed/update-all-images", "/api/feed/update-all-feeds", "/api/feed/update-status-active", "/api/feed/fix-placeholder-images").permitAll()
-                        
-                        // ✅ 피드 목록 조회 API (인증 없이 접근 허용)
-                        .requestMatchers("/api/feed").permitAll()
-                        .requestMatchers("/api/feed/cursor").permitAll() // 커서 기반 조회
-                        .requestMatchers("/api/feed/*").permitAll() // Specific feed by feedId
-                        .requestMatchers("/api/feed/plan/*").permitAll() // Specific feed by travelPlanId
-                        
-                        // ✅ 여행 계획 이미지 업데이트 엔드포인트 (인증 없이 접근 허용)
-                        .requestMatchers("/api/plan/update-all-images", "/api/plan/update-missing-images", "/api/plan/update-missing-author-names", "/api/plan/debug-author-names").permitAll()
-                        .requestMatchers("/api/plan/*/update-image").permitAll()
-                        
-                        // ✅ 공개 프로필 조회 (닉네임 기반)
-                        .requestMatchers("/api/profile/user/**").permitAll()
-                        .requestMatchers("/api/profile/test/**").permitAll()
-                        
-                        // ✅ 프로필 이미지 파일 접근 허용 (팀원 프로젝트 통합)
-                        .requestMatchers("/api/profile/images/**").permitAll()
-                        
-                        // ✅ 파일 업로드 API 허용
-                        .requestMatchers("/api/upload/**").permitAll()
-                        
-                        // ✅ 인증이 필요한 엔드포인트 - ROLE_USER 명시  
-                        .requestMatchers("/api/plan/**").authenticated() // 임시로 완화
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/feed/**").authenticated() // 피드 생성/수정/삭제는 여전히 인증 필요
-                        .requestMatchers("/api/profile/**").authenticated()
-                        .requestMatchers("/api/match/**").authenticated()
-                        
-                        // ✅ 나머지 모든 요청은 인증 필요
+                        // 🔒 읽기 전용 공개 API (피드, 프로필 조회 등)
+                        .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/profile/user/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
+                        // 🔐 나머지는 모두 인증 필요
                         .anyRequest().authenticated()
-                )
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(new Http403ForbiddenEntryPoint())
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
@@ -91,14 +78,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 프론트엔드 주소 허용 (팀원 프로젝트 설정 통합)
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",        // 개발환경 React 주소
-            "http://127.0.0.1:3000",        // 로컬호스트 다른 형태  
-            "https://localhost:3000"        // HTTPS로도 접근 가능하도록
-        ));
-        // 모든 HTTP 메서드 허용 (팀원 설정 통합)
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        // 프론트엔드 주소 허용 (명시적으로 설정)
+        configuration.addAllowedOrigin("http://localhost:3000");        // 개발환경 React 주소
+        configuration.addAllowedOrigin("http://127.0.0.1:3000");        // 로컬호스트 다른 형태  
+        configuration.addAllowedOrigin("https://localhost:3000");       // HTTPS로도 접근 가능하도록
+        
+        // 모든 HTTP 메서드 허용 (명시적으로 설정)
+        configuration.addAllowedMethod("GET");
+        configuration.addAllowedMethod("POST");
+        configuration.addAllowedMethod("PUT");
+        configuration.addAllowedMethod("DELETE");
+        configuration.addAllowedMethod("OPTIONS");
+        configuration.addAllowedMethod("PATCH");
+        
         // 모든 헤더 허용
         configuration.setAllowedHeaders(Arrays.asList("*"));
         // Authorization 헤더 노출 (JWT 토큰용) + 팀원 프로젝트 헤더 추가

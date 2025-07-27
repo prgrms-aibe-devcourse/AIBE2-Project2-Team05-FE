@@ -11,11 +11,18 @@ class OpenAIService {
     // 환경변수에서 API 키를 가져옴 (개발 환경에서는 .env 파일 사용)
     this.apiKey = process.env.REACT_APP_OPENAI_API_KEY || '';
 
+    // 🔍 환경변수 로딩 상태 디버깅
+    console.log('🔍 환경변수 로딩 상태 확인:');
+    console.log('  - REACT_APP_OPENAI_API_KEY 존재:', !!process.env.REACT_APP_OPENAI_API_KEY);
+    console.log('  - REACT_APP_GOOGLE_PLACES_API_KEY 존재:', !!process.env.REACT_APP_GOOGLE_PLACES_API_KEY);
+    console.log('  - REACT_APP_BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
+    console.log('  - 전체 process.env:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
+
     // 디버깅용 로그 (보안상 키의 처음 몇 글자만 표시)
     if (this.apiKey) {
       console.log(
         '🔑 OpenAI API 키 로드됨:',
-        this.apiKey.substring(0, 7) + '...',
+        this.apiKey.substring(0, 20) + '...',
       );
       if (!this.apiKey.startsWith('sk-')) {
         console.warn('⚠️ OpenAI API 키 형식 오류: sk-로 시작해야 합니다');

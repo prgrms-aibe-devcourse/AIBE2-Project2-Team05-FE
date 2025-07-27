@@ -7,11 +7,26 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update  # 기존 데이터 보존하면서 스키마 점진적 업데이트
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        
+  # ✅ 파일 크기 제한 증가 (프로필 이미지 업로드용)
+  servlet:
+    multipart:
+      max-file-size: 50MB          # 개별 파일 최대 크기
+      max-request-size: 100MB      # 전체 요청 최대 크기
+
+# ✅ 서버 인코딩 설정 (한국어 파라미터 처리용)
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
 jwt:
   secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=
   expiration: 3600000 # 1시간
@@ -32,5 +47,7 @@ openai:
 # 로깅 설정 추가
 logging:
   level:
-    org.springframework.security: DEBUG
-    com.main.TravelMate.common.security: DEBUG
+    com.main.TravelMate.user: INFO         # User 관련 로그를 INFO로 조정
+    com.main.TravelMate.profile: INFO      # Profile 관련 로그를 INFO로 조정
+    com.main.TravelMate.common.security: WARN  # Security 로그를 WARN으로 조정
+    root: INFO                             # 전체 기본 로그 레벨

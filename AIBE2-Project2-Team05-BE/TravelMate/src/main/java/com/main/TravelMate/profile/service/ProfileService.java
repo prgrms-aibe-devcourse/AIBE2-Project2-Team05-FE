@@ -14,6 +14,8 @@ import com.main.TravelMate.profile.entity.Follow;
 import com.main.TravelMate.profile.entity.Profile;
 import com.main.TravelMate.profile.repository.FollowRepository;
 import com.main.TravelMate.profile.repository.ProfileRepository;
+import com.main.TravelMate.user.domain.Gender;
+import com.main.TravelMate.user.domain.TravelStyle;
 import com.main.TravelMate.user.entity.User;
 import com.main.TravelMate.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -139,8 +143,9 @@ public class ProfileService {
                 .email(user.getEmail())
                 .bio(user.getProfile() != null ? user.getProfile().getBio() : "자기소개를 입력해주세요.")
                 .profileImage(user.getProfile() != null ? user.getProfile().getProfileImage() : null)
-                .age(user.getProfile() != null ? user.getProfile().getAge() : 0)
-                .gender(user.getProfile() != null ? user.getProfile().getGender() : "비공개")
+                .age(user.getProfile() != null ? user.getProfile().calculateAge() : 0) // ✅ calculateAge() 메서드 사용
+                .gender(user.getProfile() != null && user.getProfile().getGender() != null 
+                       ? user.getProfile().getGender().getDisplayName() : "비공개") // ✅ Gender enum -> String 변환
                 .followerCount(followerCount)
                 .followingCount(followingCount)
                 .postsCount(postsCount)
@@ -192,10 +197,40 @@ public class ProfileService {
                 .orElse(Profile.builder().user(user).build()); // 없으면 새로 생성
 
         profile.setRealName(request.getRealName());
-        profile.setAge(request.getAge());
-        profile.setGender(request.getGender());
+        
+        // ✅ age 관련 처리 - birthdate로 변경됨 (기존 age 필드 사용 시 주석 처리)
+        // if (request.getAge() != null) {
+        //     // age를 birthdate로 변환하는 로직이 필요하다면 추가
+        // }
+        
+        // ✅ Gender enum 처리
+        if (request.getGender() != null) {
+            try {
+                Gender gender = Gender.valueOf(request.getGender().toUpperCase());
+                profile.setGender(gender);
+            } catch (IllegalArgumentException e) {
+                log.warn("⚠️ 유효하지 않은 성별 값: {}", request.getGender());
+                // 기본값으로 처리하거나 예외를 던질 수 있음
+            }
+        }
+        
         profile.setPreferredDestinations(request.getPreferredDestinations());
-        profile.setTravelStyle(request.getTravelStyle());
+        
+        // ✅ travelStyle -> travelStyles 처리
+        if (request.getTravelStyle() != null) {
+            // 기존 String travelStyle을 Set<TravelStyle>로 변환
+            try {
+                // 여행 스타일을 콤마로 구분된 문자열로 가정
+                String[] styles = request.getTravelStyle().split(",");
+                Set<TravelStyle> travelStyles = Set.of(styles).stream()
+                    .map(style -> TravelStyle.valueOf(style.trim().toUpperCase()))
+                    .collect(Collectors.toSet());
+                profile.setTravelStyles(travelStyles);
+            } catch (Exception e) {
+                log.warn("⚠️ 여행 스타일 변환 실패: {}", request.getTravelStyle(), e);
+            }
+        }
+        
         profile.setBio(request.getBio());
         profile.setProfileImage(request.getProfileImage());
 
@@ -220,5 +255,129 @@ public class ProfileService {
                     return userInfo;
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 기존 사용자를 위한 기본 프로필 생성
+     */
+    @Transactional
+    public void createDefaultProfileForUser(Long userId) {
+        log.info("👤 사용자 ID {} 기본 프로필 생성 시작", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+        
+        // 이미 프로필이 있는지 확인
+        Optional<Profile> existingProfile = profileRepository.findByUser(user);
+        if (existingProfile.isPresent()) {
+            log.info("⚠️ 이미 프로필이 존재함: 사용자 ID {}", userId);
+            return;
+        }
+        
+        // 기본 프로필 생성
+        Profile profile = Profile.builder()
+                .user(user)
+                .realName(user.getNickname() != null ? user.getNickname() : "사용자" + userId)
+                .birthdate(java.time.LocalDate.of(1990, 1, 1)) // 기본 생년월일
+                .gender(Gender.MALE) // 기본 성별
+                .bio("안녕하세요! " + (user.getNickname() != null ? user.getNickname() : "사용자" + userId) + "입니다.")
+                .preferredDestinations("여행지 미정")
+                .travelStyles(Set.of(TravelStyle.CULTURE)) // 기본 여행 스타일
+                .profileImage(null)
+                .build();
+        
+        profileRepository.save(profile);
+        
+        log.info("✅ 기본 프로필 생성 완료: 사용자 ID {}, 닉네임: {}", userId, user.getNickname());
+    }
+    
+    /**
+     * 프로필이 없는 모든 사용자들을 위한 기본 프로필 일괄 생성
+     */
+    @Transactional
+    public Map<String, Object> createDefaultProfilesForAllUsers() {
+        log.info("🔄 모든 사용자 프로필 일괄 생성 시작");
+        
+        List<User> allUsers = userRepository.findAll();
+        int totalUsers = allUsers.size();
+        int createdProfiles = 0;
+        int skippedProfiles = 0;
+        
+        for (User user : allUsers) {
+            try {
+                Optional<Profile> existingProfile = profileRepository.findByUser(user);
+                if (existingProfile.isEmpty()) {
+                    // 랜덤한 프로필 데이터 생성
+                    Profile profile = generateRandomProfile(user);
+                    profileRepository.save(profile);
+                    createdProfiles++;
+                    log.info("✅ 프로필 생성: 사용자 ID {}, 닉네임: {}", user.getId(), user.getNickname());
+                } else {
+                    skippedProfiles++;
+                    log.info("⏭️ 프로필 존재: 사용자 ID {}, 닉네임: {}", user.getId(), user.getNickname());
+                }
+            } catch (Exception e) {
+                log.error("❌ 프로필 생성 실패: 사용자 ID {}, 오류: {}", user.getId(), e.getMessage());
+            }
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalUsers", totalUsers);
+        result.put("createdProfiles", createdProfiles);
+        result.put("skippedProfiles", skippedProfiles);
+        
+        log.info("🎉 프로필 일괄 생성 완료: 전체 {}, 생성 {}, 건너뜀 {}", totalUsers, createdProfiles, skippedProfiles);
+        return result;
+    }
+    
+    /**
+     * 랜덤한 프로필 데이터 생성
+     */
+    private Profile generateRandomProfile(User user) {
+        String[] bioTemplates = {
+            "안녕하세요! 여행을 좋아하는 %s입니다 ✈️",
+            "새로운 경험을 추구하는 %s입니다 🌟", 
+            "일상에서 벗어나 특별한 여행을 꿈꾸는 %s입니다 🗺️",
+            "맛있는 음식과 아름다운 풍경을 사랑하는 %s입니다 🍽️",
+            "자유로운 영혼의 %s입니다 🎒"
+        };
+        
+        String[] destinations = {
+            "제주도, 부산", "일본, 태국", "유럽, 미국", "동남아시아", 
+            "국내 여행지", "해외 여행지", "자연 명소", "도시 여행"
+        };
+        
+        TravelStyle[] travelStyleArray = TravelStyle.values();
+        Gender[] genderArray = Gender.values();
+        
+        String nickname = user.getNickname() != null ? user.getNickname() : "사용자" + user.getId();
+        String bio = String.format(bioTemplates[user.getId().intValue() % bioTemplates.length], nickname);
+        String preferredDestination = destinations[user.getId().intValue() % destinations.length];
+        
+        // 나이는 25~45세 사이로 랜덤 생성
+        int age = 25 + (user.getId().intValue() % 21);
+        java.time.LocalDate birthdate = java.time.LocalDate.now().minusYears(age);
+        
+        // 성별은 ID 기반으로 결정
+        Gender gender = genderArray[user.getId().intValue() % genderArray.length];
+        
+        // 여행 스타일은 1~3개 랜덤 선택
+        Set<TravelStyle> travelStyles = new HashSet<>();
+        int numStyles = 1 + (user.getId().intValue() % 3);
+        for (int i = 0; i < numStyles; i++) {
+            TravelStyle style = travelStyleArray[(user.getId().intValue() + i) % travelStyleArray.length];
+            travelStyles.add(style);
+        }
+        
+        return Profile.builder()
+                .user(user)
+                .realName(nickname)
+                .birthdate(birthdate)
+                .gender(gender)
+                .bio(bio)
+                .preferredDestinations(preferredDestination)
+                .travelStyles(travelStyles)
+                .profileImage(null)
+                .build();
     }
 }

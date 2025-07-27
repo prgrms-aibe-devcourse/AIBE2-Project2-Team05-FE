@@ -67,16 +67,6 @@ const ProfileHeader = memo<ProfileHeaderProps>(({ profile, feedCount }) => {
             팔로우 <strong>{profile.followingCount}</strong>
           </span>
         </Stats>
-        
-        {/* 프로필 버튼 컨테이너 */}
-        <ProfileButtonContainer>
-          {!profile.isCurrentUser && (
-            <>
-              <FollowButton>팔로우</FollowButton>
-              <MessageButton>메시지</MessageButton>
-            </>
-          )}
-        </ProfileButtonContainer>
       </ProfileInfo>
     </Container>
   );
@@ -227,62 +217,6 @@ const Stats = styled.div`
       color: #1a202c;
       margin-left: 4px;
     }
-  }
-`;
-
-// 프로필 버튼 컨테이너 (기존 코드에서 가져옴)
-const ProfileButtonContainer = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-
-  @media (max-width: 768px) {
-    justify-content: center;
-  }
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    width: 100%;
-  }
-`;
-
-const FollowButton = styled.button`
-  background: #0095f6;
-  color: white;
-  border: none;
-  padding: 8px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #007bff;
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-  }
-`;
-
-const MessageButton = styled.button`
-  background: white;
-  color: #262626;
-  border: 1px solid #dbdbdb;
-  padding: 8px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f5f5f5;
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
   }
 `;
 

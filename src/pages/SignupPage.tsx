@@ -21,10 +21,6 @@ const SignupPage: React.FC = () => {
         </ImageSection>
         <FormSection>
           <FormContainer>
-            <FormHeader>
-              <h1>회원가입</h1>
-              <p>간단한 정보 입력으로 여행의 문을 열어보세요.</p>
-            </FormHeader>
             <SignupForm />
           </FormContainer>
         </FormSection>
@@ -46,6 +42,10 @@ const Container = styled.div`
 const MainContent = styled.div`
   display: flex;
   flex: 1;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 const ImageSection = styled.div`
@@ -59,6 +59,12 @@ const ImageSection = styled.div`
   color: white;
   position: relative;
   overflow: hidden;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    min-height: 300px;
+    padding: 20px;
+  }
 `;
 
 const ImageOverlay = styled.div`
@@ -86,6 +92,14 @@ const TravelIllustration = styled.div`
     font-size: 180px;
     color: rgba(255, 255, 255, 0.9);
   }
+  
+  @media (max-width: 768px) {
+    height: 200px;
+    margin-bottom: 20px;
+    .travel-icon {
+      font-size: 120px;
+    }
+  }
 `;
 
 const ImageText = styled.div`
@@ -102,33 +116,39 @@ const ImageText = styled.div`
     max-width: 80%;
     margin: 0 auto;
   }
+  
+  @media (max-width: 768px) {
+    h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 14px;
+      max-width: 90%;
+    }
+  }
 `;
 
 const FormSection = styled.div`
   width: 50%;
-  padding: 60px;
+  padding: 20px 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   background-color: #ffffff;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 20px;
+    min-height: calc(100vh - 300px);
+  }
 `;
 
 const FormContainer = styled.div`
   width: 100%;
-  max-width: 500px;
-`;
-
-const FormHeader = styled.div`
-  text-align: center;
-  margin-bottom: 40px;
-  h1 {
-    font-size: 32px;
-    color: #333;
-    margin-bottom: 10px;
-  }
-  p {
-    color: #777;
-    font-size: 16px;
-  }
+  max-width: 1600px;
+  display: flex;
+  justify-content: center;
 `;

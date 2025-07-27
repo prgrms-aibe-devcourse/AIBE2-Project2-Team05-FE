@@ -22,6 +22,15 @@ interface GooglePlacesResponse {
 const GOOGLE_PLACES_API_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY;
 const GOOGLE_PLACES_BASE_URL = 'https://maps.googleapis.com/maps/api/place';
 
+// 🔍 Google Places API 키 로딩 상태 확인
+console.log('🔍 Google Places API 키 상태:');
+console.log('  - API 키 존재:', !!GOOGLE_PLACES_API_KEY);
+if (GOOGLE_PLACES_API_KEY) {
+  console.log('  - API 키 시작 부분:', GOOGLE_PLACES_API_KEY.substring(0, 10) + '...');
+} else {
+  console.warn('⚠️ Google Places API 키가 없습니다!');
+}
+
 /**
  * Google Places API를 사용하여 장소 정보를 검색합니다
  * @param query 검색할 장소명
