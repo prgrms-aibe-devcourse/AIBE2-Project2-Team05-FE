@@ -60,11 +60,24 @@ interface ProfilePageProps {
   isOwnProfile?: boolean;
 }
 
-// ✅ TravelPlan 모달 컴포넌트
+// ✅ TravelPlan 모달 컴포넌트 (프로필 정보 포함)
 const TravelPlanModal: React.FC<{
   planId: string;
+  authorInfo?: {
+    author: string;
+    avatar: string;
+    age: number;
+  };
   onClose: () => void;
-}> = ({ planId, onClose }) => {
+}> = ({ planId, authorInfo, onClose }) => {
+  
+  // ✅ 프로필페이지 모달에서의 작성자 정보 로깅
+  console.log('🏡 프로필페이지 TravelPlanModal에서 받은 작성자 정보:', {
+    planId,
+    authorInfo,
+    '전달할 정보': authorInfo ? `${authorInfo.author} (${authorInfo.age}세)` : '없음'
+  });
+
   return (
     <ModalOverlay
       initial={{ opacity: 0 }}
@@ -80,7 +93,7 @@ const TravelPlanModal: React.FC<{
       >
         <ModalCloseButton onClick={onClose}>&times;</ModalCloseButton>
         <PlanPageWrapper>
-          <PlanPage planId={planId} isModal={true} />
+          <PlanPage planId={planId} isModal={true} authorInfo={authorInfo} />
         </PlanPageWrapper>
       </PlanPageModalContent>
     </ModalOverlay>
@@ -215,8 +228,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
     if (feed.type === 'travel-plan') {
       setSelectedPlanId(feed.planId || feed.id.toString());
       setTravelPlanModalOpen(true);
+      
+      // ✅ 프로필페이지에서 모달 열기 로그
+      console.log('🏡 프로필페이지에서 여행계획 모달 열기:', {
+        feedId: feed.id,
+        planId: feed.planId,
+        profileInfo: profile ? {
+          nickname: profile.nickname,
+          profileImage: profile.profileImage
+        } : null
+      });
     }
-  }, []);
+  }, [profile]);
 
   const closeTravelPlanModal = useCallback(() => {
     setTravelPlanModalOpen(false);
@@ -296,9 +319,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       {modalOpen && (
         <ImageModal imageUrl={selectedImage} onClose={closeModal} />
       )}
-      {travelPlanModalOpen && selectedPlanId && (
+      {travelPlanModalOpen && selectedPlanId && profile && (
         <TravelPlanModal
           planId={selectedPlanId}
+          authorInfo={{
+            author: profile.nickname,
+            avatar: profile.profileImage,
+            age: (() => {
+              // ✅ 닉네임 기반으로 일관된 나이 생성 (20-39세)
+              const seedFromNickname = profile.nickname
+                .split('')
+                .reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+              return 20 + (seedFromNickname % 20);
+            })()
+          }}
           onClose={closeTravelPlanModal}
         />
       )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -63,8 +63,20 @@ const PlanPageWrapper = styled.div`
 // ✅ TravelPlan 모달 컴포넌트 (Portal 사용)
 const TravelPlanModal: React.FC<{
   planId: string;
+  authorInfo?: {
+    author: string;
+    avatar: string;
+    age: number;
+  };
   onClose: () => void;
-}> = ({ planId, onClose }) => {
+}> = ({ planId, authorInfo, onClose }) => {
+  
+  // ✅ 프로필 정보 전달 확인
+  console.log('🔄 TravelPlanModal에서 받은 작성자 정보:', {
+    planId,
+    authorInfo,
+    '전달할 정보': authorInfo ? `${authorInfo.author} (${authorInfo.age}세)` : '없음'
+  });
   const modalContent = (
     <ModalOverlay
       initial={{ opacity: 0 }}
@@ -80,7 +92,7 @@ const TravelPlanModal: React.FC<{
       >
         <ModalCloseButton onClick={onClose}>&times;</ModalCloseButton>
         <PlanPageWrapper>
-          <PlanPage planId={planId} isModal={true} />
+          <PlanPage planId={planId} isModal={true} authorInfo={authorInfo} />
         </PlanPageWrapper>
       </PlanPageModalContent>
     </ModalOverlay>
@@ -94,15 +106,38 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isTravelPlanModalOpen, setIsTravelPlanModalOpen] = useState(false);
 
+  // ✅ 피드 ID 기반으로 일관된 나이 생성 (20-39세)
+  const userAge = useMemo(() => {
+    // feed.id를 문자열로 변환하여 처리
+    const idString = String(feed.id);
+    const seedFromId = idString.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+    return 20 + (seedFromId % 20);
+  }, [feed.id]);
+
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // 부모 클릭 이벤트 방지
     setIsImageModalOpen(true);
   };
 
   const handleFeedClick = () => {
+    const authorInfoData = {
+      author: feed.author,
+      avatar: feed.avatar,
+      age: userAge,
+    };
+    
     console.log('🔍 피드 클릭 - 여행 계획 모달 열기:', {
       feedId: feed.id,
+      authorInfo: authorInfoData
     });
+    
+    console.log('📋 작성자 정보 상세:', {
+      '작성자 이름': authorInfoData.author,
+      '프로필 이미지': authorInfoData.avatar,
+      '나이': authorInfoData.age,
+      '모든 피드 데이터': feed
+    });
+    
     setIsTravelPlanModalOpen(true);
   };
 
@@ -116,16 +151,28 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
 
   return (
     <>
-      {/* ✅ Link 제거하고 직접 클릭 이벤트 처리 */}
+      {/* ✅ 새로운 레이아웃 구조 */}
       <FeedCard onClick={handleFeedClick}>
-        <FeedHeader>
-          <Avatar src={feed.avatar} alt={feed.author} />
-          <AuthorInfo>
-            <AuthorName>{feed.author}</AuthorName>
-            <LocationInfo>{feed.location}</LocationInfo>
-          </AuthorInfo>
-        </FeedHeader>
+        {/* ✅ 1. 프로필 섹션 - 중앙 정렬된 큰 프로필사진 */}
+        <ProfileSection>
+          <LargeAvatar src={feed.avatar} alt={feed.author} />
+        </ProfileSection>
 
+        {/* ✅ 2. 사용자 정보 - 닉네임과 나이 */}
+        <UserInfoSection>
+          <UserName>{feed.author}</UserName>
+          <UserAge>{userAge}세</UserAge> {/* 임시 나이 */}
+        </UserInfoSection>
+
+        {/* ✅ 3. 여행 소개란 */}
+        <TravelIntroSection>
+          <TravelIntroTitle>✈️ 여행 소개</TravelIntroTitle>
+          <TravelIntroContent>
+            {feed.caption || `${feed.location}에서의 특별한 여행을 소개합니다!`}
+          </TravelIntroContent>
+        </TravelIntroSection>
+
+        {/* ✅ 4. 기존 게시물 내용들 */}
         <LazyImage
           src={feed.image}
           alt="Feed"
@@ -133,8 +180,8 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
           placeholder="여행 이미지"
           style={{
             width: '100%',
-            borderTop: '1px solid #dbdbdb',
-            borderBottom: '1px solid #dbdbdb',
+            borderTop: '1px solid #efefef',
+            borderBottom: '1px solid #efefef',
             cursor: 'pointer',
           }}
         />
@@ -145,10 +192,9 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
           </ActionButton>
         </FeedActions>
 
-        <Caption>{feed.caption}</Caption>
-
-        {/* 여행 정보 표시 */}
+        {/* 여행 상세 정보 */}
         <TravelInfoSection>
+          <LocationTag>📍 {feed.location}</LocationTag>
           <DateInfo>
             📅 {feed.startDate} ~ {feed.endDate}
           </DateInfo>
@@ -166,6 +212,11 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
         {isTravelPlanModalOpen && (
           <TravelPlanModal
             planId={feed.id.toString()}
+            authorInfo={{
+              author: feed.author,
+              avatar: feed.avatar,
+              age: userAge,
+            }}
             onClose={closeTravelPlanModal}
           />
         )}
@@ -194,43 +245,68 @@ const FeedCard = styled.div`
   contain: layout;
 `;
 
-const FeedHeader = styled.div`
+const ProfileSection = styled.div`
   display: flex;
-  align-items: center;
-  padding: 14px 16px;
+  justify-content: center;
+  padding: 16px;
 `;
 
-const Avatar = styled.img`
-  width: 32px;
-  height: 32px;
+const LargeAvatar = styled.img`
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background-color: #f0f0f0;
-  margin-right: 12px;
+  object-fit: cover;
 `;
 
-const AuthorInfo = styled.div`
+const UserInfoSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid #efefef;
 `;
 
-const AuthorName = styled.span`
+const UserName = styled.span`
   font-weight: 600;
-  font-size: 14px;
+  font-size: 18px;
+  margin-bottom: 4px;
 `;
 
-const LocationInfo = styled.span`
-  font-size: 12px;
+const UserAge = styled.span`
+  font-size: 14px;
   color: #666;
-  font-weight: 400;
+`;
+
+const TravelIntroSection = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid #efefef;
+`;
+
+const TravelIntroTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+`;
+
+const TravelIntroContent = styled.p`
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
 `;
 
 const TravelInfoSection = styled.div`
   padding: 12px 16px;
   border-top: 1px solid #efefef;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const LocationTag = styled.span`
+  font-size: 12px;
+  color: #666;
+  font-weight: 400;
 `;
 
 const DateInfo = styled.span`
@@ -255,10 +331,5 @@ const FeedActions = styled.div`
 
 const ActionButton = styled.span`
   font-weight: 600;
-  font-size: 14px;
-`;
-
-const Caption = styled.p`
-  padding: 12px 16px;
   font-size: 14px;
 `; 
