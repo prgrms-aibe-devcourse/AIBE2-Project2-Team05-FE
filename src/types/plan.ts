@@ -51,6 +51,12 @@ export interface TravelPlan {
   likedUsers: string[];
   isLiked: boolean;
   author: Author;
+  
+  // 백엔드 응답 필드 (작성자 정보)
+  authorId?: number;           // 백엔드 작성자 ID
+  authorNickname?: string;     // 백엔드 작성자 닉네임
+  authorProfileImage?: string; // 백엔드 작성자 프로필 이미지
+  
   styleLabels?: string[]; // 여행 스타일 레이블
   styles?: string[]; // 여행 스타일 값
   matchingInfo?: MatchingInfo;

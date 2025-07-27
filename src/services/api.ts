@@ -26,13 +26,25 @@ api.interceptors.request.use(
       '/api/admin/signup',        // 관리자 회원가입
       '/api/auth/oauth',          // OAuth 관련
       '/api/places',              // 장소 검색
-      '/api/feed',                // 피드 목록 조회 (공개)
       '/api/profile/user',        // 공개 프로필 조회
       '/uploads',                 // 파일 접근
     ];
 
+    // 정확한 경로 매칭을 위한 공개 API 패턴
+    const publicPatterns = [
+      ...publicPaths,
+      /^\/api\/feed$/,            // 피드 목록 조회만 공개 (GET /api/feed)
+      /^\/api\/feed\?/,           // 피드 목록 쿼리 조회 (GET /api/feed?...)
+    ];
+
     // 현재 요청 URL이 공개 API인지 확인
-    const isPublicAPI = publicPaths.some(path => config.url?.includes(path));
+    const isPublicAPI = publicPatterns.some(pattern => {
+      if (typeof pattern === 'string') {
+        return config.url?.includes(pattern);
+      } else {
+        return pattern.test(config.url || '');
+      }
+    });
 
     // ✅ accessToken을 우선적으로 사용
     const accessToken = localStorage.getItem('accessToken');

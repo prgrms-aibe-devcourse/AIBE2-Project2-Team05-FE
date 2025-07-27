@@ -28,15 +28,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        String requestURI = request.getRequestURI();
+        String method = request.getMethod();
+        
+        // 🚨 디버깅: 모든 요청 로그
+        logger.info("🔍 [JWT 필터] 요청: {} {}", method, requestURI);
+
         String token = resolveToken(request);
+        logger.info("🔍 [JWT 필터] 토큰 추출: {}", token != null ? "토큰 있음 (길이: " + token.length() + ")" : "토큰 없음");
+        
         if (token != null) {
+            logger.info("🔍 [JWT 필터] 토큰 검증 시작...");
             if (jwtTokenProvider.validateToken(token)) {
                 Authentication auth = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                logger.debug("✅ JWT 인증 성공 - 사용자: {}", auth.getName());
+                logger.info("✅ [JWT 필터] 인증 성공 - 사용자: {}", auth.getName());
             } else {
-                logger.warn("❌ 유효하지 않은 JWT 토큰");
+                logger.warn("❌ [JWT 필터] 유효하지 않은 JWT 토큰");
             }
+        } else {
+            logger.warn("🚫 [JWT 필터] JWT 토큰 없음 - 요청: {} {}", method, requestURI);
         }
         
         filterChain.doFilter(request, response);
@@ -55,11 +66,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
         
-        // 🔓 WebSecurityCustomizer에서 이미 제외된 경로들은 여기서 중복 제외할 필요 없음
-        // 추가로 JWT 필터에서만 제외할 경로들:
-        return (path.startsWith("/api/feed") && "GET".equals(method))        // 피드 조회만 허용
+        // 🚨 디버깅: shouldNotFilter 체크
+        logger.info("🔍 [JWT 필터 - shouldNotFilter] 요청: {} {}", method, path);
+        
+        boolean shouldSkip = (path.startsWith("/api/feed") && "GET".equals(method))        // 피드 조회만 허용
                 || (path.startsWith("/api/profile/user") && "GET".equals(method)) // 프로필 조회만 허용  
                 || path.startsWith("/api/places")                            // 장소 API 모든 메서드 허용
                 || "OPTIONS".equals(method);                                 // CORS preflight 요청
+        
+        logger.info("🔍 [JWT 필터 - shouldNotFilter] 결과: {} (스킵: {})", shouldSkip ? "JWT 필터 건너뜀" : "JWT 필터 실행", shouldSkip);
+        
+        return shouldSkip;
     }
 }

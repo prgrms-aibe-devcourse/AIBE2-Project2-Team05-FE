@@ -1,5 +1,6 @@
 package com.main.TravelMate.feed.service;
 
+import com.main.TravelMate.feed.domain.TravelStatus;
 import com.main.TravelMate.feed.dto.TravelFeedResponseDto;
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.feed.repository.TravelFeedRepository;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,21 +35,21 @@ public class TravelFeedService {
     private final TravelFeedRepository feedRepository;
     private final TravelPlanRepository travelPlanRepository;
 
-    // ✅ travelPlanId로 피드 조회 메서드 추가
+    // ✅ TravelPlan ID로 피드 조회 메서드
     public TravelFeedResponseDto getFeedByTravelPlanId(Long travelPlanId) {
-        log.info("🔍 travelPlanId {}로 피드 조회 시작", travelPlanId);
+        log.info("🔍 TravelPlan ID {}로 피드 조회 시작", travelPlanId);
         
         try {
-            // travel_plan_id로 피드 찾기
+            // TravelPlan ID로 피드 조회
             TravelFeed feed = feedRepository.findByTravelPlan_Id(travelPlanId)
                     .orElseThrow(() -> new RuntimeException("해당 여행 계획에 대한 피드를 찾을 수 없습니다: " + travelPlanId));
             
-            log.info("✅ travelPlanId {}에 대한 피드 조회 성공: feedId={}", travelPlanId, feed.getId());
+            log.info("✅ TravelPlan ID {}에 대한 피드 조회 성공", travelPlanId);
             
             // 기존 convertToResponseDto 메서드 재사용
             return convertToResponseDto(feed);
         } catch (Exception e) {
-            log.error("❌ travelPlanId {}로 피드 조회 실패: {}", travelPlanId, e.getMessage(), e);
+            log.error("❌ TravelPlan ID {}로 피드 조회 실패: {}", travelPlanId, e.getMessage(), e);
             throw new RuntimeException("피드 조회 실패: " + e.getMessage(), e);
         }
     }
@@ -153,6 +155,7 @@ public class TravelFeedService {
 
         // 피드 응답 DTO 구성
         return TravelFeedResponseDto.builder()
+                .id(feed.getId()) // TravelFeed ID 추가
                 .travelPlanId(plan.getId())
                 .title(plan.getTitle())
                 .location(plan.getLocation())
@@ -168,6 +171,7 @@ public class TravelFeedService {
                 .imageUrl(feed.getImageUrl())
                 .caption(feed.getCaption())
                 .status(feed.getStatus()) // ✅ 피드 상태 포함
+                .travelStatus(feed.getTravelStatus()) // ✅ 여행 진행 상태 포함
                 .authorName(plan.getAuthorName())
                 .build();
     }
@@ -194,6 +198,146 @@ public class TravelFeedService {
         } catch (Exception e) {
             log.error("❌ 모든 피드 상태 업데이트 실패: {}", e.getMessage(), e);
             throw new RuntimeException("피드 상태 업데이트 실패", e);
+        }
+    }
+
+    /**
+     * 여행 상태 변경
+     */
+    @Transactional
+    public TravelFeed updateTravelStatus(Long feedId, TravelStatus newStatus, String note) {
+        log.info("🔄 피드 ID {} 여행 상태 변경: {}", feedId, newStatus);
+        
+        try {
+            TravelFeed feed = feedRepository.findById(feedId)
+                    .orElseThrow(() -> new RuntimeException("피드를 찾을 수 없습니다: " + feedId));
+
+            // 상태 변경
+            TravelStatus oldStatus = feed.getTravelStatus();
+            feed.setTravelStatus(newStatus);
+            
+            TravelFeed updatedFeed = feedRepository.save(feed);
+            
+            log.info("✅ 피드 ID {} 여행 상태 변경 완료: {} → {}", feedId, oldStatus, newStatus);
+            if (note != null && !note.trim().isEmpty()) {
+                log.info("📝 변경 사유: {}", note);
+            }
+            
+            return updatedFeed;
+            
+        } catch (Exception e) {
+            log.error("❌ 피드 ID {} 여행 상태 변경 실패: {}", feedId, e.getMessage(), e);
+            throw new RuntimeException("여행 상태 변경 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 여행 상태 변경 (작성자 권한 체크 포함)
+     */
+    @Transactional
+    public TravelFeed updateTravelStatusWithAuth(Long feedId, Long currentUserId, TravelStatus newStatus, String note) {
+        log.info("🔄 피드 ID {} 여행 상태 변경 (권한 체크): {} (사용자 ID: {})", feedId, newStatus, currentUserId);
+        
+        try {
+            // 1. 피드 조회
+            TravelFeed feed = feedRepository.findById(feedId)
+                    .orElseThrow(() -> new RuntimeException("피드를 찾을 수 없습니다: " + feedId));
+
+            // 🚨 디버깅: 피드 정보 상세 로그
+            log.info("🔍 [디버깅] 피드 정보: ID={}, 캡션={}, 작성자={}", 
+                    feed.getId(), 
+                    feed.getCaption(), 
+                    feed.getUser() != null ? feed.getUser().getEmail() + " (ID: " + feed.getUser().getId() + ")" : "NULL");
+
+            // 2. 작성자 권한 체크
+            Long feedAuthorId = feed.getUser().getId();
+            
+            // 🚨 디버깅: 권한 비교 상세 로그
+            log.info("🔍 [권한 체크] 피드 작성자 ID: {} (타입: {})", feedAuthorId, feedAuthorId.getClass().getSimpleName());
+            log.info("🔍 [권한 체크] 현재 사용자 ID: {} (타입: {})", currentUserId, currentUserId.getClass().getSimpleName());
+            log.info("🔍 [권한 체크] ID 동등성 비교: {} == {} = {}", feedAuthorId, currentUserId, feedAuthorId.equals(currentUserId));
+            
+            if (!feedAuthorId.equals(currentUserId)) {
+                log.warn("🚫 권한 거부 - 피드 ID: {}, 작성자 ID: {}, 요청자 ID: {}", feedId, feedAuthorId, currentUserId);
+                throw new SecurityException("이 여행 계획의 작성자만 상태를 변경할 수 있습니다");
+            }
+
+            // 3. 상태 변경
+            TravelStatus oldStatus = feed.getTravelStatus();
+            feed.setTravelStatus(newStatus);
+            
+            TravelFeed updatedFeed = feedRepository.save(feed);
+            
+            log.info("✅ 피드 ID {} 여행 상태 변경 완료 (권한 확인됨): {} → {} (작성자: {})", 
+                    feedId, oldStatus, newStatus, currentUserId);
+            if (note != null && !note.trim().isEmpty()) {
+                log.info("📝 변경 사유: {}", note);
+            }
+            
+            return updatedFeed;
+            
+        } catch (SecurityException e) {
+            // SecurityException은 그대로 던지기 (컨트롤러에서 403 처리)
+            throw e;
+        } catch (Exception e) {
+            log.error("❌ 피드 ID {} 여행 상태 변경 실패 (권한 체크): {}", feedId, e.getMessage(), e);
+            throw new RuntimeException("여행 상태 변경 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * TravelPlanId로 여행 상태 업데이트 (권한 체크 포함)
+     * 사용자 제안: TravelPlan ID와 TravelFeed ID를 같게 취급
+     */
+    @Transactional
+    public TravelFeed updateTravelStatusByPlanIdWithAuth(Long travelPlanId, Long currentUserId, TravelStatus newStatus, String note) {
+        log.info("🔄 여행계획 ID {} 여행 상태 변경 (권한 체크): {} (사용자 ID: {})", travelPlanId, newStatus, currentUserId);
+        
+        try {
+            // 1. TravelPlanId로 피드 조회 (travel_plan_id 필드 사용)
+            TravelFeed feed = feedRepository.findByTravelPlan_Id(travelPlanId)
+                    .orElseThrow(() -> new RuntimeException("여행 계획에 해당하는 피드를 찾을 수 없습니다: " + travelPlanId));
+
+            // 🚨 디버깅: 피드 정보 상세 로그
+            log.info("🔍 [디버깅] 피드 정보: 피드ID={}, 여행계획ID={}, 캡션={}, 작성자={}", 
+                    feed.getId(),
+                    feed.getTravelPlan() != null ? feed.getTravelPlan().getId() : "NULL",
+                    feed.getCaption(), 
+                    feed.getUser() != null ? feed.getUser().getEmail() + " (ID: " + feed.getUser().getId() + ")" : "NULL");
+
+            // 2. 작성자 권한 체크
+            Long feedAuthorId = feed.getUser().getId();
+            
+            // 🚨 디버깅: 권한 비교 상세 로그
+            log.info("🔍 [권한 체크] 피드 작성자 ID: {} (타입: {})", feedAuthorId, feedAuthorId.getClass().getSimpleName());
+            log.info("🔍 [권한 체크] 현재 사용자 ID: {} (타입: {})", currentUserId, currentUserId.getClass().getSimpleName());
+            log.info("🔍 [권한 체크] ID 동등성 비교: {} == {} = {}", feedAuthorId, currentUserId, feedAuthorId.equals(currentUserId));
+            
+            if (!feedAuthorId.equals(currentUserId)) {
+                log.warn("🚫 권한 거부 - 여행계획 ID: {}, 작성자 ID: {}, 요청자 ID: {}", travelPlanId, feedAuthorId, currentUserId);
+                throw new SecurityException("이 여행 계획의 작성자만 상태를 변경할 수 있습니다");
+            }
+
+            // 3. 상태 변경
+            TravelStatus oldStatus = feed.getTravelStatus();
+            feed.setTravelStatus(newStatus);
+            
+            TravelFeed updatedFeed = feedRepository.save(feed);
+            
+            log.info("✅ 여행계획 ID {} 여행 상태 변경 완료 (권한 확인됨): {} → {} (작성자: {})", 
+                    travelPlanId, oldStatus, newStatus, currentUserId);
+            if (note != null && !note.trim().isEmpty()) {
+                log.info("📝 변경 사유: {}", note);
+            }
+            
+            return updatedFeed;
+            
+        } catch (SecurityException e) {
+            // SecurityException은 그대로 던지기 (컨트롤러에서 403 처리)
+            throw e;
+        } catch (Exception e) {
+            log.error("❌ 여행계획 ID {} 여행 상태 변경 실패 (권한 체크): {}", travelPlanId, e.getMessage(), e);
+            throw new RuntimeException("여행 상태 변경 실패: " + e.getMessage(), e);
         }
     }
 
