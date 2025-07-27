@@ -25,6 +25,7 @@ interface UserProfile {
   nickname: string;
   profileImage: string;
   bio: string;
+  age?: number; // 나이 필드 추가
   postsCount: number;
   followersCount: number;
   followingCount: number;
@@ -208,6 +209,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           nickname: profileData.nickname || 'User',
           profileImage: profileData.profileImage || defaultProfileImage,
           bio: profileData.bio || '안녕하세요 👋',
+          age: profileData.age || undefined, // 나이 정보 추가
           postsCount: 0,
           followersCount: 0,
           followingCount: 0,

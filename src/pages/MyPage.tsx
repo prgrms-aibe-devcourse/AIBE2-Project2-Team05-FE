@@ -91,7 +91,7 @@ const MyPage = () => {
 
         // 백엔드 데이터로 상태 업데이트
         setProfileData({
-          name: profileResponse.realName || '',
+          name: profileResponse.realName || '', // DB의 realName 필드 사용
           nickname: profileResponse.nickname || '',
           age: profileResponse.age ? profileResponse.age.toString() : '',
           gender: profileResponse.gender || '남성',
@@ -178,16 +178,20 @@ const MyPage = () => {
     setIsSaving(true);
 
     try {
-      // ✅ 백엔드 API로 프로필 업데이트
+      // ✅ 백엔드 API로 프로필 업데이트 (실명은 제외)
       await profileApiService.updateProfile({
         nickname: profileData.nickname.trim(),
-        realName: profileData.name,
+        // realName은 회원가입 시에만 설정되므로 제외
         age: profileData.age ? parseInt(profileData.age) : 0,
         gender: profileData.gender,
         bio: profileData.bio,
         // TODO: 선호 여행지와 여행 스타일을 문자열로 변환
         preferredDestinations: profileData.preferredDestinations.join(','),
         travelStyle: profileData.travelStyles.join(','),
+        // ✅ 프로필 이미지 URL도 포함
+        profileImage: profileData.profileImage && (profileData.profileImage.startsWith('http') || profileData.profileImage.startsWith('/')) 
+          ? profileData.profileImage 
+          : undefined,
       });
 
       // localStorage에도 저장 (로컬 캐시용, 현재 사용자 이메일 포함)
@@ -206,13 +210,14 @@ const MyPage = () => {
 
       // 성공 메시지
       alert(
-        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
+        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 이미지가 DB에 저장되었습니다\n• 나이, 성별, 자기소개가 DB에 저장되었습니다\n• 선호 여행지와 여행 스타일이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
       );
 
       console.log('💾 프로필 업데이트 완료:', {
         nickname: profileData.nickname,
         realName: profileData.name,
         bio: profileData.bio,
+        profileImage: profileData.profileImage,
       });
     } catch (error) {
       console.error('❌ 프로필 저장 중 오류:', error);
@@ -379,12 +384,17 @@ const MyPage = () => {
           </ProfilePhoto>
 
           <InputGroup>
-            <Label>이름</Label>
+            <Label>이름 (회원가입 시 설정, 수정 불가)</Label>
             <Input
               type="text"
               value={profileData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="실명을 입력해주세요"
+              readOnly
+              style={{ 
+                backgroundColor: '#f8f9fa', 
+                color: '#6c757d',
+                cursor: 'not-allowed'
+              }}
+              placeholder={profileData.name ? "회원가입 시 설정된 실명" : "회원가입에서 설정한 실명이 표시됩니다"}
             />
           </InputGroup>
 
