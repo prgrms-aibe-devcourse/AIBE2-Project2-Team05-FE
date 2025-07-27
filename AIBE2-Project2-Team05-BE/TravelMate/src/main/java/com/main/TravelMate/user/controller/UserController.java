@@ -4,6 +4,7 @@ import com.main.TravelMate.common.jwt.JwtTokenProvider;
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.user.dto.SignupRequestDto;
+import com.main.TravelMate.user.dto.PasswordChangeRequestDto;
 import com.main.TravelMate.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.CascadeType;
@@ -86,6 +87,44 @@ public class UserController {
         String email = jwtTokenProvider.getEmail(token);  // ✅ 여기서 추출
         userService.delete(email);
         return ResponseEntity.ok("회원 탈퇴 완료");
+    }
+
+    /**
+     * 비밀번호 변경 API
+     */
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestBody PasswordChangeRequestDto request, 
+            HttpServletRequest httpRequest) {
+        
+        try {
+            // 토큰에서 이메일 추출
+            String bearerToken = httpRequest.getHeader("Authorization");
+            String token = bearerToken != null && bearerToken.startsWith("Bearer ")
+                    ? bearerToken.substring(7)
+                    : null;
+
+            if (token == null) {
+                return ResponseEntity.badRequest().body("인증 토큰이 없습니다");
+            }
+
+            String email = jwtTokenProvider.getEmail(token);
+
+            // 새 비밀번호 확인 검증
+            if (!request.getNewPassword().equals(request.getNewPasswordConfirm())) {
+                return ResponseEntity.badRequest().body("새 비밀번호와 확인 비밀번호가 일치하지 않습니다");
+            }
+
+            // 비밀번호 변경 서비스 호출
+            userService.changePassword(email, request.getCurrentPassword(), request.getNewPassword());
+            
+            log.info("비밀번호 변경 성공 - 사용자: {}", email);
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다");
+
+        } catch (Exception e) {
+            log.error("비밀번호 변경 실패:", e);
+            return ResponseEntity.badRequest().body("비밀번호 변경 실패: " + e.getMessage());
+        }
     }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)

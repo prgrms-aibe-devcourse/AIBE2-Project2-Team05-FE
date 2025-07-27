@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import com.main.TravelMate.common.service.FileUploadService;
 
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ public class ProfileService {
     private final FollowRepository followRepository;
     private final TravelFeedRepository travelFeedRepository;
     private final ProfileRepository profileRepository;
+    private final FileUploadService fileUploadService;
 
     public ProfileResponseDto getProfile(Long userId) {
         log.info("👤 프로필 조회 시작 - 사용자 ID: {}", userId);
@@ -379,5 +382,50 @@ public class ProfileService {
                 .travelStyles(travelStyles)
                 .profileImage(null)
                 .build();
+    }
+
+    /**
+     * 프로필 이미지 업데이트
+     */
+    @Transactional
+    public String updateProfileImage(Long userId, MultipartFile profileImage) {
+        try {
+            log.info("🖼️ 프로필 이미지 업데이트 시작 - 사용자 ID: {}, 파일명: {}", 
+                    userId, profileImage.getOriginalFilename());
+
+            // 사용자 조회
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다"));
+
+            // 프로필 조회 또는 생성
+            Profile profile = user.getProfile();
+            if (profile == null) {
+                log.info("프로필이 없어서 새로 생성합니다 - 사용자 ID: {}", userId);
+                createDefaultProfileForUser(userId);
+                // 생성 후 다시 조회
+                user = userRepository.findById(userId)
+                        .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다"));
+                profile = user.getProfile();
+            }
+
+            // 파일 검증 및 업로드
+            if (!fileUploadService.validateFile(profileImage)) {
+                throw new IllegalArgumentException("유효하지 않은 이미지 파일입니다");
+            }
+
+            String imageUrl = fileUploadService.uploadFile(profileImage, "profile-images");
+            log.info("이미지 업로드 완료 - URL: {}", imageUrl);
+
+            // 프로필 이미지 URL 업데이트
+            profile.setProfileImage(imageUrl);
+            profileRepository.save(profile);
+
+            log.info("✅ 프로필 이미지 업데이트 완료 - 사용자 ID: {}, URL: {}", userId, imageUrl);
+            return imageUrl;
+
+        } catch (Exception e) {
+            log.error("❌ 프로필 이미지 업데이트 실패 - 사용자 ID: {}, 오류: {}", userId, e.getMessage());
+            throw new RuntimeException("프로필 이미지 업데이트 실패: " + e.getMessage(), e);
+        }
     }
 }

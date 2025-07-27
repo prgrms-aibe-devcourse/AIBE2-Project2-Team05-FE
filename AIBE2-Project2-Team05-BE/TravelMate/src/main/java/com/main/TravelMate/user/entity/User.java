@@ -45,7 +45,14 @@ public class User {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // 연관관계와 비즈니스 로직
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<TravelFeed> travelFeeds = new ArrayList<>();
 
-
-
+    /**
+     * 비밀번호 업데이트 메서드
+     */
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
+    }
 }

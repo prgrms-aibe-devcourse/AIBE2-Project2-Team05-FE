@@ -1645,45 +1645,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       )}
 
       {/* 작성자 정보 */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '20px 40px',
-          backgroundColor: '#f8f9fa',
-          marginTop: '20px',
-          gap: '12px',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '24px',
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#e9ecef',
-          }}
-        >
-          {plan.author.profileImage}
-        </div>
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-            {plan.author.name}
-          </div>
-          <div
-            style={{
-              fontSize: '14px',
-              color: isAuthor ? '#3682F8' : '#666',
-              fontWeight: isAuthor ? '500' : 'normal',
-            }}
-          >
-            {isAuthor ? '여행계획 리더' : '여행참여자'}
-          </div>
-        </div>
-      </div>
+
 
       {/* 푸터 */}
       <S.Footer>

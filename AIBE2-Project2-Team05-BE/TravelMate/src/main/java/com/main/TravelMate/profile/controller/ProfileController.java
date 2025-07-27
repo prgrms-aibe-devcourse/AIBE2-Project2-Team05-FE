@@ -11,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -147,6 +149,39 @@ public class ProfileController {
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
         profileService.updateProfile(userDetails.getUser().getId(), request);
         return ResponseEntity.ok("프로필이 저장되었습니다.");
+    }
+
+    /**
+     * 프로필 이미지 업로드 API
+     * POST /api/profile/upload-image
+     */
+    @PostMapping("/upload-image")
+    public ResponseEntity<?> uploadProfileImage(
+            @RequestPart("profileImage") MultipartFile profileImage) {
+        
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+            
+            log.info("프로필 이미지 업로드 요청 - 사용자: {}, 파일: {}", 
+                    userDetails.getUser().getEmail(), 
+                    profileImage.getOriginalFilename());
+
+            // 프로필 이미지 업로드 서비스 호출
+            String imageUrl = profileService.updateProfileImage(userDetails.getUser().getId(), profileImage);
+            
+            log.info("프로필 이미지 업로드 성공 - URL: {}", imageUrl);
+            return ResponseEntity.ok(Map.of(
+                "message", "프로필 이미지가 성공적으로 업로드되었습니다",
+                "imageUrl", imageUrl
+            ));
+
+        } catch (Exception e) {
+            log.error("프로필 이미지 업로드 실패:", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "프로필 이미지 업로드 실패: " + e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/follow/{targetId}")
