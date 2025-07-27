@@ -36,11 +36,57 @@ export const getDefaultProfileImage = (size: number = 150): string => {
 };
 
 /**
- * 이미지 로드 실패 시 기본 이미지로 대체하는 이벤트 핸들러
+ * 이미지 URL 관련 유틸리티 함수들
+ */
+
+// 기본 이미지 URL 상수
+export const DEFAULT_PLACE_IMAGE = '/default-place-image.jpg';
+
+/**
+ * 유효하지 않거나 placeholder 이미지 URL을 기본 이미지로 대체
+ * @param imageUrl 원본 이미지 URL
+ * @returns 유효한 이미지 URL 또는 기본 이미지 URL
+ */
+export const getValidImageUrl = (imageUrl: string | null | undefined): string => {
+  // null, undefined, 빈 문자열 처리
+  if (!imageUrl || imageUrl.trim() === '') {
+    return DEFAULT_PLACE_IMAGE;
+  }
+
+  // via.placeholder.com URL 감지 및 대체
+  if (imageUrl.includes('via.placeholder.com')) {
+    console.log('🖼️ placeholder 이미지 감지, 기본 이미지로 대체:', imageUrl);
+    return DEFAULT_PLACE_IMAGE;
+  }
+
+  // 유효한 URL인지 간단 체크
+  try {
+    new URL(imageUrl);
+    return imageUrl;
+  } catch {
+    console.warn('⚠️ 유효하지 않은 이미지 URL:', imageUrl);
+    return DEFAULT_PLACE_IMAGE;
+  }
+};
+
+/**
+ * 프로필 이미지 로드 실패 시 기본 이미지로 대체하는 이벤트 핸들러
  * @param e 이미지 에러 이벤트
  * @param size 기본 이미지 크기 (기본값: 150)
  */
 export const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, size: number = 150): void => {
   const target = e.target as HTMLImageElement;
   target.src = getDefaultProfileImage(size);
+};
+
+/**
+ * 일반 이미지 로드 에러 핸들러 (장소 이미지 등)
+ * @param event 이미지 로드 에러 이벤트
+ */
+export const handlePlaceImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  const img = event.currentTarget;
+  if (img.src !== DEFAULT_PLACE_IMAGE) {
+    console.log('🖼️ 장소 이미지 로드 실패, 기본 이미지로 대체:', img.src);
+    img.src = DEFAULT_PLACE_IMAGE;
+  }
 }; 

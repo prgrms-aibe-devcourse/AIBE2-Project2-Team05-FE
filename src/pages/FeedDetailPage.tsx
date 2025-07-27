@@ -1,186 +1,474 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as S from './FeedDetailPage.style';
+import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../services/api';
+import { BackendFeedResponse } from '../services/feedApi';
+import ImageModal from '../components/profile/ImageModal';
 
-const FeedDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+const FeedDetailPage: React.FC = () => {
+  const { id: feedId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // TODO: 실제 id에 해당하는 데이터 불러오기
-  const feedData = {
-    // 1. 게시물 정보 (첫 번째 이미지)
-    author: {
-        name: '김여행',
-        tags: ['자유여행가', '사진작가'],
-        avatar: `https://i.pravatar.cc/150?u=traveler${id}`,
-    },
-    post: {
-        title: '제주도에서의 잊지 못할 3일간의 힐링 여행',
-        date: '2023.06.15 - 2023.05.18',
-        location: '제주특별자치도 서귀포시',
-        mainImage: `https://picsum.photos/800/500?random=${id}`,
-        content: '제주도에서의 3일간의 여행은 정말 잊을 수 없는 경험이었습니다. 첫째 날에는 성산일출봉에서 아름다운 일출을 감상하고, 우도로 향했습니다. 우도에서 전기자전거를 빌려 해안도로를 달리니 정말 환상적이더군요.\n\n둘째 날에는 중문관광단지의 여러 해변을 돌아다니며 시간을 보냈습니다. 특히 중문색달해변에서의 수영은 정말 상쾌했어요. 저녁에는 제주 흑돼지 바비큐를 즐기며 하루를 마무리했습니다.\n\n마지막 날에는 한라산 등반에 도전했습니다. 비록 정상까지는 가지 못했지만, 중간 지점에서 바라본 제주의 전경은 정말 장관이었습니다. 다음에 제주를 방문한다면 꼭 정상까지 올라가보고 싶네요.',
-        hashtags: ['#제주도', '#힐링여행', '#성산일출봉', '#우도', '#한라산', '#여름휴가'],
-        likes: 128,
-        commentsCount: 24,
-        shares: 15,
-        comments: [
-            { id: 1, author: '이제주', text: '저도 지난달에 제주도 다녀왔는데, 정말 좋았어요! 성산일출봉 일출은 정말 장관이죠.', time: '2시간 전' },
-            { id: 2, author: '박여행', text: '흑돼지 바비큐 어디서 드셨나요? 저도 다음에 제주도 가는데 맛집 추천 부탁드려요!', time: '1시간 전' },
-            { id: 3, author: '최사진', text: '사진이 정말 예쁘게 잘 나왔네요! 카메라 어떤 거 쓰시는지 궁금합니다.', time: '1시간 전' },
-        ],
-    },
-    // 2. 상세 일정 정보 (두 번째 이미지)
-    plan: {
-      title: '제주도 힐링 여행',
-      period: '2023년 6월 15일 - 2023년 6월 19일',
-      travelInfo: [
-        { icon: '📅', label: '여행 기간', value: '5일 4박' },
-        { icon: '📍', label: '여행지', value: '제주도' },
-        { icon: '💰', label: '예산', value: '₩850,000' },
-        { icon: '👥', label: '인원', value: '2명' },
-      ],
-      days: [
-        {
-          day: 1,
-          date: '6월 15일 (목)',
-          events: [
-            { time: '10:00', title: '제주공항 도착', location: '제주국제공항', description: '김포공항에서 제주공항으로 이동 (약 1시간 소요) 도착 후 렌터카 픽업', category: '교통', image: true },
-            { time: '12:30', title: '점심 식사', location: '제주 흑돼지 명가', description: '제주도 대표 음식인 흑돼지 구이를 맛볼 수 있는 맛집 사전 예약 완료', category: '식사', image: true },
-            { time: '15:00', title: '성산일출봉 관광', location: '성산일출봉', description: '유네스코 세계자연유산으로 등재된 제주도의 상징적인 명소 정상까지 약 30분 소요, 날씨가 좋으면 우도와 바다 전망 감상 가능', category: '관광', image: true },
-            { time: '18:30', title: '호텔 체크인 및 휴식', location: '제주 시그니처 호텔', description: '오션뷰 객실 예약 완료 호텔 내 수영장 및 스파 이용 가능', category: '숙박', image: false },
-          ],
-        },
-        {
-          day: 2,
-          date: '6월 16일 (금)',
-          events: [
-              { time: '09:00', title: '우도 투어', location: '우도', description: '성산항에서 페리로 15분 소요 우도 내에서는 전기차 또는 자전거 대여 예정 우도 땅콩 아이스크림, 소라 등 현지 음식 체험', category: '관광', image: true },
-              { time: '15:00', title: '카페 투어', location: '월정리 해변 카페거리', description: '인스타그램에서 유명한 해변 뷰 카페 방문 커피와 디저트 즐기기', category: '카페', cost: '₩30,000', image: false },
-          ],
-        },
-      ],
-    }
-  };
+  const [feedData, setFeedData] = useState<BackendFeedResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
 
-  if (!feedData) {
-    return <div>피드를 찾을 수 없습니다.</div>;
+  // 피드 데이터 로드
+  useEffect(() => {
+    const loadFeedData = async () => {
+      if (!feedId) {
+        setError('피드 ID가 없습니다.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log(`🔍 피드 ${feedId} 상세 정보 로딩 시작`);
+        // travelPlanId를 사용하는 새로운 엔드포인트 사용
+        const response = await api.get<BackendFeedResponse>(`/api/feed/plan/${feedId}`);
+        
+        console.log('✅ 피드 상세 데이터:', response.data);
+        setFeedData(response.data);
+      } catch (err) {
+        console.error('❌ 피드 상세 데이터 로딩 실패:', err);
+        setError('피드를 불러올 수 없습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFeedData();
+  }, [feedId]);
+
+  // 로딩 상태
+  if (loading) {
+    return (
+      <Container>
+        <LoadingContainer>
+          <LoadingSpinner />
+          <LoadingText>여행 계획을 불러오는 중...</LoadingText>
+        </LoadingContainer>
+      </Container>
+    );
   }
 
-  const { author, post, plan } = feedData;
+  // 에러 상태
+  if (error || !feedData) {
+    return (
+      <Container>
+        <ErrorContainer>
+          <ErrorText>{error || '피드를 찾을 수 없습니다.'}</ErrorText>
+          <BackButton onClick={() => navigate('/')}>
+            메인으로 돌아가기
+          </BackButton>
+        </ErrorContainer>
+      </Container>
+    );
+  }
 
   return (
-    <S.PageContainer>
-        {/* --- 1. 게시물 부분 --- */}
-        <S.PostSection>
-            <S.BlueHeader>
-                트래블메이트
-                <S.ShareIcon>
-                    <i className="ri-share-forward-line"></i>
-                </S.ShareIcon>
-            </S.BlueHeader>
-            <S.PostContentWrapper>
-                <S.AuthorInfo>
-                    <S.AuthorAvatar src={author.avatar} alt={author.name} />
-                    <div>
-                        <S.AuthorName>{author.name}</S.AuthorName>
-                        <div>
-                            {author.tags.map(tag => <S.AuthorTag key={tag}>{tag}</S.AuthorTag>)}
-                        </div>
-                    </div>
-                    <S.FollowButton>팔로우</S.FollowButton>
-                </S.AuthorInfo>
+    <Container>
+      {/* 헤더 */}
+      <Header>
+        <BackButton onClick={() => navigate(-1)}>
+          ← 뒤로가기
+        </BackButton>
+        <HeaderTitle>여행 계획 상세</HeaderTitle>
+      </Header>
 
-                <S.PostTitle>{post.title}</S.PostTitle>
-                
-                <S.PostMeta>
-                    <span>{post.date}</span>
-                    <span>・</span>
-                    <span>{post.location}</span>
-                </S.PostMeta>
+      {/* 여행 정보 카드 */}
+      <TravelCard>
+        {/* 이미지 섹션 */}
+        {feedData.imageUrl && (
+          <ImageSection 
+            onClick={() => setImageModalOpen(true)}
+          >
+            <TravelImage src={feedData.imageUrl} alt={feedData.title} />
+            <ImageOverlay>
+              <ImageExpandIcon>🔍 이미지 확대</ImageExpandIcon>
+            </ImageOverlay>
+          </ImageSection>
+        )}
 
-                <S.PostImageSlider>
-                    <i className="ri-image-line"></i> 여행 사진 슬라이더
-                </S.PostImageSlider>
+        {/* 여행 기본 정보 */}
+        <InfoSection>
+          <TravelTitle>{feedData.title}</TravelTitle>
+          <TravelMeta>
+            <MetaItem>📍 {feedData.location}</MetaItem>
+            <MetaItem>📅 {feedData.startDate} ~ {feedData.endDate}</MetaItem>
+            <MetaItem>👥 {feedData.numberOfPeople}명</MetaItem>
+            <MetaItem>💰 {feedData.budget}만원</MetaItem>
+          </TravelMeta>
+          
+          <AuthorInfo>
+            <AuthorLabel>여행 계획 작성자</AuthorLabel>
+            <AuthorName>{feedData.createdBy || feedData.authorName}</AuthorName>
+          </AuthorInfo>
 
-                <S.PostText dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }} />
-                
-                <S.HashtagContainer>
-                    {post.hashtags.map(tag => <S.Hashtag key={tag}>{tag}</S.Hashtag>)}
-                </S.HashtagContainer>
+          {feedData.description && (
+            <Description>{feedData.description}</Description>
+          )}
 
-                <S.InteractionStats>
-                    <span>❤️ {post.likes}</span>
-                    <span>💬 {post.commentsCount}</span>
-                    <span>🔗 {post.shares}</span>
-                </S.InteractionStats>
-            </S.PostContentWrapper>
-        </S.PostSection>
-
-        <S.Divider />
-
-        {/* --- 2. 상세 일정 부분 --- */}
-        <S.PlanSection>
-            <S.PlanHeader>상세 여행 일정</S.PlanHeader>
-            <S.InfoCards>
-                {plan.travelInfo.map(info => (
-                <S.InfoCard key={info.label}>
-                    <S.CardLabel>{info.label}</S.CardLabel>
-                    <S.CardValue>{info.value}</S.CardValue>
-                </S.InfoCard>
+          {feedData.interests && (
+            <InterestsSection>
+              <InterestsLabel>관심사</InterestsLabel>
+              <InterestsList>
+                {String(feedData.interests).split(',').map((interest: string, index: number) => (
+                  <InterestTag key={index}>{interest.trim()}</InterestTag>
                 ))}
-            </S.InfoCards>
+              </InterestsList>
+            </InterestsSection>
+          )}
+        </InfoSection>
+      </TravelCard>
 
-            <S.TimelineContainer>
-                {plan.days.map(day => (
-                <div key={day.day}>
-                    <S.DayHeader>
-                        <S.DayBadge>{day.day}</S.DayBadge>
-                        <S.DayTitle>{day.day}일째 <S.DayDate>{day.date}</S.DayDate></S.DayTitle>
-                    </S.DayHeader>
-                    {day.events.map((event, index) => (
-                    <S.EventRow key={index}>
-                        <S.TimelineLine />
-                        <S.TimelineDot />
-                        <S.EventTime>{event.time}</S.EventTime>
-                        <S.EventCard>
-                            <S.EventHeader>
-                                <S.EventTitle>{event.title}</S.EventTitle>
-                                <S.CategoryBadge category={event.category}>{event.category}</S.CategoryBadge>
-                            </S.EventHeader>
-                            <S.EventLocation>{event.location}</S.EventLocation>
-                            <S.EventDescription>{event.description}</S.EventDescription>
-                            {event.image && <S.ImagePlaceholder>이미지 영역</S.ImagePlaceholder>}
-                            {event.cost && <S.CostBadge>{event.cost}</S.CostBadge>}
-                        </S.EventCard>
-                    </S.EventRow>
-                    ))}
-                </div>
-                ))}
-            </S.TimelineContainer>
-        </S.PlanSection>
+      {/* 일정 상세 */}
+      {feedData.days && feedData.days.length > 0 && (
+        <ScheduleSection>
+          <SectionTitle>📋 여행 일정</SectionTitle>
+          {feedData.days.map((day, dayIndex) => (
+            <DayCard key={dayIndex}>
+              <DayHeader>
+                <DayTitle>Day {day.dayNumber}</DayTitle>
+                <DayDate>{day.date}</DayDate>
+              </DayHeader>
+              {day.schedules && day.schedules.length > 0 ? (
+                <ScheduleList>
+                  {day.schedules.map((schedule, scheduleIndex) => (
+                    <ScheduleItem key={scheduleIndex}>
+                      <ScheduleTime>{schedule.time}</ScheduleTime>
+                      <ScheduleContent>
+                        <SchedulePlace>{schedule.place}</SchedulePlace>
+                        <ScheduleActivity>{schedule.activity}</ScheduleActivity>
+                        {schedule.memo && <ScheduleMemo>{schedule.memo}</ScheduleMemo>}
+                        {schedule.cost > 0 && <ScheduleCost>💰 {schedule.cost.toLocaleString()}원</ScheduleCost>}
+                      </ScheduleContent>
+                    </ScheduleItem>
+                  ))}
+                </ScheduleList>
+              ) : (
+                <NoSchedule>일정이 없습니다.</NoSchedule>
+              )}
+            </DayCard>
+          ))}
+        </ScheduleSection>
+      )}
 
-        {/* --- 3. 댓글 부분 --- */}
-        <S.CommentsSection>
-            <S.CommentsTitle>댓글 {post.commentsCount}개</S.CommentsTitle>
-            {post.comments.map(comment => (
-                <S.Comment key={comment.id}>
-                    <S.AuthorAvatar src={`https://i.pravatar.cc/150?u=${comment.author}`} alt={comment.author} isComment={true} />
-                    <S.CommentContent>
-                        <S.AuthorName isComment={true}>{comment.author}</S.AuthorName>
-                        <S.CommentText>{comment.text}</S.CommentText>
-                        <S.CommentTime>{comment.time}</S.CommentTime>
-                    </S.CommentContent>
-                </S.Comment>
-            ))}
-            <S.CommentInputWrapper>
-                <S.CommentInput placeholder="댓글을 입력하세요..." />
-                <S.CommentSubmitButton>게시</S.CommentSubmitButton>
-            </S.CommentInputWrapper>
-        </S.CommentsSection>
-    </S.PageContainer>
+      {/* 이미지 모달 */}
+      <AnimatePresence>
+        {imageModalOpen && feedData.imageUrl && (
+          <ImageModal 
+            imageUrl={feedData.imageUrl} 
+            onClose={() => setImageModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </Container>
   );
 };
 
 export default FeedDetailPage; 
+
+// 스타일 컴포넌트들
+const Container = styled.div`
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 0;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #3682F8;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+`;
+
+const HeaderTitle = styled.h1`
+  margin: 0 0 0 16px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+`;
+
+const TravelCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 24px;
+`;
+
+const ImageSection = styled.div`
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+`;
+
+const TravelImage = styled.img`
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+`;
+
+const ImageOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+
+  ${ImageSection}:hover & {
+    background: rgba(0, 0, 0, 0.3);
+    opacity: 1;
+  }
+`;
+
+const ImageExpandIcon = styled.div`
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+`;
+
+const InfoSection = styled.div`
+  padding: 24px;
+`;
+
+const TravelTitle = styled.h2`
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 16px 0;
+`;
+
+const TravelMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+`;
+
+const MetaItem = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  color: #666;
+`;
+
+const AuthorInfo = styled.div`
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+`;
+
+const AuthorLabel = styled.div`
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 4px;
+`;
+
+const AuthorName = styled.div`
+  font-size: 18px;
+  font-weight: 600;
+  color: #3682F8;
+`;
+
+const Description = styled.p`
+  font-size: 16px;
+  line-height: 1.6;
+  color: #555;
+  margin-bottom: 20px;
+`;
+
+const InterestsSection = styled.div`
+  margin-top: 20px;
+`;
+
+const InterestsLabel = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+`;
+
+const InterestsList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const InterestTag = styled.span`
+  background: #3682F8;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const ScheduleSection = styled.div`
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 20px 0;
+`;
+
+const DayCard = styled.div`
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+`;
+
+const DayHeader = styled.div`
+  background: #3682F8;
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const DayTitle = styled.h4`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+`;
+
+const DayDate = styled.div`
+  font-size: 14px;
+  opacity: 0.9;
+`;
+
+const ScheduleList = styled.div`
+  padding: 0;
+`;
+
+const ScheduleItem = styled.div`
+  display: flex;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f3f4;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ScheduleTime = styled.div`
+  min-width: 80px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3682F8;
+  margin-right: 16px;
+`;
+
+const ScheduleContent = styled.div`
+  flex: 1;
+`;
+
+const SchedulePlace = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+`;
+
+const ScheduleActivity = styled.div`
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+`;
+
+const ScheduleMemo = styled.div`
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+`;
+
+const ScheduleCost = styled.div`
+  font-size: 13px;
+  color: #e74c3c;
+  font-weight: 500;
+`;
+
+const NoSchedule = styled.div`
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3682F8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingText = styled.div`
+  margin-top: 16px;
+  color: #666;
+  font-size: 16px;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+`;
+
+const ErrorText = styled.div`
+  color: #e74c3c;
+  font-size: 18px;
+  margin-bottom: 20px;
+  text-align: center;
+`; 

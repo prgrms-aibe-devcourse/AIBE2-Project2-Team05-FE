@@ -11,6 +11,7 @@ import openaiService from '../services/openaiApi';
 import { TravelStatus } from '../types/feed';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api'; // api 인스턴스 추가
+import { getValidImageUrl } from '../utils/imageUtils'; // 이미지 유틸리티 추가
 
 // 여행 계획 타입 정의
 interface TravelEvent {
@@ -49,6 +50,7 @@ interface TravelPlan {
   likes: number;
   likedUsers: string[];
   isLiked: boolean;
+  imageUrl?: string; // ✅ 여행 계획 대표 이미지 URL 추가
   author: {
     id: string;
     name: string;
@@ -341,44 +343,120 @@ const PlanPage: React.FC<PlanPageProps> = ({
               const adminToken = localStorage.getItem('accessToken') || localStorage.getItem('token');
               console.log('🔐 관리자 토큰 길이:', adminToken?.length || 0);
               
-              const response = await fetch(`http://localhost:8080/api/admin/manage/travel-plan/${id}`, {
+              const apiUrl = `http://localhost:8080/api/admin/manage/travel-plan/${id}`;
+              console.log('📡 API 요청 URL:', apiUrl);
+              
+              const response = await fetch(apiUrl, {
                 headers: {
                   'Authorization': `Bearer ${adminToken}`,
                   'Content-Type': 'application/json',
                 },
               });
               
+              console.log('📡 API 응답 상태:', response.status, response.statusText);
+              
               if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('❌ API 응답 에러:', errorText);
+                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
               }
               
               const data = await response.json();
               console.log('✅ 관리자 모달: 백엔드 데이터 로드 성공:', data);
+              console.log('📊 백엔드 응답 데이터 구조:', {
+                hasSchedules: !!data.schedules,
+                schedulesType: typeof data.schedules,
+                schedulesContent: data.schedules ? data.schedules.substring(0, 100) + '...' : 'null',
+                title: data.title,
+                destination: data.destination,
+                authorNickname: data.authorNickname
+              });
 
               if (data) {
+                // 📊 백엔드 데이터 구조 확인 및 변환
+                console.log('🔄 백엔드 데이터 변환 시작:', {
+                  schedules: data.schedules,
+                  schedulesType: typeof data.schedules
+                });
+
+                // schedules JSON 문자열을 파싱하여 days 배열로 변환
+                let days: TravelDay[] = [];
+                try {
+                  if (data.schedules && typeof data.schedules === 'string') {
+                    const schedulesData = JSON.parse(data.schedules);
+                    console.log('📅 스케줄 데이터 파싱 성공:', schedulesData);
+                    
+                    // schedules 객체를 days 배열로 변환
+                    days = Object.keys(schedulesData)
+                      .filter(key => key.startsWith('day') && schedulesData[key].length > 0)
+                      .map((dayKey, index) => {
+                        const dayNumber = parseInt(dayKey.replace('day', '')) || (index + 1);
+                        const events = schedulesData[dayKey].map((event: any, eventIndex: number) => ({
+                          id: event.id || `event-${dayNumber}-${eventIndex}`,
+                          time: event.time || '시간 미정',
+                          title: event.activity || '활동',
+                          location: event.place || '장소 미정',
+                          description: event.memo || '',
+                          price: event.cost?.toString() || '0',
+                          category: '기타',
+                          tags: []
+                        }));
+                        
+                        return {
+                          id: `day-${dayNumber}`,
+                          dayNumber: dayNumber,
+                          date: data.startDate || '', // 실제 날짜 계산 필요시 여기 수정
+                          events: events
+                        };
+                      });
+                  }
+                } catch (parseError) {
+                  console.error('❌ 스케줄 데이터 파싱 실패:', parseError);
+                  days = [] as TravelDay[];
+                }
+
+                console.log('✅ 변환된 days 데이터:', days);
+
                 // 관리자 모달에서는 간단한 형태로만 표시
                 loadedPlan = {
                   id: data.id?.toString() || id,
                   title: data.title || '여행 계획',
-                  destination: data.destination || '목적지',
+                  destination: data.destination || data.location || '목적지',
                   startDate: data.startDate || '',
                   endDate: data.endDate || '',
                   budget: data.budget?.toString() || '0',
                   people: data.numberOfPeople?.toString() || '1',
                   period: `${calculateDays(data.startDate, data.endDate)}일`,
-                  days: data.days || [],
+                  imageUrl: getValidImageUrl(data.imageUrl), // ✅ 이미지 URL 검증 및 대체
+                  days: days, // ✅ 변환된 days 데이터 사용
                   likes: 0,
                   likedUsers: [],
                   isLiked: false,
                   author: {
-                    id: data.user?.id?.toString() || data.userId?.toString() || 'unknown',
-                    name: data.user?.nickname || data.authorNickname || '사용자',
-                    profileImage: data.user?.profileImage || data.authorProfileImage || '👤',
+                    id: data.authorId?.toString() || 'unknown',
+                    name: data.authorNickname || '사용자',
+                    profileImage: data.authorProfileImage || '👤',
                   },
                 };
+
+                console.log('🎯 최종 변환된 여행 계획:', loadedPlan);
+                console.log('✅ 관리자 모달: 변환 성공, plan 설정 예정');
+                
+                // ✅ 관리자 모달에서도 setPlan 호출 추가!
+                setPlan(loadedPlan);
+                setIsLiked(loadedPlan.isLiked);
+                setLikeCount(loadedPlan.likes);
+                console.log('🎯 관리자 모달: setPlan 완료');
+              } else {
+                console.warn('⚠️ 관리자 모달: 백엔드 응답 데이터가 비어있음');
+                loadedPlan = null;
               }
             } catch (error) {
               console.error('❌ 관리자 모달: 백엔드 로드 실패:', error);
+              console.error('❌ 에러 상세:', {
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : 'No stack trace'
+              });
               loadedPlan = null;
             }
           } else {
@@ -459,6 +537,7 @@ const PlanPage: React.FC<PlanPageProps> = ({
                 setIsLiked(false);
                 setLikeCount(0);
               } else {
+                console.warn('⚠️ 백엔드 응답 데이터가 없음');
                 throw new Error('Failed to load plan');
               }
             } catch (error) {
@@ -553,6 +632,13 @@ const PlanPage: React.FC<PlanPageProps> = ({
             console.error('피드 상태 로드 오류:', statusError);
           }
         }
+
+        console.log('🏁 useEffect 완료 - 최종 상태:', {
+          hasLoadedPlan: !!loadedPlan,
+          isModal: isModal,
+          userId: user?.email,
+          userRole: user?.role
+        });
 
         setLoading(false);
       }
@@ -822,23 +908,37 @@ const PlanPage: React.FC<PlanPageProps> = ({
             color: '#666',
           }}
         >
-          <div>아직 작성된 여행 계획이 없습니다.</div>
-          <div style={{ marginTop: '20px' }}>
-            <button
-              onClick={() => (window.location.href = '/plan/write')}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#3682F8',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-              }}
-            >
-              여행 계획 작성하기
-            </button>
-          </div>
+          {isModal ? (
+            // ✅ 모달 모드: 에러 메시지만 표시
+            <>
+              <div style={{ fontSize: '24px', marginBottom: '12px' }}>⚠️</div>
+              <div>여행 계획을 불러올 수 없습니다.</div>
+              <div style={{ fontSize: '14px', color: '#999', marginTop: '8px' }}>
+                여행 계획 ID: {id}
+              </div>
+            </>
+          ) : (
+            // ✅ 일반 모드: 기존 UI (작성 버튼 포함)
+            <>
+              <div>아직 작성된 여행 계획이 없습니다.</div>
+              <div style={{ marginTop: '20px' }}>
+                <button
+                  onClick={() => (window.location.href = '/plan/write')}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#3682F8',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                  }}
+                >
+                  여행 계획 작성하기
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </S.Container>
     );

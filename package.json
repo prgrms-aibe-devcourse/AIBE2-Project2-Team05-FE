@@ -26,6 +26,8 @@
     "react-kakao-maps-sdk": "^1.2.0",
     "react-router-dom": "^6.14.0",
     "react-scripts": "5.0.1",
+    "react-window": "^1.8.11",
+    "react-window-infinite-loader": "^1.0.10",
     "sockjs-client": "^1.6.1",
     "styled-components": "^6.0.0",
     "typescript": "^4.9.5",
@@ -76,6 +78,8 @@
     ]
   },
   "devDependencies": {
+    "@types/react-window": "^1.8.8",
+    "@types/react-window-infinite-loader": "^1.0.9",
     "@types/sockjs-client": "^1.5.4",
     "@types/styled-components": "^5.1.34",
     "@types/yup": "^0.29.14",

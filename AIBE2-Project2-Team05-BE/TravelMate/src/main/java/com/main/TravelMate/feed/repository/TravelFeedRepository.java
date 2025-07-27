@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface TravelFeedRepository extends JpaRepository<TravelFeed, Long> {
     List<TravelFeed> findAllByOrderByCreatedAtDesc();
@@ -39,4 +42,19 @@ public interface TravelFeedRepository extends JpaRepository<TravelFeed, Long> {
     @EntityGraph(attributePaths = {"user", "travelPlan"})
     List<TravelFeed> findByTravelPlan(TravelPlan travelPlan);
 
+    // ✅ travelPlanId로 피드 조회
+    @EntityGraph(attributePaths = {"user", "travelPlan", "travelPlan.days", "travelPlan.days.schedules"})
+    Optional<TravelFeed> findByTravelPlan_Id(Long travelPlanId);
+
+    // ✅ ACTIVE 상태 피드를 페이지네이션으로 조회
+    @EntityGraph(attributePaths = {"user", "travelPlan", "travelPlan.days", "travelPlan.days.schedules"})
+    Page<TravelFeed> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    // ✅ 커서 기반 조회: 특정 ID보다 작은 피드들을 최신순으로 조회 (대용량 최적화)
+    @EntityGraph(attributePaths = {"user", "travelPlan", "travelPlan.days", "travelPlan.days.schedules"})
+    List<TravelFeed> findByStatusAndIdLessThanOrderByIdDesc(String status, Long cursor, Pageable pageable);
+    
+    // ✅ 커서 기반 조회: 첫 페이지 (cursor가 null인 경우)
+    @EntityGraph(attributePaths = {"user", "travelPlan", "travelPlan.days", "travelPlan.days.schedules"})
+    List<TravelFeed> findByStatusOrderByIdDesc(String status, Pageable pageable);
 }

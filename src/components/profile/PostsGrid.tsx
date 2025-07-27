@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import LazyImage from '../common/LazyImage'; // ✅ LazyImage 컴포넌트 import
 
 // 타입 정의
 interface UserFeed {
@@ -25,12 +26,13 @@ interface PostsGridProps {
   onDeleteFeed: (feedId: string | number, event: React.MouseEvent) => void;
 }
 
-const PostsGrid: React.FC<PostsGridProps> = ({ 
-  feeds, 
-  activeTab, 
-  isCurrentUser, 
-  onFeedClick, 
-  onDeleteFeed 
+// 컴포넌트를 memo로 감싸서 불필요한 리렌더링 방지
+const PostsGrid = memo<PostsGridProps>(({
+  feeds,
+  activeTab,
+  isCurrentUser,
+  onFeedClick,
+  onDeleteFeed,
 }) => {
   const navigate = useNavigate();
   
@@ -73,20 +75,19 @@ const PostsGrid: React.FC<PostsGridProps> = ({
                   key={feed.id}
                   onClick={() => onFeedClick(feed)}
                 >
-                  <img
+                  <LazyImage
                     src={feed.image}
                     alt="여행 사진"
-                    onError={(e) => {
-                      // Google Places API 이미지 로딩 실패 시 대체 이미지 사용
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.includes('googleapis.com')) {
-                        target.src = `https://picsum.photos/400/300?random=${feed.id}`;
-                        console.log(
-                          '🖼️ Google Places 이미지 로딩 실패, 대체 이미지 사용:',
-                          target.src,
-                        );
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFeedClick(feed);
                     }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                    placeholder="여행 이미지"
                   />
                   <PostOverlay>
                     <PostBadge>✈️ 여행계획</PostBadge>
@@ -112,7 +113,9 @@ const PostsGrid: React.FC<PostsGridProps> = ({
       </AnimatePresence>
     </Container>
   );
-};
+});
+
+PostsGrid.displayName = 'PostsGrid';
 
 // 스타일 컴포넌트들
 const Container = styled.div`

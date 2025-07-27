@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'; // ✅ framer-motion �
 import AdminLayout from '../components/admin/AdminLayout';
 import api from '../services/api';
 import PlanPage from './PlanPage'; // ✅ PlanPage 컴포넌트 import
+import { getValidImageUrl, handlePlaceImageError } from '../utils/imageUtils'; // 이미지 유틸리티 추가
 
 // 백엔드 AdminFeedDto와 타입을 맞춥니다.
 interface AdminFeedDto {
@@ -322,7 +323,12 @@ const FeedManagementPage: React.FC = () => {
               <td>{feed.id}</td>
               <td>
                 {feed.imageUrl ? (
-                  <FeedImage src={feed.imageUrl} alt="피드 이미지" onClick={() => handleFeedClick(feed)} />
+                  <FeedImage 
+                    src={getValidImageUrl(feed.imageUrl)} 
+                    alt="피드 이미지" 
+                    onClick={() => handleFeedClick(feed)}
+                    onError={handlePlaceImageError}
+                  />
                 ) : (
                   <NoImage onClick={() => handleFeedClick(feed)}>이미지 없음</NoImage>
                 )}
@@ -379,7 +385,11 @@ const FeedManagementPage: React.FC = () => {
                 <div>
                   {/* ✅ 백엔드 구조에 맞게 수정: feedImageUrl 사용 */}
                   {managedFeed.feedImageUrl && (
-                    <FeedImage src={managedFeed.feedImageUrl} alt="피드 이미지" />
+                    <FeedImage 
+                      src={getValidImageUrl(managedFeed.feedImageUrl)} 
+                      alt="피드 이미지" 
+                      onError={handlePlaceImageError}
+                    />
                   )}
                   <FeedCaption>
                     {/* ✅ 백엔드 구조에 맞게 수정: feedCaption 사용 */}
