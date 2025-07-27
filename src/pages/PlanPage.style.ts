@@ -725,3 +725,54 @@ export const EventInfo = styled.div`
   gap: 8px;
   flex-shrink: 0;
 `;
+
+// ✅ 작성자 정보 섹션 스타일 (피드 모달용)
+export const AuthorSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #efefef;
+  background-color: #fafafa;
+`;
+
+export const AuthorProfile = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+`;
+
+export const AuthorAvatar = styled.img`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #3682f8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+export const AuthorInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+`;
+
+export const AuthorName = styled.span`
+  font-weight: 600;
+  font-size: 18px;
+  color: #333;
+`;
+
+export const AuthorAge = styled.span`
+  font-size: 14px;
+  color: #666;
+`;
+
+export const AuthorDescription = styled.div`
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  font-style: italic;
+`;

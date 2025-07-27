@@ -84,6 +84,11 @@ interface TravelPlan {
 interface PlanPageProps {
   planId?: string;
   isModal?: boolean;
+  authorInfo?: {
+    author: string;
+    avatar: string;
+    age: number;
+  };
 }
 
 // 날짜 계산 헬퍼 함수
@@ -183,14 +188,32 @@ const convertSchedulesToDays = (
     .filter((day) => day.events.length > 0); // 🎯 빈 일정을 가진 day는 제거
 };
 
-const PlanPage: React.FC<PlanPageProps> = ({
-  planId: propPlanId,
-  isModal = false,
-}) => {
+const PlanPage: React.FC<PlanPageProps> = (props) => {
+  const { planId: propPlanId, isModal = false, authorInfo } = props;
   const { id: paramId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth(); // 현재 로그인한 사용자 정보
   const id = propPlanId || paramId; // props로 받은 planId 우선 사용
+
+  // ✅ 디버깅: authorInfo 확인
+  console.log('🔍 PlanPage - authorInfo 데이터:', {
+    isModal,
+    authorInfo,
+    hasAuthorInfo: !!authorInfo,
+  });
+
+  // ✅ 작성자 정보 렌더링 조건 확인
+  useEffect(() => {
+    if (isModal) {
+      console.log('🔍 모달 모드 - 작성자 정보 체크:', {
+        authorInfo,
+        hasAuthor: !!authorInfo?.author,
+        hasAvatar: !!authorInfo?.avatar,
+        hasAge: !!authorInfo?.age,
+      });
+    }
+  }, [isModal, authorInfo]);
+
   const [plan, setPlan] = useState<TravelPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -1227,6 +1250,41 @@ const PlanPage: React.FC<PlanPageProps> = ({
             size="medium"
             showDescription={true}
           />
+        </div>
+      )}
+
+      {/* ✅ 작성자 정보 섹션 (모달에서만 표시) */}
+      {isModal && authorInfo && (
+        <S.AuthorSection>
+          <S.AuthorProfile>
+            <S.AuthorAvatar 
+              src={authorInfo.avatar} 
+              alt={authorInfo.author}
+              onLoad={() => console.log('✅ 프로필 이미지 로드 성공:', authorInfo.avatar)}
+              onError={() => console.log('❌ 프로필 이미지 로드 실패:', authorInfo.avatar)}
+            />
+          </S.AuthorProfile>
+          <S.AuthorInfo>
+            <S.AuthorName>{authorInfo.author}</S.AuthorName>
+            <S.AuthorAge>{authorInfo.age}세</S.AuthorAge>
+          </S.AuthorInfo>
+          <S.AuthorDescription>
+            ✈️ 이 여행 계획의 작성자입니다
+          </S.AuthorDescription>
+        </S.AuthorSection>
+      )}
+
+      {/* 🔍 디버깅 정보 (개발 시에만 표시) */}
+      {process.env.NODE_ENV === 'development' && isModal && (
+        <div style={{ 
+          padding: '10px', 
+          backgroundColor: '#f0f0f0', 
+          fontSize: '12px', 
+          color: '#666',
+          borderBottom: '1px solid #ddd'
+        }}>
+          디버깅: isModal={String(isModal)}, authorInfo={authorInfo ? 'exists' : 'null'}
+          {authorInfo && `, author: ${authorInfo.author}, age: ${authorInfo.age}`}
         </div>
       )}
 
