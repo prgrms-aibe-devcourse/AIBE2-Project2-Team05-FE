@@ -3,18 +3,28 @@ package com.main.TravelMate.feed.controller;
 import com.main.TravelMate.common.security.CustomUserDetails;
 import com.main.TravelMate.feed.dto.FeedCreateRequestDto;
 
+import com.main.TravelMate.feed.domain.TravelStatus;
 import com.main.TravelMate.feed.dto.TravelFeedResponseDto;
+import com.main.TravelMate.feed.dto.TravelStatusUpdateRequest;
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.feed.repository.TravelFeedRepository;
 import com.main.TravelMate.feed.service.TravelFeedService;
+import com.main.TravelMate.feed.service.TravelFeedMigrationService;
 import com.main.TravelMate.plan.dto.TravelDayDto;
 import com.main.TravelMate.plan.dto.TravelScheduleDto;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.main.TravelMate.common.security.CustomUserDetails;
+
+import java.time.LocalDateTime;
+import java.util.Map;
 
 import java.util.List;
 import com.main.TravelMate.feed.dto.CursorFeedResponseDto;
@@ -22,6 +32,7 @@ import com.main.TravelMate.feed.dto.CursorFeedResponseDto;
 @RestController
 @RequestMapping("/api/feed")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}) // CORS 명시적 허용
 public class TravelFeedController {
 
@@ -110,7 +121,7 @@ public class TravelFeedController {
         }
     }
 
-    // ✅ travelPlanId로 피드 조회 API 추가
+    // ✅ TravelPlan ID로 피드 조회 API
     @GetMapping("/plan/{travelPlanId}")
     public ResponseEntity<TravelFeedResponseDto> getFeedByPlanId(@PathVariable Long travelPlanId) {
         try {
@@ -121,52 +132,135 @@ public class TravelFeedController {
         }
     }
 
-    @GetMapping("/{feedId}")
-    public ResponseEntity<TravelFeedResponseDto> getFeed(@PathVariable Long feedId) {
-        TravelFeed feed = feedRepository.findById(feedId)
-                .orElseThrow(() -> new RuntimeException("피드가 존재하지 않습니다."));
+    // 🎯 여행 상태 변경 (TravelPlan ID 사용)
+    @PutMapping("/plan/{travelPlanId}/travel-status")
+    public ResponseEntity<?> updateTravelStatusByPlanId(
+            @PathVariable Long travelPlanId,
+            @RequestBody TravelStatusUpdateRequest request) {
+        
+        try {
+            // 1. 인증 확인
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUserDetails)) {
+                log.warn("🚫 TravelPlan ID {} 상태 변경 실패: 인증되지 않은 사용자", travelPlanId);
+                return ResponseEntity.status(401)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "로그인이 필요합니다",
+                        "travelPlanId", travelPlanId,
+                        "timestamp", LocalDateTime.now()
+                    ));
+            }
 
-        TravelPlan plan = feed.getTravelPlan();
-        User user = feed.getUser();
+            CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+            Long currentUserId = userDetails.getUser().getId();
+            
+            log.info("🔄 TravelPlan ID {} 여행 상태 변경 요청: {} (사용자 ID: {})", 
+                    travelPlanId, request.getTravelStatus(), currentUserId);
+            
+            // 2. 작성자 권한 체크 및 상태 변경 (TravelPlan ID 사용)
+            TravelFeed updatedFeed = feedService.updateTravelStatusByPlanIdWithAuth(
+                travelPlanId, 
+                currentUserId,
+                request.getTravelStatus(), 
+                request.getNote()
+            );
+            
+            log.info("✅ TravelPlan ID {} 여행 상태 변경 성공: {}", travelPlanId, updatedFeed.getTravelStatus());
+            return ResponseEntity.ok()
+                .body(Map.of(
+                    "success", true,
+                    "message", "여행 상태가 성공적으로 변경되었습니다",
+                    "travelPlanId", travelPlanId,
+                    "newStatus", updatedFeed.getTravelStatus(),
+                    "timestamp", LocalDateTime.now()
+                ));
 
-        // ⬇️ 세부 일정 파싱
-        List<TravelDayDto> dayDtos = plan.getDays().stream().map(day -> {
-            List<TravelScheduleDto> scheduleDtos = day.getSchedules().stream().map(schedule ->
-                    TravelScheduleDto.builder()
-                            .time(schedule.getTime())
-                            .place(schedule.getPlace())
-                            .activity(schedule.getActivity())
-                            .memo(schedule.getMemo())
-                            .cost(schedule.getCost())
-                            .build()
-            ).toList();
-
-            return TravelDayDto.builder()
-                    .dayNumber(day.getDayNumber())
-                    .date(day.getDate())
-                    .schedules(scheduleDtos)
-                    .build();
-        }).toList();
-
-        // ⬇️ 피드 응답 DTO 구성
-        TravelFeedResponseDto response = TravelFeedResponseDto.builder()
-                .travelPlanId(plan.getId())
-                .title(plan.getTitle())
-                .location(plan.getLocation())
-                .description(plan.getDescription())
-                .interests(plan.getInterests())
-                .numberOfPeople(plan.getNumberOfPeople())
-                .budget(plan.getBudget())
-                .startDate(plan.getStartDate())
-                .endDate(plan.getEndDate())
-                .days(dayDtos)
-                .createdBy(user.getNickname())
-                .profileImage(user.getProfile() != null ? user.getProfile().getProfileImage() : null)
-                .imageUrl(feed.getImageUrl())
-                .caption(feed.getCaption())
-                .authorName(plan.getAuthorName()) // ✅ 여행 계획 작성자 이름 추가
-                .build();
-
-        return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            log.warn("🚫 TravelPlan ID {} 상태 변경 권한 없음: {}", travelPlanId, e.getMessage());
+            
+            return ResponseEntity.status(403)
+                .body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "travelPlanId", travelPlanId,
+                    "timestamp", LocalDateTime.now()
+                ));
+                
+        } catch (Exception e) {
+            log.error("❌ TravelPlan ID {} 여행 상태 변경 실패: {}", travelPlanId, e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                .body(Map.of(
+                    "success", false,
+                    "message", "여행 상태 변경 실패: " + e.getMessage(),
+                    "travelPlanId", travelPlanId,
+                    "timestamp", LocalDateTime.now()
+                ));
+        }
     }
+
+    // ✅ 데이터 마이그레이션 API 추가
+    @Autowired
+    private TravelFeedMigrationService migrationService;
+    
+    /**
+     * TravelFeed ID 마이그레이션 실행
+     * POST /api/feed/migrate-ids
+     */
+    @PostMapping("/migrate-ids")
+    public ResponseEntity<?> migrateTravelFeedIds() {
+        try {
+            log.info("🔄 TravelFeed ID 마이그레이션 API 호출");
+            
+            migrationService.migrateTravelFeedIds();
+            
+            return ResponseEntity.ok()
+                .body(Map.of(
+                    "success", true,
+                    "message", "TravelFeed ID 마이그레이션이 성공적으로 완료되었습니다",
+                    "timestamp", LocalDateTime.now()
+                ));
+                
+        } catch (Exception e) {
+            log.error("❌ TravelFeed ID 마이그레이션 실패: {}", e.getMessage(), e);
+            
+            return ResponseEntity.badRequest()
+                .body(Map.of(
+                    "success", false,
+                    "message", "마이그레이션 실패: " + e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+                ));
+        }
+    }
+    
+    /**
+     * 마이그레이션 상태 확인
+     * GET /api/feed/migration-status
+     */
+    @GetMapping("/migration-status")
+    public ResponseEntity<?> checkMigrationStatus() {
+        try {
+            log.info("🔍 TravelFeed 마이그레이션 상태 확인 API 호출");
+            
+            migrationService.checkMigrationStatus();
+            
+            return ResponseEntity.ok()
+                .body(Map.of(
+                    "success", true,
+                    "message", "마이그레이션 상태 확인 완료 (로그 참조)",
+                    "timestamp", LocalDateTime.now()
+                ));
+                
+        } catch (Exception e) {
+            log.error("❌ 마이그레이션 상태 확인 실패: {}", e.getMessage(), e);
+            
+            return ResponseEntity.badRequest()
+                .body(Map.of(
+                    "success", false,
+                    "message", "상태 확인 실패: " + e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+                ));
+        }
+    }
+
 }

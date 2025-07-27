@@ -2,7 +2,7 @@ import React from 'react';
 import { TravelStatus } from '../../types/feed';
 
 interface FeedStatusBadgeProps {
-  status: TravelStatus;
+  status: TravelStatus | null; // 🌟 null 허용
   size?: 'small' | 'medium' | 'large';
   showIcon?: boolean;
   showDescription?: boolean;
@@ -20,6 +20,22 @@ const FeedStatusBadge: React.FC<FeedStatusBadgeProps> = ({
   try {
     console.log('🔍 FeedStatusBadge 호출됨:', { status, type: typeof status });
 
+    // null일 때 로딩 상태 표시
+    if (status === null) {
+      return (
+        <div
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${className || ''}`}
+          style={{
+            color: '#6B7280',
+            backgroundColor: '#F3F4F6',
+          }}
+        >
+          {showIcon && <span>⏳</span>}
+          <span>로딩중...</span>
+        </div>
+      );
+    }
+
     // 안전한 기본값 사용
     const safeStatus = status || 'recruiting';
     const statusMap = {
@@ -28,6 +44,12 @@ const FeedStatusBadge: React.FC<FeedStatusBadgeProps> = ({
         statusLabel: '모집중',
         color: '#3B82F6',
         backgroundColor: '#DBEAFE',
+      },
+      matched: {
+        icon: '🤝',
+        statusLabel: '매칭완료',
+        color: '#8B5CF6',
+        backgroundColor: '#E0E7FF',
       },
       traveling: {
         icon: '✈️',

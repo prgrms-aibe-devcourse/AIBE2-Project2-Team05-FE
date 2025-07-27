@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/profile/create/**")  // 프로필 생성 API 제외
                 .requestMatchers("/api/profile/create-all")  // 프로필 일괄 생성 API 제외
                 .requestMatchers("/api/places/**")       // 장소 API 제외 (Google Places API)
+                .requestMatchers("/api/feed/migrate-ids") // 마이그레이션 API 제외
+                .requestMatchers("/api/feed/migration-status") // 마이그레이션 상태 확인 API 제외
                 .requestMatchers("/actuator/**");        // actuator 제외
     }
 
@@ -57,9 +59,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/profile/create-all").permitAll()
                         // 🗺️ 장소 API (Google Places API)
                         .requestMatchers("/api/places/**").permitAll()
+                        // 🔧 마이그레이션 API (데이터 업데이트용)
+                        .requestMatchers("/api/feed/migrate-ids").permitAll()
+                        .requestMatchers("/api/feed/migration-status").permitAll()
                         // 🔒 읽기 전용 공개 API (피드, 프로필 조회 등)
                         .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/profile/user/**").permitAll()
+                        // 🌟 후기 조회 API (읽기 전용 공개)
+                        .requestMatchers(HttpMethod.GET, "/api/review/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
                         // 🔐 나머지는 모두 인증 필요
                         .anyRequest().authenticated()

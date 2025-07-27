@@ -146,4 +146,25 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("사용자 없음"));
         userRepository.delete(user);
     }
+
+    /**
+     * 비밀번호 변경
+     */
+    @Transactional
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        // 사용자 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다"));
+        
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BadCredentialsException("현재 비밀번호가 일치하지 않습니다");
+        }
+        
+        // 새 비밀번호 암호화 후 저장
+        user.updatePassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        
+        log.info("비밀번호 변경 완료 - 사용자: {}", email);
+    }
 }

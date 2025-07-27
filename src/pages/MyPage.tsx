@@ -1,251 +1,251 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-// import { Link } from 'react-router-dom'; // 임시 주석 처리 - 미사용
-// 프로필 API 추가
+import { useNavigate } from 'react-router-dom';
 import profileApiService from '../services/profileApi';
-import { FeedWithTravelStatus } from '../types/feed';
+import api from '../services/api';
 
+// 페이지 애니메이션
 const pageVariants = {
   initial: { opacity: 0 },
   in: { opacity: 1 },
   out: { opacity: 0 },
 };
 
+// 인터페이스 정의
 interface UserProfile {
-  name: string;
   nickname: string;
-  age: string;
-  gender: string;
   bio: string;
-  username: string;
   profileImage: string;
-  preferredDestinations: string[];
-  travelStyles: string[];
+}
+
+interface PasswordForm {
+  currentPassword: string;
+  newPassword: string;
+  newPasswordConfirm: string;
 }
 
 const MyPage = () => {
-  const { logout, updateUser, user } = useAuth();
-  const [isSaving, setIsSaving] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  // 상태 관리
   const [loading, setLoading] = useState(true);
-
-  // 프로필 데이터 상태
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  
+  // 프로필 데이터
   const [profileData, setProfileData] = useState<UserProfile>({
-    name: '',
     nickname: '',
-    age: '',
-    gender: '남성',
     bio: '',
-    username: 'Traveler_Kim',
-    profileImage: '👤',
-    preferredDestinations: ['유럽'],
-    travelStyles: ['계획적인 여행', '관광 중심'],
+    profileImage: ''
   });
 
-  // 프로필 데이터 로드 - 백엔드에서 실제 사용자 정보 가져오기
+  // 비밀번호 변경 폼
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    currentPassword: '',
+    newPassword: '',
+    newPasswordConfirm: ''
+  });
+
+  // 프로필 데이터 로드
   useEffect(() => {
     const loadProfile = async () => {
-      if (!user?.email) {
-        console.log('🔍 사용자 정보 없음, 로딩 중...');
-        return;
-      }
-
-      setLoading(true);
-      console.log('🔄 프로필 데이터 로드 시작 - 사용자:', user.email);
-
-      // ✅ 사용자가 변경되었을 때 이전 사용자의 localStorage 데이터 정리
-      const storedProfile = localStorage.getItem('userProfile');
-      if (storedProfile) {
-        try {
-          const parsed = JSON.parse(storedProfile);
-          if (parsed.email && parsed.email !== user.email) {
-            console.log(
-              '🧹 다른 사용자의 데이터 정리:',
-              parsed.email,
-              '→',
-              user.email,
-            );
-            localStorage.removeItem('userProfile');
-            localStorage.removeItem('currentTravelPlan');
-          }
-        } catch (e) {
-          console.warn('localStorage 파싱 오류, 정리:', e);
-          localStorage.removeItem('userProfile');
-        }
-      }
+      if (!user?.email) return;
 
       try {
-        // ✅ 백엔드에서 현재 로그인된 사용자의 실제 프로필 정보 가져오기
-        const profileResponse: any = await profileApiService.getMyProfile();
-        console.log('✅ 백엔드에서 프로필 로드 성공:', profileResponse);
-
-        // 백엔드 데이터로 상태 업데이트
+        setLoading(true);
+        console.log('📋 프로필 정보 로드 중...');
+        
+        const profile = await profileApiService.getMyProfile();
+        console.log('✅ 프로필 로드 성공:', profile);
+        
         setProfileData({
-          name: profileResponse.realName || '',
-          nickname: profileResponse.nickname || '',
-          age: profileResponse.age ? profileResponse.age.toString() : '',
-          gender: profileResponse.gender || '남성',
-          bio: profileResponse.bio || '',
-          username: profileResponse.nickname || 'Traveler',
-          profileImage: profileResponse.profileImage || '👤',
-          preferredDestinations: profileResponse.preferredDestinations
-            ? profileResponse.preferredDestinations.split(',').filter(Boolean)
-            : ['유럽'],
-          travelStyles: profileResponse.travelStyle
-            ? profileResponse.travelStyle.split(',').filter(Boolean)
-            : ['계획적인 여행', '관광 중심'],
+          nickname: profile.nickname || '',
+          bio: profile.bio || '',
+          profileImage: profile.profileImage || ''
         });
 
-        // 백업용으로 localStorage에도 저장 (이메일 포함)
-        localStorage.setItem(
-          'userProfile',
-          JSON.stringify({
-            email: user.email, // ✅ 현재 사용자 이메일 추가
-            name: profileResponse.realName,
-            nickname: profileResponse.nickname,
-            age: profileResponse.age?.toString(),
-            gender: profileResponse.gender,
-            bio: profileResponse.bio,
-          }),
-        );
       } catch (error) {
-        console.error('❌ 백엔드 프로필 로드 실패:', error);
-
-        // 백엔드 실패 시에만 localStorage 백업 사용
-        try {
-          const savedProfile = localStorage.getItem('userProfile');
-          if (savedProfile) {
-            const parsed = JSON.parse(savedProfile);
-            console.log('📦 localStorage 백업 사용:', parsed);
-            setProfileData((prev) => ({ ...prev, ...parsed }));
-          }
-        } catch (localError) {
-          console.error('localStorage 읽기 실패:', localError);
-        }
+        console.error('❌ 프로필 로드 실패:', error);
+        alert('프로필 정보를 불러오는데 실패했습니다.');
       } finally {
         setLoading(false);
       }
     };
 
     loadProfile();
-  }, [user?.email]); // user.email이 변경될 때마다 다시 로드
+  }, [user?.email]);
 
-  // 프로필 데이터 변경 핸들러
-  const handleInputChange = (field: keyof UserProfile, value: string) => {
-    setProfileData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  // 선호 여행지 토글
-  const toggleDestination = (destination: string) => {
-    setProfileData((prev) => ({
-      ...prev,
-      preferredDestinations: prev.preferredDestinations.includes(destination)
-        ? prev.preferredDestinations.filter((d) => d !== destination)
-        : [...prev.preferredDestinations, destination],
-    }));
-  };
-
-  // 여행 스타일 토글
-  const toggleTravelStyle = (style: string) => {
-    setProfileData((prev) => ({
-      ...prev,
-      travelStyles: prev.travelStyles.includes(style)
-        ? prev.travelStyles.filter((s) => s !== style)
-        : [...prev.travelStyles, style],
-    }));
-  };
-
-  // 프로필 저장
-  const handleSaveProfile = async () => {
-    if (!profileData.nickname.trim()) {
-      alert('닉네임을 입력해주세요.');
+  // 프로필 업데이트
+  const handleProfileUpdate = async () => {
+    if (!profileData.bio.trim()) {
+      alert('자기소개를 입력해주세요.');
       return;
     }
 
-    setIsSaving(true);
+    try {
+      setSaving(true);
+      console.log('💾 프로필 업데이트 중...');
+
+      await profileApiService.updateProfile({
+        nickname: profileData.nickname, // 닉네임은 변경 불가하지만 기존 값 유지
+        bio: profileData.bio.trim()
+      });
+
+      alert('프로필이 성공적으로 업데이트되었습니다! ✅');
+      console.log('✅ 프로필 업데이트 완료');
+
+    } catch (error) {
+      console.error('❌ 프로필 업데이트 실패:', error);
+      alert('프로필 업데이트 중 오류가 발생했습니다: ' + (error as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 프로필 이미지 업로드
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 파일 크기 검증 (5MB 제한)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert('파일 크기는 5MB를 초과할 수 없습니다.');
+      return;
+    }
+
+    // 파일 형식 검증
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('JPEG, PNG, GIF, WebP 형식의 이미지만 업로드 가능합니다.');
+      return;
+    }
 
     try {
-      // ✅ 백엔드 API로 프로필 업데이트
-      await profileApiService.updateProfile({
-        nickname: profileData.nickname.trim(),
-        realName: profileData.name,
-        age: profileData.age ? parseInt(profileData.age) : 0,
-        gender: profileData.gender,
-        bio: profileData.bio,
-        // TODO: 선호 여행지와 여행 스타일을 문자열로 변환
-        preferredDestinations: profileData.preferredDestinations.join(','),
-        travelStyle: profileData.travelStyles.join(','),
+      setUploading(true);
+      console.log('🖼️ 프로필 이미지 업로드 중...', file.name);
+
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const response = await api.post('/api/profile/upload-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      // localStorage에도 저장 (로컬 캐시용, 현재 사용자 이메일 포함)
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({
-          ...profileData,
-          email: user?.email, // ✅ 현재 사용자 이메일 추가
-        }),
-      );
+      const { imageUrl } = response.data;
+      console.log('✅ 이미지 업로드 성공:', imageUrl);
 
-      // ✅ AuthContext의 사용자 정보도 업데이트 (프로필 페이지 실시간 반영)
-      updateUser({
-        nickname: profileData.nickname.trim(),
-      });
+      // 프로필 데이터 업데이트
+      setProfileData(prev => ({ ...prev, profileImage: imageUrl }));
+      alert('프로필 이미지가 성공적으로 업로드되었습니다! ✅');
 
-      // 성공 메시지
-      alert(
-        '프로필이 성공적으로 저장되었습니다! ✅\n\n• 닉네임이 DB에 저장되었습니다\n• 프로필 페이지에 바로 반영됩니다\n• 다른 페이지에서도 즉시 확인 가능합니다',
-      );
-
-      console.log('💾 프로필 업데이트 완료:', {
-        nickname: profileData.nickname,
-        realName: profileData.name,
-        bio: profileData.bio,
-      });
-    } catch (error) {
-      console.error('❌ 프로필 저장 중 오류:', error);
-      alert(
-        '프로필 저장 중 오류가 발생했습니다.\n\n' +
-          (error instanceof Error
-            ? error.message
-            : '네트워크 오류가 발생했습니다.') +
-          '\n\n다시 시도해주세요.',
-      );
+    } catch (error: any) {
+      console.error('❌ 이미지 업로드 실패:', error);
+      const errorMessage = error.response?.data?.error || error.message || '이미지 업로드 중 오류가 발생했습니다.';
+      alert(errorMessage);
     } finally {
-      setIsSaving(false);
+      setUploading(false);
+      // 파일 입력 초기화
+      event.target.value = '';
     }
   };
 
-  // 피드 클릭 시 여행 계획 페이지로 이동
-  const handleFeedClick = (feed: FeedWithTravelStatus) => {
-    if (feed.type === 'travel-plan' && feed.planId) {
-      // 해당 계획을 currentTravelPlan으로 설정
-      const planData = localStorage.getItem(`plan_${feed.planId}`);
-      if (planData) {
-        localStorage.setItem('currentTravelPlan', planData);
-      }
-      window.location.href = '/plan';
+  // 비밀번호 변경
+  const handlePasswordChange = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.newPasswordConfirm) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.newPasswordConfirm) {
+      alert('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      alert('새 비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      console.log('🔒 비밀번호 변경 중...');
+
+      await api.put('/api/users/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        newPasswordConfirm: passwordForm.newPasswordConfirm
+      });
+
+      alert('비밀번호가 성공적으로 변경되었습니다! ✅');
+      console.log('✅ 비밀번호 변경 완료');
+      
+      // 폼 초기화
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        newPasswordConfirm: ''
+      });
+
+    } catch (error: any) {
+      console.error('❌ 비밀번호 변경 실패:', error);
+      const errorMessage = error.response?.data || error.message || '비밀번호 변경 중 오류가 발생했습니다.';
+      alert(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
-  // 계정 탈퇴 함수
-  const handleAccountDeletion = () => {
-    if (
-      window.confirm('정말로 회원 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.')
-    ) {
-      localStorage.removeItem('userProfile');
-      localStorage.removeItem('currentTravelPlan'); // 현재 여행 계획 데이터도 삭제
-      alert('회원 탈퇴가 완료되었습니다. 감사합니다!');
-      logout(); // 로그아웃 후 홈으로 이동
-      window.location.href = '/';
+  // 회원탈퇴
+  const handleAccountDeletion = async () => {
+    const confirmMessage = `정말로 회원탈퇴를 하시겠습니까?
+
+⚠️ 탈퇴 시 다음 데이터가 모두 삭제됩니다:
+• 프로필 정보
+• 여행 계획
+• 피드 게시물
+• 모든 활동 기록
+
+이 작업은 되돌릴 수 없습니다.`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    const finalConfirm = window.confirm('정말로 탈퇴하시겠습니까? 마지막 확인입니다.');
+    if (!finalConfirm) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      console.log('🗑️ 회원탈퇴 처리 중...');
+
+      await api.delete('/api/users/delete');
+
+      alert('회원탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.');
+      console.log('✅ 회원탈퇴 완료');
+      
+      logout();
+      navigate('/');
+
+    } catch (error: any) {
+      console.error('❌ 회원탈퇴 실패:', error);
+      const errorMessage = error.response?.data || error.message || '회원탈퇴 중 오류가 발생했습니다.';
+      alert(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
-  // 로딩 중일 때 로딩 화면 표시
+  // 로딩 화면
   if (loading) {
     return (
       <motion.div
@@ -255,21 +255,14 @@ const MyPage = () => {
         variants={pageVariants}
         transition={{ duration: 0.5 }}
       >
-        <MainContent>
-          <PageTitle>마이페이지</PageTitle>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '200px',
-              fontSize: '18px',
-              color: '#666',
-            }}
-          >
+        <Container>
+          <Header>
+            <Title>마이페이지</Title>
+          </Header>
+          <LoadingMessage>
             🔄 프로필 정보를 불러오는 중...
-          </div>
-        </MainContent>
+          </LoadingMessage>
+        </Container>
       </motion.div>
     );
   }
@@ -282,502 +275,501 @@ const MyPage = () => {
       variants={pageVariants}
       transition={{ duration: 0.5 }}
     >
-      <MainContent>
-        <PageTitle>마이페이지</PageTitle>
+      <Container>
+                 <Header>
+           <Title>마이페이지</Title>
+           <UserInfo>
+             <UserIconContainer>
+               {profileData.profileImage ? (
+                 <UserProfileImage 
+                   src={profileData.profileImage} 
+                   alt="프로필"
+                   onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                     e.currentTarget.style.display = 'none';
+                     const parent = e.currentTarget.parentElement;
+                     if (parent) {
+                       parent.innerHTML = '<div style="font-size: 32px;">👤</div>';
+                     }
+                   }}
+                 />
+               ) : (
+                 <UserIcon>👤</UserIcon>
+               )}
+             </UserIconContainer>
+             <UserName>{user?.nickname || '사용자'}</UserName>
+           </UserInfo>
+         </Header>
 
-        {/* 프로필 설정 */}
-        <ProfileSection>
-          <ProfilePhoto>
-            <div style={{ fontSize: '60px' }}>{profileData.profileImage}</div>
-            <PhotoUploadButton>📷 사진 변경</PhotoUploadButton>
-          </ProfilePhoto>
+        {/* 탭 메뉴 */}
+        <TabContainer>
+          <TabButton 
+            $active={activeTab === 'profile'} 
+            onClick={() => setActiveTab('profile')}
+          >
+            📝 프로필 관리
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'password'} 
+            onClick={() => setActiveTab('password')}
+          >
+            🔒 비밀번호 변경
+          </TabButton>
+        </TabContainer>
 
-          <InputGroup>
-            <Label>이름</Label>
-            <Input
-              type="text"
-              value={profileData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="실명을 입력해주세요"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>닉네임*</Label>
-            <Input
-              type="text"
-              value={profileData.nickname}
-              onChange={(e) => handleInputChange('nickname', e.target.value)}
-              placeholder="사용할 닉네임을 입력해주세요"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>나이</Label>
-            <Input
-              type="text"
-              value={profileData.age}
-              onChange={(e) => handleInputChange('age', e.target.value)}
-              placeholder="나이를 입력해주세요"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>성별</Label>
-            <Select
-              value={profileData.gender}
-              onChange={(e) => handleInputChange('gender', e.target.value)}
-            >
-              <option value="남성">남성</option>
-              <option value="여성">여성</option>
-              <option value="기타">기타</option>
-            </Select>
-          </InputGroup>
-
-          <InputGroup>
-            <Label>자기소개</Label>
-            <TextArea
-              value={profileData.bio}
-              onChange={(e) => handleInputChange('bio', e.target.value)}
-              placeholder="자신을 소개해주세요"
-              rows={4}
-            />
-          </InputGroup>
-        </ProfileSection>
-
-        <PreferenceSection>
-          <SectionTitle>여행 선호도</SectionTitle>
-          <CheckboxSection>
-            <CheckboxLabel>선호 여행지</CheckboxLabel>
-            <CheckboxGrid>
-              {['유럽', '아시아', '미주', '오세아니아', '아프리카', '국내'].map(
-                (destination) => (
-                  <CheckboxItem
-                    key={destination}
-                    $checked={profileData.preferredDestinations.includes(
-                      destination,
-                    )}
-                    onClick={() => toggleDestination(destination)}
+        {/* 프로필 관리 탭 */}
+        {activeTab === 'profile' && (
+          <Section>
+            <SectionTitle>프로필 정보</SectionTitle>
+            
+            {/* 프로필 이미지 */}
+            <FormGroup>
+              <Label>프로필 이미지</Label>
+              <ProfileImageContainer>
+                <ProfileImagePreview>
+                  {profileData.profileImage ? (
+                                         <ProfileImage 
+                       src={profileData.profileImage} 
+                       alt="프로필 이미지"
+                       onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                         e.currentTarget.style.display = 'none';
+                         const parent = e.currentTarget.parentElement;
+                         if (parent) {
+                           parent.innerHTML = '<div style="font-size: 48px; color: #adb5bd;">👤</div>';
+                         }
+                       }}
+                     />
+                  ) : (
+                    <DefaultProfileIcon>👤</DefaultProfileIcon>
+                  )}
+                </ProfileImagePreview>
+                <ImageUploadControls>
+                  <ImageUploadInput
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    id="profile-image-upload"
+                  />
+                  <ImageUploadButton 
+                    htmlFor="profile-image-upload"
+                    $uploading={uploading}
                   >
-                    {destination}
-                  </CheckboxItem>
-                ),
+                    {uploading ? '업로드 중...' : '📷 이미지 변경'}
+                  </ImageUploadButton>
+                  <HelpText>
+                    💡 JPEG, PNG, GIF, WebP 형식 (최대 5MB)
+                  </HelpText>
+                </ImageUploadControls>
+              </ProfileImageContainer>
+            </FormGroup>
+            
+            <FormGroup>
+              <Label>닉네임 (변경 불가)</Label>
+              <ReadOnlyInput 
+                value={profileData.nickname} 
+                readOnly
+                placeholder="닉네임 정보 없음"
+              />
+              <HelpText>💡 닉네임은 보안상 변경할 수 없습니다</HelpText>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>자기소개</Label>
+              <TextArea
+                value={profileData.bio}
+                onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="자신을 소개해주세요..."
+                rows={4}
+                maxLength={200}
+              />
+              <CharCount>{profileData.bio.length}/200</CharCount>
+            </FormGroup>
+
+            <ButtonContainer>
+              <PrimaryButton 
+                onClick={handleProfileUpdate}
+                disabled={saving}
+              >
+                {saving ? '저장 중...' : '💾 프로필 저장'}
+              </PrimaryButton>
+            </ButtonContainer>
+          </Section>
+        )}
+
+        {/* 비밀번호 변경 탭 */}
+        {activeTab === 'password' && (
+          <Section>
+            <SectionTitle>비밀번호 변경</SectionTitle>
+            
+            <FormGroup>
+              <Label>현재 비밀번호</Label>
+              <Input
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                placeholder="현재 비밀번호를 입력하세요"
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>새 비밀번호</Label>
+              <Input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="새 비밀번호 (최소 6자)"
+                minLength={6}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>새 비밀번호 확인</Label>
+              <Input
+                type="password"
+                value={passwordForm.newPasswordConfirm}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, newPasswordConfirm: e.target.value }))}
+                placeholder="새 비밀번호를 다시 입력하세요"
+              />
+              {passwordForm.newPassword && passwordForm.newPasswordConfirm && 
+               passwordForm.newPassword !== passwordForm.newPasswordConfirm && (
+                <ErrorText>비밀번호가 일치하지 않습니다</ErrorText>
               )}
-            </CheckboxGrid>
-          </CheckboxSection>
+            </FormGroup>
 
-          <CheckboxSection>
-            <CheckboxLabel>여행 스타일</CheckboxLabel>
-            <CheckboxGrid>
-              {[
-                '계획적인 여행',
-                '즉흥적인 여행',
-                '관광 중심',
-                '휴양 중심',
-                '액티비티',
-                '맛집 탐방',
-              ].map((style) => (
-                <CheckboxItem
-                  key={style}
-                  $checked={profileData.travelStyles.includes(style)}
-                  onClick={() => toggleTravelStyle(style)}
-                >
-                  {style}
-                </CheckboxItem>
-              ))}
-            </CheckboxGrid>
-          </CheckboxSection>
-        </PreferenceSection>
+            <ButtonContainer>
+              <PrimaryButton 
+                onClick={handlePasswordChange}
+                disabled={saving}
+              >
+                {saving ? '변경 중...' : '🔒 비밀번호 변경'}
+              </PrimaryButton>
+            </ButtonContainer>
+          </Section>
+        )}
 
-        <ButtonSection>
-          <BtnSave onClick={handleSaveProfile} disabled={isSaving}>
-            {isSaving ? '저장 중...' : '💾 프로필 저장'}
-          </BtnSave>
-          <BtnLogout onClick={logout}>🚪 로그아웃</BtnLogout>
-        </ButtonSection>
-
-        {/* 계정 탈퇴 섹션 */}
-        <WithdrawalSection>
-          <h3>⚠️ 위험 영역</h3>
-          <p>계정을 탈퇴하면 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
-          <DestructiveButton onClick={handleAccountDeletion}>
-            회원 탈퇴
-          </DestructiveButton>
-        </WithdrawalSection>
-      </MainContent>
+        {/* 계정 관리 */}
+        <DangerSection>
+          <DangerTitle>⚠️ 계정 관리</DangerTitle>
+          <DangerDescription>
+            계정을 탈퇴하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+          </DangerDescription>
+          <ButtonContainer>
+            <SecondaryButton onClick={logout}>
+              🚪 로그아웃
+            </SecondaryButton>
+            <DangerButton 
+              onClick={handleAccountDeletion}
+              disabled={saving}
+            >
+              {saving ? '처리 중...' : '🗑️ 회원탈퇴'}
+            </DangerButton>
+          </ButtonContainer>
+        </DangerSection>
+      </Container>
     </motion.div>
   );
 };
 
 export default MyPage;
 
-// --- Styled Components ---
-
-const MainContent = styled.div`
-  padding: 40px;
-  background-color: white;
-  border-radius: 15px;
-  margin: 30px 40px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+// 스타일 컴포넌트들
+const Container = styled.div`
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Pretendard', sans-serif;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 32px;
-  font-weight: bold;
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
-  color: #333;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 15px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f1f3f5;
+`;
+
+const Title = styled.h1`
+  font-size: 28px;
+  font-weight: 700;
+  color: #212529;
+  margin: 0;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const UserIconContainer = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+`;
+
+const UserIcon = styled.div`
+  font-size: 32px;
+`;
+
+const UserProfileImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const UserName = styled.span`
+  font-size: 18px;
+  font-weight: 600;
+  color: #495057;
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #e9ecef;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  padding: 12px 24px;
+  border: none;
+  background: ${props => props.$active ? '#3682F8' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#6c757d'};
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: ${props => props.$active ? '#3682F8' : '#f8f9fa'};
+    color: ${props => props.$active ? 'white' : '#3682F8'};
+  }
 `;
 
 const Section = styled.div`
-  margin-bottom: 40px;
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 24px;
-  font-weight: 500;
-  margin-bottom: 20px;
-  color: #3498db;
+  font-size: 20px;
+  font-weight: 600;
+  color: #212529;
+  margin: 0 0 24px 0;
 `;
 
-const ProfileSection = styled(Section)`
-  display: flex;
-  gap: 40px;
-`;
-
-const ProfilePhoto = styled.div`
-  width: 200px;
-  flex-shrink: 0;
-  text-align: center;
-`;
-
-const PhotoUploadButton = styled.button`
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  width: 100%;
-  margin-top: 15px;
-`;
-
-const InputGroup = styled.div`
+const FormGroup = styled.div`
   margin-bottom: 20px;
 `;
 
 const Label = styled.label`
   display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
   margin-bottom: 8px;
-  font-weight: 500;
-  color: #555;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #ddd;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 16px;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3682F8;
+  }
+
+  &::placeholder {
+    color: #adb5bd;
+  }
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-  background-color: white;
+const ReadOnlyInput = styled(Input)`
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
-  padding: 15px;
-  border: 1px solid #ddd;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 16px;
-  min-height: 120px;
+  font-family: inherit;
   resize: vertical;
-`;
+  min-height: 100px;
+  transition: border-color 0.3s ease;
 
-const PreferenceSection = styled(Section)`
-  background-color: #f8f9fa;
-  padding: 30px;
-  border-radius: 12px;
-`;
+  &:focus {
+    outline: none;
+    border-color: #3682F8;
+  }
 
-const CheckboxSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const CheckboxLabel = styled.h3`
-  font-size: 20px;
-  font-weight: 500;
-  margin-bottom: 15px;
-  color: #333;
-`;
-
-const CheckboxGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-`;
-
-const CheckboxItem = styled.div<{ $checked: boolean }>`
-  background-color: ${(props) => (props.$checked ? '#3498db' : '#e0f2fe')};
-  color: ${(props) => (props.$checked ? 'white' : '#3498db')};
-  padding: 10px 15px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #3498db;
-    color: white;
+  &::placeholder {
+    color: #adb5bd;
   }
 `;
 
-const ButtonSection = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 20px;
-  margin-top: 40px;
+const HelpText = styled.p`
+  font-size: 12px;
+  color: #6c757d;
+  margin: 4px 0 0 0;
 `;
 
-// 1. 가장 기본이 되는 버튼 스타일을 먼저 정의합니다.
-const Btn = styled.button`
-  padding: 12px 30px;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-`;
-
-// 2. Btn을 상속받는 버튼들을 정의합니다.
-const BtnSave = styled(Btn)`
-  background-color: #3498db;
-  color: white;
-`;
-
-const BtnLogout = styled(Btn)`
-  background-color: #ef4444;
-  color: white;
-
-  &:hover {
-    background-color: #d73a49;
-  }
-`;
-
-// '취소' 버튼 스타일을 기반으로 작은 액션 버튼 스타일을 새로 정의합니다.
-const ActionButton = styled(BtnSave)`
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 500;
-`;
-
-// ActionButton을 기반으로 로그아웃 버튼 스타일을 정의합니다.
-const LogoutButton = styled(ActionButton)`
-  background-color: transparent;
-  border: 1px solid #adb5bd; // 차분한 회색 테두리
-  color: #495057; // 조금 더 진한 회색 글씨
-
-  &:hover {
-    background-color: #f1f3f5; // 마우스 올렸을 때의 배경색
-  }
-`;
-
-// ActionButton을 기반으로 신고하기 버튼 스타일을 정의합니다.
-const ReportButton = styled(ActionButton)`
-  background-color: transparent;
-  border: 1px solid #f39c12; // 주황색 테두리
-  color: #f39c12; // 주황색 글씨
-
-  &:hover {
-    background: rgba(243, 156, 18, 0.1); // 마우스 올렸을 때의 배경색
-  }
-`;
-
-// '회원탈퇴'와 같이 주의가 필요한 버튼 스타일을 정의합니다.
-const DestructiveButton = styled(ActionButton)`
-  background-color: #fee2e2; // 연한 빨강 배경
-  color: #ef4444; // 진한 빨강 글씨
-
-  &:hover {
-    background-color: #fecaca;
-  }
-`;
-
-// 나머지 컴포넌트들을 정의합니다.
-const AccountButtonContainer = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-top: 20px; // 입력 필드와의 간격 조정
-`;
-
-const WithdrawalSection = styled.div`
-  margin-top: 30px;
-  padding-top: 30px;
-  border-top: 1px solid #eee;
+const CharCount = styled.p`
+  font-size: 12px;
+  color: #adb5bd;
   text-align: right;
+  margin: 4px 0 0 0;
 `;
 
-const TabContainer = styled.div`
+const ErrorText = styled.p`
+  font-size: 12px;
+  color: #dc3545;
+  margin: 4px 0 0 0;
+`;
+
+const ButtonContainer = styled.div`
   display: flex;
-  gap: 20px;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 10px;
+  gap: 12px;
+  justify-content: flex-end;
 `;
 
-const TabButton = styled.button<{ $active: boolean }>`
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px 8px 0 0;
-  background-color: ${(props) => (props.$active ? '#3498db' : '#f1f1f1')};
-  color: ${(props) => (props.$active ? 'white' : '#555')};
-  font-size: 18px;
-  font-weight: ${(props) => (props.$active ? 'bold' : '500')};
+const BaseButton = styled.button`
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  border: none;
 
-  &:hover {
-    background-color: #e0f2fe;
-    color: #3498db;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
-const FeedsSection = styled(Section)`
-  background-color: #f8f9fa;
-  padding: 30px;
-  border-radius: 12px;
-`;
+const PrimaryButton = styled(BaseButton)`
+  background: #3682F8;
+  color: white;
 
-const FeedGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-`;
-
-const FeedCard = styled.div`
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: translateY(-5px);
+  &:hover:not(:disabled) {
+    background: #2563eb;
   }
 `;
 
-const FeedHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-  background-color: #f9f9f9;
-`;
+const SecondaryButton = styled(BaseButton)`
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #e9ecef;
 
-const FeedAuthor = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  span:first-child {
-    font-size: 24px;
-    color: #3498db;
-  }
-
-  span:last-child {
-    font-size: 16px;
-    font-weight: 500;
-    color: #333;
+  &:hover:not(:disabled) {
+    background: #e9ecef;
   }
 `;
 
-const FeedDate = styled.span`
+const DangerButton = styled(BaseButton)`
+  background: #dc3545;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: #c82333;
+  }
+`;
+
+const DangerSection = styled(Section)`
+  border: 1px solid #f5c6cb;
+  background: #f8d7da;
+`;
+
+const DangerTitle = styled(SectionTitle)`
+  color: #721c24;
+`;
+
+const DangerDescription = styled.p`
+  color: #721c24;
   font-size: 14px;
-  color: #888;
-`;
-
-const FeedBadge = styled.span`
-  background-color: #e0f2fe;
-  color: #3498db;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
-  font-weight: 500;
-  margin-left: 10px;
-`;
-
-const FeedContent = styled.div`
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-`;
-
-const FeedCaption = styled.p`
-  font-size: 16px;
-  color: #333;
+  margin-bottom: 20px;
   line-height: 1.5;
-  margin-bottom: 15px;
 `;
 
-const FeedFooter = styled.div`
+const LoadingMessage = styled.div`
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #6c757d;
+`;
+
+// 프로필 이미지 관련 스타일
+const ProfileImageContainer = styled.div`
   display: flex;
-  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+`;
+
+const ProfileImagePreview = styled.div`
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #e9ecef;
+  display: flex;
   align-items: center;
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  background-color: #f9f9f9;
+  justify-content: center;
+  background: #f8f9fa;
 `;
 
-const FeedLikeSection = styled.span`
+const ProfileImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const DefaultProfileIcon = styled.div`
+  font-size: 48px;
+  color: #adb5bd;
+`;
+
+const ImageUploadControls = styled.div`
+  flex: 1;
+`;
+
+const ImageUploadInput = styled.input`
+  display: none;
+`;
+
+const ImageUploadButton = styled.label<{ $uploading: boolean }>`
+  display: inline-block;
+  padding: 12px 20px;
+  background: ${props => props.$uploading ? '#6c757d' : '#3682F8'};
+  color: white;
+  border-radius: 8px;
+  cursor: ${props => props.$uploading ? 'not-allowed' : 'pointer'};
   font-size: 14px;
-  color: #888;
-  font-weight: 500;
-`;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  margin-bottom: 8px;
 
-const FeedActionSection = styled.div`
-  display: flex;
-  gap: 15px;
-`;
-
-const FeedActionBtn = styled(ActionButton)`
-  padding: 8px 12px;
-  font-size: 13px;
-`;
-
-const EmptyMessage = styled.div`
-  text-align: center;
-  padding: 50px 0;
-  color: #888;
-  font-size: 18px;
-`;
-
-const CreateBtn = styled(BtnSave)`
-  padding: 12px 30px;
-  font-size: 16px;
-`;
-
-const LoadingMessage = styled.p`
-  text-align: center;
-  padding: 20px;
-  color: #888;
-  font-size: 18px;
-`;
-
-const ErrorMessage = styled.p`
-  text-align: center;
-  padding: 20px;
-  color: #ef4444;
-  font-size: 18px;
+  &:hover {
+    background: ${props => props.$uploading ? '#6c757d' : '#2563eb'};
+  }
 `;
 

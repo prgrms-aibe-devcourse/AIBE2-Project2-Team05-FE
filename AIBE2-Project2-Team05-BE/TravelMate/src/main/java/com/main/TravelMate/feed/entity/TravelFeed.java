@@ -1,13 +1,15 @@
 package com.main.TravelMate.feed.entity;
 
+import com.main.TravelMate.feed.domain.TravelStatus;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.user.entity.User;
+import com.main.TravelMate.review.entity.Review;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -39,7 +41,17 @@ public class TravelFeed {
     @Builder.Default
     private String status = "ACTIVE"; // ACTIVE, DEACTIVE
 
+    // 여행 진행 상태 (매칭 서비스용)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "travel_status")
+    @Builder.Default
+    private TravelStatus travelStatus = TravelStatus.RECRUITING;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    // 이 피드에 작성된 후기들 (여러 참여자가 각각 작성 가능)
+    @OneToMany(mappedBy = "travelFeed", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Review> reviews;
 }

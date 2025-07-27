@@ -678,24 +678,31 @@ public class GooglePlacesService {
      * 참고: https://developers.google.com/maps/documentation/places/web-service/place-photos
      */
     private String generateNewPhotoUrl(String photoName) {
+        log.info("🖼️ [이미지 URL 생성] photoName: {}", photoName);
+        
+        String finalUrl;
         // photoName이 이미 완전한 경로인지 확인 (places/PLACE_ID/photos/PHOTO_RESOURCE 형식)
         if (photoName.startsWith("places/") && photoName.contains("/photos/")) {
             // 완전한 형식이면 /media와 파라미터만 추가
-            return String.format(
+            finalUrl = String.format(
                 "%s/%s/media?key=%s&maxHeightPx=400&maxWidthPx=400",
                 PHOTO_BASE_URL,
                 photoName,
                 googlePlacesApiKey
             );
+            log.info("✅ [이미지 URL] 완전한 형식으로 생성: {}", finalUrl);
         } else {
             // 기존 방식 fallback (호환성 유지)
-            log.warn("Legacy photo name format detected: {}", photoName);
-            return String.format(
+            log.warn("⚠️ [이미지 URL] Legacy photo name format detected: {}", photoName);
+            finalUrl = String.format(
                 "%s/%s/media?key=%s&maxHeightPx=400&maxWidthPx=400",
                 PHOTO_BASE_URL,
                 photoName,
                 googlePlacesApiKey
             );
+            log.warn("⚠️ [이미지 URL] Legacy 형식으로 생성: {}", finalUrl);
         }
+        
+        return finalUrl;
     }
 } 

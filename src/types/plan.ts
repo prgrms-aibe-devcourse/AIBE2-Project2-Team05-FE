@@ -1,4 +1,5 @@
 // 여행 계획 관련 통합 타입 정의
+import { TravelStatus } from './feed';
 
 // 여행 이벤트 (일정 항목)
 export interface TravelEvent {
@@ -11,6 +12,10 @@ export interface TravelEvent {
   tags: string[];
   price: string;
   category: string;
+  categoryIcon?: string; // 카테고리 아이콘
+  categoryBackground?: string; // 카테고리 배경색
+  categoryTextColor?: string; // 카테고리 텍스트 색상
+  categoryBorderColor?: string; // 카테고리 테두리 색상
 }
 
 // 여행 일정 (하루)
@@ -50,17 +55,39 @@ export interface TravelPlan {
   likes: number;
   likedUsers: string[];
   isLiked: boolean;
+  travelStatus?: TravelStatus; // 🌟 여행 진행 상태 (recruiting, traveling, completed)
   author: Author;
+  
+  // 백엔드 응답 필드 (작성자 정보)
+  authorId?: number;           // 백엔드 작성자 ID
+  authorNickname?: string;     // 백엔드 작성자 닉네임
+  authorProfileImage?: string; // 백엔드 작성자 프로필 이미지
+  
   styleLabels?: string[]; // 여행 스타일 레이블
   styles?: string[]; // 여행 스타일 값
   matchingInfo?: MatchingInfo;
   accommodation?: string;
   transportation?: string;
   extraMemo?: string;
-  createdAt: string;
+  createdAt?: string; // 옵셔널로 변경
   aiHashtags?: string[];
   nearbyRecommendations?: RecommendedPlace[];
   imageUrl?: string; // 대표 이미지
+  // AI 추천 시스템용 확장 필드
+  aiRecommendations?: {
+    recommendations: Array<{
+      name: string;
+      description: string;
+      category: string;
+      distance: string;
+      verified: boolean;
+      source: string;
+    }>;
+    generatedAt: string;
+    destination: string;
+    visitedPlaces: string[];
+    travelStyles: string[];
+  };
 }
 
 // AI 추천 장소

@@ -16,6 +16,8 @@ export interface BackendFeedResponse {
   imageUrl?: string;
   caption: string;
   authorName?: string;
+  reviewCount?: number; // 🔧 백엔드에서 제공하는 후기 개수
+  averageRating?: number; // 🔧 백엔드에서 제공하는 평균 평점
   days: Array<{
     dayNumber: number;
     date: string;
@@ -66,13 +68,13 @@ export const getFeeds = async (
 
     console.log(`✅ 피드 API 응답: ${response.data.length}개 피드`);
 
-    // 백엔드 응답을 프론트엔드 형식으로 변환
+    // 백엔드 응답을 프론트엔드 형식으로 변환 (프로필페이지와 완전히 동일한 방식)
     const feeds: FeedItem[] = response.data.map((feed, index) => ({
-      id: feed.travelPlanId || (page * size + index + 1), // ID가 없으면 임시 ID 생성
+      id: feed.travelPlanId || (page * size + index + 1),
       author: feed.createdBy || feed.authorName || '익명',
-      avatar: feed.profileImage || `https://i.pravatar.cc/150?u=${feed.createdBy}`,
-      image: feed.imageUrl || '/default-place-image.jpg',
-      likes: Math.floor(Math.random() * 50) + 10, // 임시 좋아요 수
+      avatar: feed.profileImage || '/api/profile/image/default', // 🔧 실제 백엔드 프로필 이미지
+      image: feed.imageUrl || '/default-place-image.jpg', // 🔧 프로필페이지와 완전히 동일한 방식
+      likes: feed.reviewCount || 0, // 🔧 실제 후기 개수
       caption: feed.caption || `${feed.title} - ${feed.location}`,
       location: feed.location,
       startDate: feed.startDate,

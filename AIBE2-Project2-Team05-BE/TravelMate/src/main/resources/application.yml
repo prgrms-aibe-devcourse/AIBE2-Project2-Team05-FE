@@ -48,6 +48,10 @@ openai:
 logging:
   level:
     com.main.TravelMate.user: INFO         # User 관련 로그를 INFO로 조정
+    com.main.TravelMate.common.security.JwtAuthenticationFilter: INFO  # JWT 필터 디버깅
+    com.main.TravelMate.feed.controller: INFO     # 피드 컨트롤러 디버깅  
+    com.main.TravelMate.feed.service: INFO        # 피드 서비스 디버깅
+    org.springframework.security: DEBUG           # Spring Security 전체 디버깅
     com.main.TravelMate.profile: INFO      # Profile 관련 로그를 INFO로 조정
     com.main.TravelMate.common.security: WARN  # Security 로그를 WARN으로 조정
     root: INFO                             # 전체 기본 로그 레벨
