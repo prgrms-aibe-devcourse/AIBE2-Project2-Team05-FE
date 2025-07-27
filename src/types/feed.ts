@@ -1,6 +1,6 @@
 // 피드 여행 상태 관리를 위한 타입 정의
 
-export type TravelStatus = 'recruiting' | 'traveling' | 'completed';
+export type TravelStatus = 'recruiting' | 'matched' | 'traveling' | 'completed';
 
 // 여행 리뷰 타입 (Feed 타입보다 먼저 정의)
 export interface TravelReview {
@@ -130,6 +130,14 @@ export const TRAVEL_STATUS_MAP: Record<TravelStatus, TravelStatusInfo> = {
     backgroundColor: '#DBEAFE',
     icon: '👥',
     description: '여행 메이트를 모집하고 있어요',
+  },
+  matched: {
+    status: 'matched',
+    statusLabel: '매칭완료',
+    color: '#8B5CF6',
+    backgroundColor: '#E0E7FF',
+    icon: '🤝',
+    description: '여행 메이트가 확정되었어요',
   },
   traveling: {
     status: 'traveling',

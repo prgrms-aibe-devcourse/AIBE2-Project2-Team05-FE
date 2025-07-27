@@ -8,79 +8,15 @@ import ReviewWriteModal from '../components/feed/ReviewWriteModal';
 import PlaceDetailModal from '../components/PlaceDetailModal';
 import feedStatusService from '../services/feedStatusService';
 import openaiService from '../services/openaiApi';
-import { TravelStatus, FeedStatus, FEED_STATUS_LABELS } from '../types/feed';
+import { TravelStatus } from '../types/feed';
+import { TravelPlan, TravelDay, TravelEvent } from '../types/plan'; // 🌟 타입 import 추가
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api'; // api 인스턴스 추가
 import { getValidImageUrl } from '../utils/imageUtils'; // 이미지 유틸리티 추가
 import { updateTravelStatusApi } from '../services/feedTravelStatusApi'; // 백엔드 API 추가
+import * as reviewBackendApi from '../services/reviewBackendApi'; // 후기 백엔드 API 추가
 
-// 여행 계획 타입 정의
-interface TravelEvent {
-  id: string;
-  time: string;
-  title: string;
-  location: string;
-  description: string;
-  imageUrl?: string;
-  tags: string[];
-  price: string;
-  category: string;
-  categoryIcon?: string; // 카테고리 아이콘
-  categoryBackground?: string; // 카테고리 배경색
-  categoryTextColor?: string; // 카테고리 텍스트 색상
-  categoryBorderColor?: string; // 카테고리 테두리 색상
-}
-
-interface TravelDay {
-  id: string;
-  dayNumber: number;
-  date: string;
-  events: TravelEvent[];
-}
-
-interface TravelPlan {
-  id: string;
-  title: string;
-  startDate: string;
-  endDate: string;
-  destination: string;
-  budget: string;
-  people: string;
-  period: string;
-  days: TravelDay[];
-  likes: number;
-  likedUsers: string[];
-  isLiked: boolean;
-  imageUrl?: string; // ✅ 여행 계획 대표 이미지 URL 추가
-  author: {
-    id: string;
-    name: string;
-    profileImage: string;
-  };
-  styleLabels?: string[]; // 여행 스타일 레이블
-  aiHashtags?: string[]; // AI 추천 해시태그
-  nearbyRecommendations?: Array<{
-    name: string;
-    description: string;
-    category: string;
-    distance: string;
-  }>; // AI 추천 근처 관광지
-  // 새로운 AI 추천 시스템용 (비용 절약을 위해 한 번만 생성)
-  aiRecommendations?: {
-    recommendations: Array<{
-      name: string;
-      description: string;
-      category: string;
-      distance: string;
-      verified: boolean;
-      source: string;
-    }>;
-    generatedAt: string;
-    destination: string;
-    visitedPlaces: string[];
-    travelStyles: string[];
-  };
-}
+// ✅ src/types/plan.ts에서 TravelPlan, TravelDay, TravelEvent 타입 import 사용
 
 interface PlanPageProps {
   planId?: string;
@@ -221,8 +157,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   const [likeCount, setLikeCount] = useState(0);
 
   // 피드 상태 관리 state  
-  const [feedStatus, setFeedStatus] = useState<TravelStatus>('recruiting');
-  const [matchingStatus, setMatchingStatus] = useState<FeedStatus>('recruiting');
+  const [feedStatus, setFeedStatus] = useState<TravelStatus | null>(null); // 🌟 초기값을 null로 설정
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [destinationModalOpen, setDestinationModalOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<string>('');
@@ -457,6 +392,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   likes: 0,
                   likedUsers: [],
                   isLiked: false,
+                  travelStatus: data.travelStatus ? data.travelStatus.toLowerCase() : 'recruiting', // 🌟 백엔드 여행 상태 포함 (대소문자 변환)
                   author: {
                     id: data.authorId?.toString() || 'unknown',
                     name: data.authorNickname || '사용자',
@@ -468,10 +404,21 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 console.log('✅ 관리자 모달: 변환 성공, plan 설정 예정');
                 
                 // ✅ 관리자 모달에서도 setPlan 호출 추가!
-                setPlan(loadedPlan);
-                setIsLiked(loadedPlan.isLiked);
-                setLikeCount(loadedPlan.likes);
-                console.log('🎯 관리자 모달: setPlan 완료');
+                if (loadedPlan) {
+                  setPlan(loadedPlan);
+                  setIsLiked(loadedPlan.isLiked);
+                  setLikeCount(loadedPlan.likes);
+                  
+                  // 🌟 백엔드 피드 상태 즉시 설정 (대소문자 변환)
+                  if ((loadedPlan as any).travelStatus) {
+                    const backendStatus = (loadedPlan as any).travelStatus;
+                    const normalizedStatus = typeof backendStatus === 'string' ? backendStatus.toLowerCase() : backendStatus;
+                    console.log(`✅ [관리자 모달] 백엔드 상태 즉시 설정: ${backendStatus} → ${normalizedStatus}`);
+                    setFeedStatus(normalizedStatus as TravelStatus);
+                  }
+                  
+                  console.log('🎯 관리자 모달: setPlan 완료');
+                }
               } else {
                 console.warn('⚠️ 관리자 모달: 백엔드 응답 데이터가 비어있음');
                 loadedPlan = null;
@@ -489,11 +436,39 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
             console.log('👤 일반 사용자: 백엔드에서 여행 계획 로드');
             
             try {
-              const response = await api.get(`/api/plan/${id}`);
+              // 🌟 하이브리드 접근법: 두 API를 모두 호출해서 데이터 조합
+              console.log('📡 [하이브리드] TravelPlan API 호출 (상세 내용용)');
+              const planResponse = await api.get(`/api/plan/${id}`);
               
-              if (response.data) {
-                const data = response.data;
-                console.log('✅ 백엔드 데이터 로드 성공:', data);
+              console.log('📡 [하이브리드] TravelFeed API 호출 (상태용)');
+              const feedResponse = await api.get(`/api/feed/plan/${id}`);
+              
+              if (planResponse.data && feedResponse.data) {
+                // TravelPlan 데이터 (상세 내용)
+                const planData = planResponse.data;
+                // TravelFeed 데이터 (상태)
+                const feedData = feedResponse.data;
+                
+                // 두 데이터를 조합
+                const data = {
+                  ...planData,  // 여행 계획 상세 내용
+                  travelStatus: feedData.travelStatus,  // 피드 상태 추가
+                  feedId: feedData.id,  // 피드 ID 추가
+                  caption: feedData.caption,  // 피드 캡션 추가
+                };
+                
+                console.log('✅ [하이브리드] 조합된 데이터 로드 성공:', data);
+                console.log('🌟 [중요] 백엔드 travelStatus:', data.travelStatus);
+                
+                // 🌟 즉시 피드 상태를 백엔드 데이터로 설정 (대소문자 변환)
+                if (data.travelStatus) {
+                  const normalizedStatus = data.travelStatus.toLowerCase(); // 대문자 → 소문자
+                  console.log(`✅ [즉시 설정] feedStatus를 백엔드 상태로 설정: ${data.travelStatus} → ${normalizedStatus}`);
+                  setFeedStatus(normalizedStatus as TravelStatus);
+                } else {
+                  console.warn('⚠️ [즉시 설정] 백엔드 travelStatus가 없어서 기본값 사용');
+                  setFeedStatus('recruiting');
+                }
 
                 // 🚨 긴급: 작성자 정보 확인
                 console.log('🚨 [긴급] 백엔드 작성자 정보 체크:', {
@@ -539,6 +514,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   likes: 0,
                   likedUsers: [],
                   isLiked: false,
+                  travelStatus: data.travelStatus ? data.travelStatus.toLowerCase() : 'recruiting', // 🌟 백엔드 여행 상태 포함 (대소문자 변환)
                   author: {
                     id: data.authorId || 'user',
                     name: data.authorNickname || '사용자',
@@ -575,12 +551,22 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 setPlan(loadedPlan);
                 setIsLiked(false);
                 setLikeCount(0);
+                
+                // 🌟 백엔드 피드 상태 즉시 설정 (대소문자 변환)
+                if ((loadedPlan as any).travelStatus) {
+                  const backendStatus = (loadedPlan as any).travelStatus;
+                  const normalizedStatus = typeof backendStatus === 'string' ? backendStatus.toLowerCase() : backendStatus;
+                  console.log(`✅ [일반 모달] 백엔드 상태 즉시 설정: ${backendStatus} → ${normalizedStatus}`);
+                  setFeedStatus(normalizedStatus as TravelStatus);
+                }
               } else {
-                console.warn('⚠️ 백엔드 응답 데이터가 없음');
-                throw new Error('Failed to load plan');
+                console.warn('⚠️ [하이브리드] 백엔드 응답 데이터가 없음');
+                console.warn('📊 planResponse:', planResponse.data);
+                console.warn('📊 feedResponse:', feedResponse.data);
+                throw new Error('Failed to load plan or feed data');
               }
             } catch (error) {
-              console.error('❌ 백엔드 로드 실패:', error);
+              console.error('❌ [하이브리드] 백엔드 로드 실패:', error);
               // 폴백: localStorage 체크
               const savedPlan = localStorage.getItem('currentTravelPlan');
               if (savedPlan) {
@@ -674,68 +660,31 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           console.error('작성자 확인 오류:', authorCheckError);
         }
 
+        // 🌟 후기 데이터 로드 (모달/페이지 공통)
+        try {
+          const feedId = (loadedPlan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
+          console.log(`🔍 [후기 로드] 피드 ID: ${feedId} (모드: ${isModal ? '모달' : '페이지'})`);
+
+          const reviewResponse = await reviewBackendApi.getReviewsByFeedId(feedId);
+          if (reviewResponse.success) {
+            setUserReviews(reviewResponse.reviews);
+            console.log(`✅ 후기 로드 성공 - 피드 ${feedId}: ${reviewResponse.reviews.length}개`, reviewResponse.reviews);
+          }
+        } catch (reviewError) {
+          console.warn('후기 로드 실패:', reviewError);
+          setUserReviews([]);
+        }
+
         // 피드 상태 관련 로직은 모달이 아닐 때만 실행
         if (!isModal) {
           try {
             const planId = loadedPlan?.id || 'default';
-            
-            // 🎯 실제 TravelPlanId 추출 함수 (여기에 올바르게 배치)
-            const getTravelPlanId = (): number | null => {
-              // 🚨 수정: 백엔드에서 받은 데이터에서 travelPlanId 우선 추출
-              if (loadedPlan && (loadedPlan as any).authorId) {
-                // 백엔드 API에서 받은 경우 (직접 travelPlanId 사용)
-                const backendTravelPlanId = (loadedPlan as any).travelPlanId;
-                if (backendTravelPlanId) {
-                  console.log(`🔍 [TravelPlanId 추출] 백엔드 travelPlanId: ${backendTravelPlanId}`);
-                  return parseInt(backendTravelPlanId);
-                }
-                
-                // travelPlanId가 없다면 백엔드 id 시도
-                const backendId = (loadedPlan as any).id;
-                if (backendId && typeof backendId === 'number') {
-                  console.log(`🔍 [TravelPlanId 추출] 백엔드 id: ${backendId}`);
-                  return backendId;
-                }
-              }
-              
-              // 🚨 임시 해결책: Lotusrious3 사용자의 경우 하드코딩된 TravelPlan ID 25 사용
-              if (loadedPlan?.author?.name === 'Lotusrious3' || 
-                  (loadedPlan as any)?.authorNickname === 'Lotusrious3' ||
-                  (loadedPlan as any)?.createdBy === 'Lotusrious3') {
-                console.log(`🔍 [TravelPlanId 추출] Lotusrious3 사용자 → TravelPlan ID: 25`);
-                return 25;
-              }
-              
-              // 🚨 주의: 레거시 방식은 User ID를 잘못 추출할 수 있음
-              if (planId && typeof planId === 'string') {
-                console.warn(`⚠️ [TravelPlanId 추출] 레거시 방식 시도 (User ID 추출 위험): ${planId}`);
-                // plan_1753627206875_58에서 58은 User ID이므로 사용하지 않음
-                // 대신 API를 통해 실제 TravelPlan ID를 조회해야 함
-              }
-              
-              console.warn(`⚠️ [TravelPlanId 추출] 실패 - planId: ${planId}, loadedPlan:`, loadedPlan);
-              return null;
-            };
-            
             const planNumericId = typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
             const feedId = parseInt(String(planNumericId)) || 1;
 
-            // 피드 상태 가져오기
-            const statusInfo = feedStatusService.getFeedStatus(feedId);
-            if (statusInfo) {
-              setFeedStatus(statusInfo);
-            }
-
-            // 후기 작성 완료 여부 확인
+            // 후기 작성 완료 여부 확인 (localStorage 기반)
             const hasReview = feedStatusService.hasReviewWritten(feedId);
             setReviewCompleted(hasReview);
-
-            // 기존 후기 데이터 로드
-            const existingReviews = JSON.parse(localStorage.getItem('travelReviews') || '[]');
-            const planReviews = existingReviews.filter(
-              (review: any) => review.feedId === feedId || review.planId === loadedPlan?.id,
-            );
-            setUserReviews(planReviews);
           } catch (statusError) {
             console.error('피드 상태 로드 오류:', statusError);
           }
@@ -754,6 +703,21 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
 
     loadTravelPlan();
   }, [id, isModal]); // ✅ isModal 의존성 추가
+
+  // 🌟 plan이 변경될 때마다 백엔드 피드 상태로 업데이트
+  useEffect(() => {
+    console.log(`🔍 [Plan 변경감지] plan 변경됨:`, plan);
+    console.log(`🔍 [Plan 변경감지] travelStatus:`, (plan as any)?.travelStatus);
+    
+    if (plan && (plan as any).travelStatus) {
+      const backendStatus = (plan as any).travelStatus;
+      const normalizedStatus = typeof backendStatus === 'string' ? backendStatus.toLowerCase() : backendStatus;
+      console.log(`✅ [Plan 변경감지] 백엔드 상태로 업데이트: ${backendStatus} → ${normalizedStatus}`);
+      setFeedStatus(normalizedStatus as TravelStatus);
+    } else {
+      console.warn(`⚠️ [Plan 변경감지] travelStatus가 없음`);
+    }
+  }, [plan]); // plan이 변경될 때마다 실행
 
   // 목적지 카테고리 분류
   useEffect(() => {
@@ -783,163 +747,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
     classifyDestination();
   }, [plan?.destination]);
 
-  // 🔄 백엔드 상태 변경 핸들러 (특정 상태로 직접 변경)
-  const handleBackendStatusChange = async (travelPlanId: number, newStatus: FeedStatus) => {
-    console.log(`🎯 [백엔드 상태 변경] 여행계획 ${travelPlanId} → ${newStatus}`);
-    
-    try {
-      console.log(`📡 [API 호출 시작] PUT /api/feed/plan/${travelPlanId}/travel-status`);
-      
-      const response = await updateTravelStatusApi(
-        travelPlanId, // 🔄 이제 travelPlanId를 직접 사용
-        newStatus, 
-        `✅ 상태 변경: ${FEED_STATUS_LABELS[matchingStatus]} → ${FEED_STATUS_LABELS[newStatus]}`
-      );
 
-      console.log(`📡 [API 응답 수신] 전체 응답:`, {
-        status: response?.success,
-        message: response?.message,
-        travelPlanId: response?.travelPlanId, // 🔄 TravelPlan ID 사용
-        newStatus: response?.newStatus,
-        timestamp: response?.timestamp,
-        '전체 response 객체': response
-      });
-
-      // 성공시 프론트엔드 상태도 업데이트
-      setMatchingStatus(newStatus);
-      setFeedStatus(newStatus as TravelStatus);
-      
-      // 상태별 메시지
-      const statusMessages: Record<FeedStatus, string> = {
-        recruiting: '👥 모집 상태로 변경되었습니다!',
-        matched: '🤝 매칭이 완료되었습니다!',
-        traveling: '✈️ 즐거운 여행 되세요!',
-        completed: '🎉 여행이 완료되었습니다!',
-        cancelled: '❌ 여행이 취소되었습니다.'
-      };
-      
-      console.log(`✅ [백엔드 연동] 상태 변경 성공:`, response);
-      alert(`${statusMessages[newStatus]}\n\n🔗 백엔드 데이터베이스에 저장되었습니다!\n\n📊 응답: ${response?.message}`);
-
-    } catch (error: any) {
-      console.error(`❌ [백엔드 연동] 상태 변경 실패:`, error);
-      alert(`상태 변경 중 오류가 발생했습니다:\n${error.message}`);
-    }
-  };
-
-  // 🧪 매칭 상태 변경 핸들러 (백엔드 연동)
-  const handleMatchingStatusChange = async () => {
-    console.log('🎯 [상태변경 시작] 버튼 클릭 - 작성자 권한 확인:', {
-      isAuthor,
-      '📝 백엔드 여행계획 작성자': {
-        authorNickname: (plan as any)?.authorNickname,
-        authorId: (plan as any)?.authorId,
-      },
-      '📝 레거시 작성자': plan?.author?.name,
-      '👤 현재 사용자': user?.nickname,
-      '📧 현재 이메일': user?.email,
-    });
-
-    const statusFlow: FeedStatus[] = ['recruiting', 'matched', 'traveling', 'completed'];
-    const currentIndex = statusFlow.indexOf(matchingStatus);
-    const nextIndex = (currentIndex + 1) % statusFlow.length;
-    const nextStatus = statusFlow[nextIndex];
-    
-    try {
-      // 🎯 올바른 TravelPlanId 추출 로직
-      let travelPlanId: number | null = null;
-      
-      // 1순위: 백엔드에서 받은 travelPlanId 사용
-      if (plan && (plan as any).travelPlanId) {
-        travelPlanId = parseInt((plan as any).travelPlanId);
-        console.log(`🔍 [테스트 버튼] 백엔드 travelPlanId 사용: ${travelPlanId}`);
-      }
-      
-      // 2순위: Lotusrious3 사용자의 경우 하드코딩된 TravelPlan ID 25 사용
-      if (!travelPlanId && (
-        (plan as any)?.createdBy === 'Lotusrious3' ||
-        (plan as any)?.authorNickname === 'Lotusrious3' ||
-        plan?.author?.name === 'Lotusrious3'
-      )) {
-        travelPlanId = 25;
-        console.log(`🔍 [테스트 버튼] Lotusrious3 사용자 → TravelPlan ID: 25`);
-      }
-      
-      // 3순위: 백엔드 id가 숫자이고 User ID가 아닌 경우에만 사용
-      if (!travelPlanId && plan && (plan as any).authorId) {
-        const backendId = (plan as any).id;
-        if (backendId && typeof backendId === 'number' && backendId !== 58) {
-          travelPlanId = backendId;
-          console.log(`🔍 [테스트 버튼] 백엔드 id 사용 (User ID 제외): ${travelPlanId}`);
-        }
-      }
-
-      if (!travelPlanId) {
-        console.error('❌ TravelPlan ID를 찾을 수 없습니다. plan 객체:', plan);
-        alert('여행 계획 ID를 찾을 수 없습니다.');
-        return;
-      }
-
-      console.log(`🚨 [TravelPlan ID 계산] 상세 로그:`, {
-        '원본 plan.id': plan?.id,
-        '최종 travelPlanId': travelPlanId,
-        '현재 상태': matchingStatus,
-        '다음 상태': nextStatus
-      });
-
-      console.log(`🎯 [상태변경 시작] 버튼 클릭 - 작성자 권한 확인`);
-      console.log(`🧪 [백엔드 연동] TravelPlan ${travelPlanId} 상태 변경: ${matchingStatus} → ${nextStatus}`);
-
-      // 백엔드 API 호출
-      console.log(`📡 [API 호출 시작] PUT /api/feed/plan/${travelPlanId}/travel-status`);
-      
-      const response = await updateTravelStatusApi(
-        travelPlanId, 
-        nextStatus, 
-        `🧪 테스트: ${FEED_STATUS_LABELS[matchingStatus]} → ${FEED_STATUS_LABELS[nextStatus]}`
-      );
-
-      console.log(`📡 [API 응답 수신] 전체 응답:`, {
-        status: response?.success,
-        message: response?.message,
-        travelPlanId: response?.travelPlanId, // 🔄 TravelPlan ID 사용
-        newStatus: response?.newStatus,
-        timestamp: response?.timestamp,
-        '전체 response 객체': response
-      });
-
-      // 성공시 상태 업데이트
-      setMatchingStatus(nextStatus);
-      
-      // 상태별 메시지
-      const statusMessages: Record<FeedStatus, string> = {
-        recruiting: '👥 모집 상태로 변경되었습니다!',
-        matched: '🤝 매칭이 완료되었습니다!',
-        traveling: '✈️ 여행이 시작되었습니다!',
-        completed: '🎉 여행이 완료되었습니다!',
-        cancelled: '❌ 여행이 취소되었습니다.'
-      };
-      
-      console.log(`✅ [백엔드 연동] 상태 변경 성공:`, response);
-      alert(`${statusMessages[nextStatus]}\n\n🔗 백엔드 데이터베이스에 저장되었습니다!\n\n📊 응답: ${response?.message}`);
-
-    } catch (error: any) {
-      console.error(`❌ [백엔드 연동] 상태 변경 실패:`, error);
-      alert(`상태 변경 중 오류가 발생했습니다:\n${error.message}`);
-    }
-  };
-
-  // 🎨 매칭 상태별 색상 반환 (테스트용)
-  const getMatchingStatusColor = (status: FeedStatus): string => {
-    const colorMap: Record<FeedStatus, string> = {
-      recruiting: '#3682F8',    // 파란색 (모집중)
-      matched: '#10B981',       // 초록색 (매칭완료)
-      traveling: '#F59E0B',     // 주황색 (여행중)
-      completed: '#8B5CF6',     // 보라색 (완료)
-      cancelled: '#EF4444'      // 빨간색 (취소)
-    };
-    return colorMap[status] || '#6B7280';
-  };
 
   // 후기 작성 모달 열기
   const handleOpenReviewModal = () => {
@@ -948,10 +756,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       return;
     }
 
-    const planId = plan?.id || 'default';
-    const planNumericId =
-      typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
-    const feedId = parseInt(String(planNumericId)) || 1;
+    const feedId = (plan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
 
     if (feedStatusService.hasReviewWritten(feedId)) {
       alert('이미 후기를 작성한 여행입니다.');
@@ -962,40 +767,28 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   };
 
   // 후기 작성 완료 핸들러
-  const handleReviewSubmit = (reviewData: any) => {
+  const handleReviewSubmit = async (reviewData: any) => {
     try {
-      const planId = plan?.id || 'default';
-      const planNumericId =
-        typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
-      const feedId = parseInt(String(planNumericId)) || 1;
+      const feedId = (plan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
 
-      // 후기 데이터를 localStorage에 저장
-      const existingReviews = JSON.parse(
-        localStorage.getItem('travelReviews') || '[]',
-      );
-      const newReview = {
-        id: Date.now(),
-        feedId: feedId,
-        planId: plan?.id,
-        planTitle: plan?.title,
-        destination: plan?.destination,
-        ...reviewData,
-        createdAt: new Date().toISOString(),
-        author: {
-          id: user?.email || 'unknown',
-          name: user?.nickname || '나',
-          profileImage: '👤',
-        },
-      };
-      existingReviews.push(newReview);
-      localStorage.setItem('travelReviews', JSON.stringify(existingReviews));
+      console.log('🌟 후기 작성 완료 - 백엔드에서 최신 후기 목록 로드 중...');
 
-      // 후기 작성 완료 표시
+      // 🌟 백엔드에서 최신 후기 목록 다시 로드
+      try {
+        const reviewResponse = await reviewBackendApi.getReviewsByFeedId(feedId);
+        if (reviewResponse.success) {
+          setUserReviews(reviewResponse.reviews);
+          console.log(`✅ 후기 작성 후 최신 목록 로드 성공 - 피드 ${feedId}: ${reviewResponse.reviews.length}개`);
+        }
+      } catch (reviewError) {
+        console.warn('후기 목록 재로드 실패:', reviewError);
+      }
+
+      // 후기 작성 완료 표시 (로컬 상태 관리용)
       feedStatusService.markReviewCompleted(feedId);
 
       // 상태 업데이트
       setReviewCompleted(true);
-      setUserReviews((prev) => [...prev, newReview]);
       setReviewModalOpen(false);
 
       alert('🌟 여행 후기가 작성되었습니다!');
@@ -1453,41 +1246,40 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
 
   return (
     <S.Container>
-      {/* 상단 매칭 상태 표시 (🧪 테스트용) */}
+      {/* 상단 여행 상태 표시 */}
+      {feedStatus && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            zIndex: 10,
+          }}
+        >
+          <FeedStatusBadge
+            status={feedStatus}
+            size="medium"
+            showDescription={true}
+          />
+        </div>
+      )}
+
+      {/* 🧪 임시 디버깅 정보 */}
       <div
         style={{
           position: 'absolute',
-          top: '20px',
+          top: '80px',
           left: '20px',
           zIndex: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontFamily: 'monospace',
         }}
       >
-        {/* 매칭 상태 */}
-        <div
-          style={{
-            background: getMatchingStatusColor(matchingStatus),
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '600',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}
-        >
-          🧪 {FEED_STATUS_LABELS[matchingStatus]}
-        </div>
-        
-        {/* 기존 여행 상태 (참고용) */}
-        {feedStatus && (
-          <FeedStatusBadge
-            status={feedStatus}
-            size="small"
-            showDescription={false}
-          />
-        )}
+        🔍 디버깅: feedStatus={feedStatus} | isAuthor={isAuthor ? 'YES' : 'NO'} | reviews={userReviews.length}
       </div>
 
       {/* ✅ 작성자 정보 섹션 (모달에서만 표시) */}
@@ -1818,7 +1610,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                     </div>
                     <div>
                       <div style={{ fontWeight: '600', fontSize: '16px' }}>
-                        {review.author?.name || '익명'}
+                        {review.author?.nickname || review.author?.name || '익명'}
                       </div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>
                         {new Date(review.createdAt).toLocaleDateString(
@@ -1867,9 +1659,9 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   <h3>{review.title}</h3>
                   <p>{review.content}</p>
 
-                  {review.selectedTags && review.selectedTags.length > 0 && (
+                  {review.tags && review.tags.length > 0 && (
                     <S.ReviewTags>
-                      {review.selectedTags.map((tag: string, index: number) => (
+                      {review.tags.map((tag: string, index: number) => (
                         <S.ReviewTag key={index}>#{tag}</S.ReviewTag>
                       ))}
                     </S.ReviewTags>
@@ -1950,6 +1742,50 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
               {feedStatus === 'recruiting' && (
                 <button
                   onClick={async () => {
+                    try {
+                      // TravelPlan ID 추출 로직 (동일)
+                      let travelPlanId: number | null = null;
+                      
+                      if (plan && (plan as any).travelPlanId) {
+                        travelPlanId = parseInt((plan as any).travelPlanId);
+                      } else if ((plan as any)?.authorNickname === 'Lotusrious3') {
+                        travelPlanId = 25;
+                      }
+                      
+                      if (travelPlanId) {
+                        const response = await updateTravelStatusApi(travelPlanId, 'matched', '🤝 매칭 완료');
+                        setFeedStatus('matched');
+                        alert('🤝 매칭이 완료되었습니다!');
+                      } else {
+                        alert('여행 계획 ID를 찾을 수 없습니다.');
+                      }
+                    } catch (error: any) {
+                      console.error('❌ 매칭 완료 상태 변경 실패:', error);
+                      alert('상태 변경 중 오류가 발생했습니다.');
+                    }
+                  }}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  🤝 매칭완료
+                </button>
+              )}
+
+              {feedStatus === 'matched' && (
+                <button
+                  onClick={async () => {
                     // 🎯 올바른 TravelPlanId 추출 로직
                     let travelPlanId: number | null = null;
                     
@@ -1980,7 +1816,14 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                     
                     if (travelPlanId) {
                       console.log(`🔍 [여행 시작] 최종 TravelPlanId: ${travelPlanId}`);
-                      await handleBackendStatusChange(travelPlanId, 'traveling');
+                      try {
+                        const response = await updateTravelStatusApi(travelPlanId, 'traveling', '✈️ 여행 시작');
+                        setFeedStatus('traveling');
+                        alert('✈️ 즐거운 여행 되세요!');
+                      } catch (error: any) {
+                        console.error('❌ 여행 시작 상태 변경 실패:', error);
+                        alert('상태 변경 중 오류가 발생했습니다.');
+                      }
                     } else {
                       console.error('❌ TravelPlan ID를 찾을 수 없습니다. plan 객체:', plan);
                       alert('여행 계획 ID를 찾을 수 없습니다.');
@@ -2038,7 +1881,14 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                     
                     if (travelPlanId) {
                       console.log(`🔍 [여행 완료] 최종 TravelPlanId: ${travelPlanId}`);
-                      await handleBackendStatusChange(travelPlanId, 'completed');
+                      try {
+                        const response = await updateTravelStatusApi(travelPlanId, 'completed', '🎉 여행 완료');
+                        setFeedStatus('completed');
+                        alert('🎉 여행이 완료되었습니다!');
+                      } catch (error: any) {
+                        console.error('❌ 여행 완료 상태 변경 실패:', error);
+                        alert('상태 변경 중 오류가 발생했습니다.');
+                      }
                     } else {
                       console.error('❌ TravelPlan ID를 찾을 수 없습니다. plan 객체:', plan);
                       alert('여행 계획 ID를 찾을 수 없습니다.');
@@ -2109,36 +1959,8 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
             </>
           )}
 
-          {/* 🧪 매칭 상태 변경 테스트 버튼 (작성자만 표시) */}
-          {isAuthor && (
-            <button
-              onClick={handleMatchingStatusChange}
-              style={{
-                backgroundColor: getMatchingStatusColor(matchingStatus),
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.opacity = '0.8';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
-            >
-              🧪 {FEED_STATUS_LABELS[matchingStatus]} → 다음단계
-            </button>
-          )}
+          
+
 
           <S.ShareButton>
             <i className="ri-share-line"></i>
@@ -2151,7 +1973,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       {reviewModalOpen && plan && (
         <ReviewWriteModal
           isOpen={reviewModalOpen}
-          feedId={parseInt(String(plan.id?.replace(/[^\d]/g, '') || '1'))}
+          feedId={(plan as any)?.feedId || 17}
           planId={plan.id}
           destination={plan.destination}
           onClose={() => setReviewModalOpen(false)}

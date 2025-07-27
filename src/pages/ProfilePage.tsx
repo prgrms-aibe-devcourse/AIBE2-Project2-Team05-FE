@@ -25,6 +25,7 @@ interface UserProfile {
   nickname: string;
   profileImage: string;
   bio: string;
+  age: number; // 🔧 백엔드에서 제공하는 나이 추가
   postsCount: number;
   followersCount: number;
   followingCount: number;
@@ -165,11 +166,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
 ✨ ${feed.title || '여행 계획'}
 📅 ${feed.startDate ? new Date(feed.startDate).toLocaleDateString() : '날짜 미정'}`;
 
+        // 🔧 이미지 URL 디버깅 및 개선
+        console.log(`🖼️ [피드 ${index}] 이미지 확인:`, {
+          travelPlanId: feed.travelPlanId,
+          imageUrl: feed.imageUrl,
+          hasImage: !!feed.imageUrl,
+          location: feed.location
+        });
+
         return {
           id: `feed-${feed.travelPlanId}-${index}`,
           author: profileData.nickname || 'Unknown',
           avatar: profileData.profileImage || '/default-avatar.jpg',
-          image: feed.imageUrl || '/default-place-image.jpg',
+          image: feed.imageUrl || '/default-place-image.jpg', // 🔧 실제 구글 이미지 우선 사용
           caption,
           likes: 0,
           type: 'travel-plan' as const,
@@ -208,6 +217,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
         nickname: profileData.nickname || '닉네임 없음',
         profileImage: profileData.profileImage || defaultProfileImage,
         bio: profileData.bio || '자기소개가 없습니다.',
+        age: profileData.age || 25, // 🔧 백엔드에서 제공하는 실제 나이 사용
         postsCount: profileData.postsCount || 0,
         followersCount: profileData.followerCount || 0,
         followingCount: profileData.followingCount || 0,
@@ -365,13 +375,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           authorInfo={{
             author: profile.nickname,
             avatar: profile.profileImage,
-            age: (() => {
-              // ✅ 닉네임 기반으로 일관된 나이 생성 (20-39세)
-              const seedFromNickname = profile.nickname
-                .split('')
-                .reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-              return 20 + (seedFromNickname % 20);
-            })()
+            age: profile.age || 25 // 🔧 백엔드에서 제공하는 실제 나이 사용
           }}
           onClose={closeTravelPlanModal}
         />

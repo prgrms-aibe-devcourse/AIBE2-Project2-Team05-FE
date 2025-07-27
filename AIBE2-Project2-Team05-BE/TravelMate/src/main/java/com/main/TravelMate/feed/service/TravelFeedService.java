@@ -12,6 +12,8 @@ import com.main.TravelMate.plan.entity.TravelSchedule;
 import com.main.TravelMate.plan.repository.TravelPlanRepository;
 import com.main.TravelMate.user.entity.User;
 import com.main.TravelMate.feed.dto.CursorFeedResponseDto;
+import com.main.TravelMate.review.service.ReviewService;
+import com.main.TravelMate.review.dto.ReviewResponseDto;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class TravelFeedService {
 
     private final TravelFeedRepository feedRepository;
     private final TravelPlanRepository travelPlanRepository;
+    private final ReviewService reviewService;
 
     // ✅ TravelPlan ID로 피드 조회 메서드
     public TravelFeedResponseDto getFeedByTravelPlanId(Long travelPlanId) {
@@ -153,6 +156,10 @@ public class TravelFeedService {
                     .build();
         }).toList();
 
+        // 🌟 후기 정보 조회
+        List<ReviewResponseDto> reviews = reviewService.getReviewsByFeedId(feed.getId());
+        ReviewService.ReviewStatsDto stats = reviewService.getReviewStats(feed.getId());
+
         // 피드 응답 DTO 구성
         return TravelFeedResponseDto.builder()
                 .id(feed.getId()) // TravelFeed ID 추가
@@ -168,11 +175,15 @@ public class TravelFeedService {
                 .days(dayDtos)
                 .createdBy(user.getNickname())
                 .profileImage(user.getProfile() != null ? user.getProfile().getProfileImage() : null)
-                .imageUrl(feed.getImageUrl())
+                .imageUrl(plan.getImageUrl()) // 🔧 TravelPlan의 imageUrl 사용 (프로필페이지와 동일)
                 .caption(feed.getCaption())
                 .status(feed.getStatus()) // ✅ 피드 상태 포함
                 .travelStatus(feed.getTravelStatus()) // ✅ 여행 진행 상태 포함
                 .authorName(plan.getAuthorName())
+                // 🌟 후기 정보 추가
+                .reviews(reviews)
+                .averageRating(stats.getAverageRating())
+                .reviewCount(stats.getReviewCount())
                 .build();
     }
 

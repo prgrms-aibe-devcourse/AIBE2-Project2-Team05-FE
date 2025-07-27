@@ -65,6 +65,8 @@ public class SecurityConfig {
                         // 🔒 읽기 전용 공개 API (피드, 프로필 조회 등)
                         .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/profile/user/**").permitAll()
+                        // 🌟 후기 조회 API (읽기 전용 공개)
+                        .requestMatchers(HttpMethod.GET, "/api/review/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
                         // 🔐 나머지는 모두 인증 필요
                         .anyRequest().authenticated()

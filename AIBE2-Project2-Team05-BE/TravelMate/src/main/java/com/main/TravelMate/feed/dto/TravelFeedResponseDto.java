@@ -2,6 +2,7 @@ package com.main.TravelMate.feed.dto;
 
 import com.main.TravelMate.feed.domain.TravelStatus;
 import com.main.TravelMate.plan.dto.TravelDayDto;
+import com.main.TravelMate.review.dto.ReviewResponseDto;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -38,4 +39,9 @@ public class TravelFeedResponseDto {
     private String createdBy;         // ✅ 이거 추가
     private String profileImage;      // ✅ 프로필용 이미지
     private String authorName;        // ✅ 여행 계획 작성자 이름 (여행리더 구분용)
+
+    // 🌟 후기 관련 정보
+    private List<ReviewResponseDto> reviews;  // 이 피드에 작성된 모든 후기들
+    private Double averageRating;             // 평균 평점
+    private Long reviewCount;                 // 후기 개수
 }

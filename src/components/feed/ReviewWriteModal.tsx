@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReviewData } from '../../types/feed';
 import feedStatusService from '../../services/feedStatusService';
+import * as reviewBackendApi from '../../services/reviewBackendApi';
 
 interface ReviewWriteModalProps {
   isOpen: boolean;
@@ -61,43 +62,44 @@ const ReviewWriteModal: React.FC<ReviewWriteModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      // 🌟 백엔드 API 호출로 후기 작성
+      const reviewRequest: reviewBackendApi.ReviewCreateRequest = {
+        title: title.trim(),
+        content: content.trim(),
+        rating,
+        tags: selectedTags,
+        imageUrls: [], // 이미지 업로드 기능은 추후 구현
+      };
+
+      const response = await reviewBackendApi.createReview(feedId, reviewRequest);
+
+      console.log(`✅ 백엔드 후기 작성 완료 - 피드 ${feedId}`, response);
+
+      // 피드에 후기 작성 완료 표시 (로컬 상태 관리용)
+      feedStatusService.markReviewCompleted(feedId);
+
+      // 부모 컴포넌트에 알림 (기존 인터페이스 호환성 유지)
       const reviewData: ReviewData = {
         feedId,
         planId,
         rating,
         title: title.trim(),
         content: content.trim(),
-        images: [], // 이미지 업로드 기능은 추후 구현
+        images: [],
         tags: selectedTags,
-        createdAt: new Date().toISOString(),
+        createdAt: response.review.createdAt,
         destination,
       };
-
-      // 리뷰 데이터를 localStorage에 저장
-      const existingReviewsStr = localStorage.getItem('travelReviews');
-      const existingReviews = existingReviewsStr
-        ? JSON.parse(existingReviewsStr)
-        : [];
-
-      existingReviews.push(reviewData);
-      localStorage.setItem('travelReviews', JSON.stringify(existingReviews));
-
-      // 피드에 후기 작성 완료 표시
-      feedStatusService.markReviewCompleted(feedId);
-
-      // 부모 컴포넌트에 알림
       onReviewSubmit(reviewData);
-
-      console.log(`✅ 피드 ${feedId} 후기 작성 완료`);
 
       // 모달 닫기
       onClose();
 
       // 성공 메시지
       alert('후기가 성공적으로 작성되었습니다! 🎉');
-    } catch (error) {
+    } catch (error: any) {
       console.error('후기 작성 실패:', error);
-      alert('후기 작성 중 오류가 발생했습니다.');
+      alert(error.message || '후기 작성 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +151,7 @@ const ReviewWriteModal: React.FC<ReviewWriteModalProps> = ({
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    active={star <= rating}
+                    $active={star <= rating}
                     onClick={() => setRating(star)}
                   >
                     ⭐
@@ -322,13 +324,13 @@ const StarRating = styled.div`
   gap: 4px;
 `;
 
-const Star = styled.button<{ active: boolean }>`
+const Star = styled.button<{ $active: boolean }>`
   background: none;
   border: none;
   font-size: 28px;
   cursor: pointer;
   padding: 0;
-  opacity: ${(props) => (props.active ? 1 : 0.3)};
+  opacity: ${(props) => (props.$active ? 1 : 0.3)};
   transition: opacity 0.2s ease;
 
   &:hover {

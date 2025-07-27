@@ -52,20 +52,34 @@ const LazyImage: React.FC<LazyImageProps> = ({
 
   // 이미지 로드 성공 핸들러
   const handleImageLoad = useCallback(() => {
+    console.log('✅ 이미지 로드 성공:', {
+      src: processedSrc,
+      alt,
+      currentSrc: imgRef.current?.src
+    });
     setImageState(prev => ({ ...prev, loaded: true, error: false }));
     onLoad?.();
-  }, [onLoad]);
+  }, [onLoad, processedSrc, alt]);
 
   // 이미지 로드 실패 핸들러
   const handleImageError = useCallback(() => {
+    console.error('🖼️ 이미지 로드 실패:', {
+      originalSrc: src,
+      processedSrc,
+      currentSrc: imgRef.current?.src,
+      fallbackSrc,
+      alt
+    });
+    
     setImageState(prev => ({ ...prev, error: true, loaded: false }));
     onError?.();
     
     // fallback 이미지로 다시 시도
     if (imgRef.current && imgRef.current.src !== fallbackSrc) {
+      console.log('🔄 Fallback 이미지로 전환:', fallbackSrc);
       imgRef.current.src = fallbackSrc;
     }
-  }, [onError, fallbackSrc]);
+  }, [onError, fallbackSrc, src, processedSrc, alt]);
 
   // Intersection Observer 설정
   useEffect(() => {
