@@ -4,6 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import backendPlacesApiService, {
   PlaceDetails,
 } from '../services/backendPlacesApi';
+import { 
+  getSafeImageUrl,
+  loadImageWithFallbacks,
+  createPlaceholderImage 
+} from '../utils/imageUtils';
 
 // 카카오맵 타입 선언 (기존 파일에서 가져오기)
 declare global {
@@ -53,14 +58,26 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
         console.log('  - 좌표:', details.geometry);
         console.log('  - 사진 개수:', details.photos?.length || 0);
         if (details.photos && details.photos.length > 0) {
+          console.log('  - 사진 개수:', details.photos.length);
           console.log('  - 첫 번째 사진 URL:', details.photos[0].photoUrl);
 
-          // 사진 URL이 실제로 접근 가능한지 테스트
-          const testImg = new Image();
-          testImg.onload = () => console.log('✅ 사진 URL 접근 성공');
-          testImg.onerror = (err) =>
-            console.error('❌ 사진 URL 접근 실패:', err);
-          testImg.src = details.photos[0].photoUrl;
+          // 안전한 이미지 URL 검증 및 fallback 준비
+          const primaryUrl = details.photos[0].photoUrl;
+          const fallbackUrls = [
+            primaryUrl,
+            getSafeImageUrl(null, details.name, 'unsplash'),
+            getSafeImageUrl(null, details.name, 'local'),
+            getSafeImageUrl(null, details.name, 'placeholder')
+          ].filter(Boolean);
+
+          // 비동기로 사용 가능한 이미지 URL 찾기
+          loadImageWithFallbacks(fallbackUrls, details.name)
+            .then(validUrl => {
+              console.log('✅ 사용 가능한 이미지 URL 확인:', validUrl);
+            })
+            .catch(err => {
+              console.warn('⚠️ 모든 이미지 URL 실패, placeholder 사용');
+            });
         }
 
         setPlaceDetails(details);
@@ -145,9 +162,55 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
     }
   }, [isOpen, placeName, region, fetchPlaceDetails]);
 
-  // 사진 URL 처리 (백엔드에서 이미 완전한 URL 제공)
+  // 안전한 사진 URL 처리 함수 - 구글 이미지 우선, 실패시 Unsplash fallback
   const getPhotoUrl = (photoUrl: string): string => {
-    return photoUrl;
+    // 구글 플레이스 이미지 URL이면 우선 시도, 실패시 자동으로 fallback 처리됨
+    if (photoUrl && photoUrl.includes('places.googleapis.com')) {
+      return photoUrl; // 원본 URL 반환, onError에서 fallback 처리
+    }
+    // 기타 경우는 기존 로직 사용
+    return getSafeImageUrl(photoUrl, placeDetails?.name, 'unsplash');
+  };
+
+  // 이미지 로드 실패 시 순차적 fallback 처리 - 개선된 버전
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement>, 
+    placeName: string,
+    isMainImage: boolean = false
+  ) => {
+    const img = e.target as HTMLImageElement;
+    const currentSrc = img.src;
+    
+    console.warn('🖼️ 이미지 로드 실패:', currentSrc);
+    
+    // 이미 시도한 URL들을 추적하여 무한 루프 방지
+    const attemptedUrls = img.dataset.attemptedUrls ? 
+      JSON.parse(img.dataset.attemptedUrls) : [];
+    
+    if (!attemptedUrls.includes(currentSrc)) {
+      attemptedUrls.push(currentSrc);
+      img.dataset.attemptedUrls = JSON.stringify(attemptedUrls);
+    }
+    
+    // 구글 플레이스 이미지 실패 시 더 나은 fallback 순서
+    const fallbackUrls = [
+      getSafeImageUrl(null, placeName, 'unsplash'),     // Unsplash 이미지 (품질 좋음)
+      getSafeImageUrl(null, placeName, 'local'),        // 로컬 기본 이미지
+      createPlaceholderImage(placeName)                 // SVG placeholder
+    ];
+    
+    // 다음 시도할 URL 찾기
+    for (const fallbackUrl of fallbackUrls) {
+      if (!attemptedUrls.includes(fallbackUrl)) {
+        console.warn(`🔄 ${isMainImage ? '메인' : '썸네일'} 이미지 fallback 시도:`, fallbackUrl);
+        img.src = fallbackUrl;
+        return;
+      }
+    }
+    
+    // 모든 fallback 실패 시 최종 placeholder
+    console.error('❌ 모든 이미지 fallback 실패, 최종 placeholder 사용');
+    img.src = createPlaceholderImage('이미지 없음');
   };
 
   // 모달 닫기 핸들러
@@ -226,18 +289,7 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                         placeDetails.photos[activePhotoIndex].photoUrl,
                       )}
                       alt={placeDetails.name}
-                      onError={(e) => {
-                        console.warn(
-                          '🖼️ Google Places 이미지 로드 실패, 기본 이미지 사용:',
-                          (e.target as HTMLImageElement).src,
-                        );
-                        // Google Places 이미지 실패 시 기본 이미지만 사용
-                        const img = e.target as HTMLImageElement;
-                        if (!img.src.includes('default-place-image.jpg')) {
-                          img.src = '/default-place-image.jpg';
-                          console.warn('🖼️ 기본 이미지로 변경');
-                        }
-                      }}
+                      onError={(e) => handleImageError(e, placeDetails.name, true)}
                     />
                   </MainPhoto>
                   {placeDetails.photos.length > 1 && (
@@ -251,16 +303,7 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                           <img
                             src={getPhotoUrl(photo.photoUrl)}
                             alt={`${placeDetails.name} ${index + 1}`}
-                            onError={(e) => {
-                              console.warn('🖼️ 썸네일 이미지 로드 실패');
-                              const img = e.target as HTMLImageElement;
-                              if (
-                                !img.src.includes('default-place-image.jpg')
-                              ) {
-                                // Google Places 썸네일 실패 시 기본 이미지 사용
-                                img.src = '/default-place-image.jpg';
-                              }
-                            }}
+                            onError={(e) => handleImageError(e, placeDetails.name, false)}
                           />
                         </Thumbnail>
                       ))}

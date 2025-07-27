@@ -28,26 +28,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-        String method = request.getMethod();
-        logger.info("🔍 JWT 필터 - 요청: {} {}", method, path);
-        logger.info("🔍 Authorization 헤더: {}", request.getHeader("Authorization"));
-
         String token = resolveToken(request);
         if (token != null) {
-            logger.info("🎫 토큰 발견: {}...", token.substring(0, Math.min(token.length(), 20)));
-            
             if (jwtTokenProvider.validateToken(token)) {
                 Authentication auth = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                logger.info("✅ 토큰 검증 성공 - 사용자: {}", auth.getName());
-                logger.info("🔐 SecurityContext 설정 완료 - Principal: {}", auth.getPrincipal());
-                logger.info("🔑 권한: {}", auth.getAuthorities());
+                logger.debug("✅ JWT 인증 성공 - 사용자: {}", auth.getName());
             } else {
-                logger.warn("❌ 토큰 검증 실패");
+                logger.warn("❌ 유효하지 않은 JWT 토큰");
             }
-        } else {
-            logger.info("🚫 토큰 없음");
         }
         
         filterChain.doFilter(request, response);
@@ -64,10 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        return path.equals("/api/admin/login")
-                || path.equals("/api/admin/signup")
-                || path.startsWith("/api/auth")
-                || path.startsWith("/actuator")
-                || path.startsWith("/api/places");
+        String method = request.getMethod();
+        
+        // 🔓 WebSecurityCustomizer에서 이미 제외된 경로들은 여기서 중복 제외할 필요 없음
+        // 추가로 JWT 필터에서만 제외할 경로들:
+        return (path.startsWith("/api/feed") && "GET".equals(method))        // 피드 조회만 허용
+                || (path.startsWith("/api/profile/user") && "GET".equals(method)) // 프로필 조회만 허용  
+                || path.startsWith("/api/places")                            // 장소 API 모든 메서드 허용
+                || "OPTIONS".equals(method);                                 // CORS preflight 요청
     }
 }

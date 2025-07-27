@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}) // CORS 명시적 허용
 public class AuthController {
 
     private final UserService userService;
@@ -80,6 +81,6 @@ public class AuthController {
 
         // JWT 발급
         String jwt = jwtTokenProvider.createToken(user.getEmail(), user.getRole());
-        return ResponseEntity.ok(new LoginResponseDto(jwt, user.getEmail(), user.getRole()));
+        return ResponseEntity.ok(new LoginResponseDto(jwt, user.getEmail(), user.getNickname(), user.getRole()));
     }
 }

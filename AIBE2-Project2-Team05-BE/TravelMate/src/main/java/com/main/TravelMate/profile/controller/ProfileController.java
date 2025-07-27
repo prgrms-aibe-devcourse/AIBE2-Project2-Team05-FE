@@ -16,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}) // CORS 명시적 허용
 public class ProfileController {
     
     private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
@@ -103,6 +104,40 @@ public class ProfileController {
         } catch (Exception e) {
             log.error("❌ 사용자 목록 조회 실패: {}", e.getMessage());
             return ResponseEntity.status(500).body("사용자 목록 조회 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 특정 사용자의 기본 프로필 생성
+     * POST /api/profile/create/{userId}
+     */
+    @PostMapping("/create/{userId}")
+    public ResponseEntity<String> createDefaultProfile(@PathVariable Long userId) {
+        log.info("🚀 사용자 ID {} 프로필 생성 요청", userId);
+        
+        try {
+            profileService.createDefaultProfileForUser(userId);
+            return ResponseEntity.ok("사용자 ID " + userId + "의 프로필이 생성되었습니다.");
+        } catch (Exception e) {
+            log.error("❌ 프로필 생성 실패: 사용자 ID {}, 오류: {}", userId, e.getMessage());
+            return ResponseEntity.status(500).body("프로필 생성 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 모든 사용자의 기본 프로필 일괄 생성
+     * POST /api/profile/create-all
+     */
+    @PostMapping("/create-all")
+    public ResponseEntity<Object> createAllDefaultProfiles() {
+        log.info("🚀 모든 사용자 프로필 일괄 생성 요청");
+        
+        try {
+            Object result = profileService.createDefaultProfilesForAllUsers();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("❌ 프로필 일괄 생성 실패: {}", e.getMessage());
+            return ResponseEntity.status(500).body("프로필 일괄 생성 실패: " + e.getMessage());
         }
     }
 

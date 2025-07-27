@@ -36,6 +36,31 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import UserManagementPage from './pages/UserManagementPage';
 import FeedManagementPage from './pages/FeedManagementPage';
 
+// 🔍 환경변수 즉시 확인 함수 (개발용)
+const checkEnvVars = () => {
+  console.log('🔍 현재 환경변수 상태:');
+  console.log('  - NODE_ENV:', process.env.NODE_ENV);
+  console.log('  - REACT_APP_OPENAI_API_KEY:', process.env.REACT_APP_OPENAI_API_KEY ? 'O (설정됨)' : 'X (없음)');
+  console.log('  - REACT_APP_GOOGLE_PLACES_API_KEY:', process.env.REACT_APP_GOOGLE_PLACES_API_KEY ? 'O (설정됨)' : 'X (없음)');
+  console.log('  - REACT_APP_BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
+  console.log('  - 모든 REACT_APP_ 변수:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP_')));
+  
+  if (process.env.REACT_APP_OPENAI_API_KEY) {
+    console.log('  - OpenAI 키 앞부분:', process.env.REACT_APP_OPENAI_API_KEY.substring(0, 20) + '...');
+  }
+  if (process.env.REACT_APP_GOOGLE_PLACES_API_KEY) {
+    console.log('  - Google Places 키 앞부분:', process.env.REACT_APP_GOOGLE_PLACES_API_KEY.substring(0, 20) + '...');
+  }
+};
+
+// 개발 환경에서만 환경변수 확인
+if (process.env.NODE_ENV === 'development') {
+  console.log('🚀 환경변수 확인 - 개발자 도구에서 checkEnvVars() 함수를 호출하세요');
+  (window as any).checkEnvVars = checkEnvVars;
+  // 앱 시작 시 자동으로 한 번 확인
+  checkEnvVars();
+}
+
 function App() {
   const location = useLocation();
 

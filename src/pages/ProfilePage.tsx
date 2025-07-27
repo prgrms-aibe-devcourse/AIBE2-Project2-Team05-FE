@@ -28,7 +28,7 @@ interface UserProfile {
   postsCount: number;
   followersCount: number;
   followingCount: number;
-  feeds?: BackendFeed[];
+  feeds?: UserFeed[];
   isCurrentUser?: boolean;
 }
 
@@ -151,8 +151,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       let profileData: any = null;
       if (isOwnProfile) {
         profileData = await profileApiService.getMyProfile();
+        console.log('👤 내 프로필 데이터 로드 성공:', profileData);
       } else if (nickname) {
         profileData = await profileApiService.getProfileByNickname(nickname);
+        console.log('👤 다른 사용자 프로필 데이터 로드 성공:', profileData);
       } else {
         throw new Error('프로필을 불러올 수 없습니다.');
       }
@@ -180,24 +182,49 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
 
       setFeeds(processedFeeds);
 
-      // ✅ AuthContext 업데이트 최적화
-      if (isOwnProfile && profileData?.nickname && user && !user.nickname) {
-        updateUser({ nickname: profileData.nickname });
+      // ✅ AuthContext 업데이트 - 내 프로필일 때만 업데이트
+      if (isOwnProfile && profileData && user) {
+        const shouldUpdate = !user.nickname || user.nickname !== profileData.nickname;
+        if (shouldUpdate) {
+          console.log('🔄 AuthContext 사용자 정보 업데이트:', {
+            기존: { nickname: user.nickname, profileImage: user.profileImage },
+            새로운: { nickname: profileData.nickname, profileImage: profileData.profileImage }
+          });
+          updateUser({
+            nickname: profileData.nickname,
+            profileImage: profileData.profileImage,
+            bio: profileData.bio,
+            age: profileData.age,
+            gender: profileData.gender,
+            id: profileData.id,
+          });
+        }
       }
 
+      // ✅ 실제 백엔드 데이터 사용 (목 데이터 제거)
       setProfile({
         id: profileData.id,
         username: profileData.email || 'user',
-        nickname: profileData.nickname || 'User',
+        nickname: profileData.nickname || '닉네임 없음',
         profileImage: profileData.profileImage || defaultProfileImage,
-        bio: profileData.bio || '안녕하세요 👋',
-        postsCount: 0,
-        followersCount: 0,
-        followingCount: 0,
-        isCurrentUser: true,
+        bio: profileData.bio || '자기소개가 없습니다.',
+        postsCount: profileData.postsCount || 0,
+        followersCount: profileData.followerCount || 0,
+        followingCount: profileData.followingCount || 0,
+                 feeds: processedFeeds,
+        isCurrentUser: isOwnProfile || (user?.email === profileData.email) || false,
+      });
+
+      console.log('✅ 프로필 설정 완료:', {
+        nickname: profileData.nickname,
+        postsCount: profileData.postsCount,
+        followersCount: profileData.followerCount,
+        followingCount: profileData.followingCount,
+                 isCurrentUser: isOwnProfile || (user?.email === profileData.email) || false,
       });
 
     } catch (error) {
+      console.error('❌ 프로필 로드 실패:', error);
       if (error instanceof Error && error.message.includes('사용자를 찾을 수 없습니다')) {
         setError(`사용자 "${nickname}"을(를) 찾을 수 없습니다.`);
       } else {
@@ -269,7 +296,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
   const shouldShowSettings = useMemo(() => {
     const isOwnProfilePath = location.pathname === '/profile';
     const isSameUser = user && profile && user.nickname === profile.nickname;
-    return isOwnProfile || isOwnProfilePath || isSameUser;
+    const result = isOwnProfile || isOwnProfilePath || isSameUser;
+    
+    // 디버깅 로그 추가
+    console.log('🔧 설정 버튼 표시 조건 확인:', {
+      isOwnProfile,
+      isOwnProfilePath,
+      isSameUser,
+      'location.pathname': location.pathname,
+      'user?.nickname': user?.nickname,
+      'profile?.nickname': profile?.nickname,
+      '최종 결과': result
+    });
+    
+    return result;
   }, [isOwnProfile, location.pathname, user, profile]);
 
   // Render loading state
@@ -289,7 +329,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
 
   return (
     <Container>
-      {/* 설정 버튼 - 우측 상단 */}
+      {/* 설정 버튼 - 자신의 프로필에서만 표시 */}
       {shouldShowSettings && (
         <SettingsButton onClick={() => navigate('/mypage')}>⚙️</SettingsButton>
       )}
@@ -342,6 +382,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
 
 // 남은 스타일 컴포넌트들 (모달 관련)
 const Container = styled.div`
+  position: relative; /* 설정 버튼 위치를 위해 추가 */
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
@@ -352,37 +393,7 @@ const Container = styled.div`
   }
 `;
 
-const SettingsButton = styled.button`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #e5e7eb;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-  &:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: scale(1.05);
-  }
-
-  @media (max-width: 768px) {
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
-`;
 
 const TabContent = styled.div`
   padding: 20px 0;
@@ -474,6 +485,39 @@ const PlanPageWrapper = styled.div`
   overflow: auto;
 `;
 
+const SettingsButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10; /* z-index 추가 */
+
+  &:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  @media (max-width: 768px) {
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+`;
 
 
 export default ProfilePage;

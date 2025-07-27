@@ -10,5 +10,6 @@ import lombok.Data;
 public class LoginResponseDto {
     private String accessToken;
     private String email;
+    private String nickname; // 닉네임 추가
     private Role role;
 }
