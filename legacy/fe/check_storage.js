@@ -1,1 +1,0 @@
-console.log('=== 현재 localStorage 데이터 확인 ==='); console.log('currentTravelPlan:', localStorage.getItem('currentTravelPlan')); console.log('plan_[ID] 키들:', Object.keys(localStorage).filter(k => k.startsWith('plan_')));

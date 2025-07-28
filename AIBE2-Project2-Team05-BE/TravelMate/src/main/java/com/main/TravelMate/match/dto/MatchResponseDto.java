@@ -1,16 +1,12 @@
 package com.main.TravelMate.match.dto;
 
-import com.main.TravelMate.match.entity.MatchStatus;
+import com.main.TravelMate.match.domain.MatchingStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 @AllArgsConstructor
 public class MatchResponseDto {
     private Long matchId;
-    private Long travelPlanId;
-    private String travelPlanLocation;
-    private String requesterNickname;
-    private String receiverNickname;
-    private MatchStatus status;
+    private MatchingStatus status;
 }
