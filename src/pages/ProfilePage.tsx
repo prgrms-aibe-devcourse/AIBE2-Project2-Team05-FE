@@ -26,6 +26,7 @@ interface UserProfile {
   profileImage: string;
   bio: string;
   age: number; // 🔧 백엔드에서 제공하는 나이 추가
+  residence?: string; // 🏠 거주지 추가
   postsCount: number;
   followersCount: number;
   followingCount: number;
@@ -211,6 +212,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       }
 
       // ✅ 실제 백엔드 데이터 사용 (목 데이터 제거)
+      console.log('🔍 [나이 디버깅] 백엔드 프로필 데이터:', {
+        nickname: profileData.nickname,
+        age: profileData.age,
+        ageType: typeof profileData.age,
+        email: profileData.email
+      });
+
       setProfile({
         id: profileData.id,
         username: profileData.email || 'user',
@@ -218,11 +226,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
         profileImage: profileData.profileImage || defaultProfileImage,
         bio: profileData.bio || '자기소개가 없습니다.',
         age: profileData.age || 25, // 🔧 백엔드에서 제공하는 실제 나이 사용
+        residence: profileData.residence || '', // 🏠 백엔드에서 제공하는 거주지 사용
         postsCount: profileData.postsCount || 0,
         followersCount: profileData.followerCount || 0,
         followingCount: profileData.followingCount || 0,
                  feeds: processedFeeds,
         isCurrentUser: isOwnProfile || (user?.email === profileData.email) || false,
+      });
+
+      console.log('✅ [나이 디버깅] 프로필 설정 완료:', {
+        nickname: profileData.nickname,
+        설정된나이: profileData.age || 25
       });
 
       console.log('✅ 프로필 설정 완료:', {
@@ -345,7 +359,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       )}
 
       {/* 모듈화된 컴포넌트들 사용 */}
-      <ProfileHeader profile={profile} feedCount={feeds.length} />
+      <ProfileHeader 
+        profile={{
+          ...profile,
+          age: profile.age || 25, // 🔧 실제 백엔드 나이 전달
+          residence: profile.residence || '거주지 미설정' // 🏠 실제 백엔드 거주지 전달
+        }} 
+        feedCount={feeds.length} 
+      />
       
       <BioSection bio={profile.bio} />
       
@@ -375,7 +396,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           authorInfo={{
             author: profile.nickname,
             avatar: profile.profileImage,
-            age: profile.age || 25 // 🔧 백엔드에서 제공하는 실제 나이 사용
+            age: (() => {
+              console.log('🔍 [모달 나이] authorInfo 전달:', {
+                nickname: profile.nickname,
+                age: profile.age,
+                fallback: profile.age || 25
+              });
+              return profile.age || 25; // 🔧 백엔드에서 제공하는 실제 나이 사용
+            })()
           }}
           onClose={closeTravelPlanModal}
         />

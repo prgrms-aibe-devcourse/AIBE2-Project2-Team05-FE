@@ -11,6 +11,7 @@ public class ProfileUpdateRequestDto {
     private int age;
     private String gender;
     private String preferredDestinations;
+    private String residence; // 🏠 거주지
     private String travelStyle;
     private String bio;
     private String profileImage;

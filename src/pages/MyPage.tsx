@@ -18,6 +18,7 @@ const pageVariants = {
 interface UserProfile {
   nickname: string;
   bio: string;
+  residence: string; // 🏠 거주지 추가
   profileImage: string;
 }
 
@@ -41,6 +42,7 @@ const MyPage = () => {
   const [profileData, setProfileData] = useState<UserProfile>({
     nickname: '',
     bio: '',
+    residence: '', // 🏠 거주지 초기값 추가
     profileImage: ''
   });
 
@@ -66,6 +68,7 @@ const MyPage = () => {
         setProfileData({
           nickname: profile.nickname || '',
           bio: profile.bio || '',
+          residence: profile.residence || '', // 🏠 거주지 추가
           profileImage: profile.profileImage || ''
         });
 
@@ -93,7 +96,9 @@ const MyPage = () => {
 
       await profileApiService.updateProfile({
         nickname: profileData.nickname, // 닉네임은 변경 불가하지만 기존 값 유지
-        bio: profileData.bio.trim()
+        bio: profileData.bio.trim(),
+        residence: profileData.residence.trim(), // 🏠 거주지 업데이트 추가
+        profileImage: profileData.profileImage // 🖼️ 기존 프로필 이미지 보존
       });
 
       alert('프로필이 성공적으로 업데이트되었습니다! ✅');
@@ -371,6 +376,16 @@ const MyPage = () => {
                 placeholder="닉네임 정보 없음"
               />
               <HelpText>💡 닉네임은 보안상 변경할 수 없습니다</HelpText>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>거주지</Label>
+              <Input
+                value={profileData.residence}
+                onChange={(e) => setProfileData(prev => ({ ...prev, residence: e.target.value }))}
+                placeholder="예: 서울, 대한민국"
+                maxLength={100}
+              />
             </FormGroup>
 
             <FormGroup>

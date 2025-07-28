@@ -23,6 +23,8 @@ interface ProfileHeaderProps {
     postsCount: number;
     followersCount: number;
     followingCount: number;
+    age: number; // 🔧 실제 나이 추가
+    residence: string; // 🏠 거주지 추가
     isCurrentUser?: boolean; // ✅ 누락된 속성 추가
   };
   feedCount: number; // 실제 피드 개수를 전달받음
@@ -45,11 +47,11 @@ const ProfileHeader = memo<ProfileHeaderProps>(({ profile, feedCount }) => {
           <UserDetails>
             <DetailItem>
               <i className="ri-calendar-line"></i>
-              25세
+              {profile.age}세
             </DetailItem>
             <DetailItem>
               <i className="ri-map-pin-line"></i>
-              서울, 대한민국
+              {profile.residence || '거주지 미설정'}
             </DetailItem>
           </UserDetails>
         </ProfileTop>

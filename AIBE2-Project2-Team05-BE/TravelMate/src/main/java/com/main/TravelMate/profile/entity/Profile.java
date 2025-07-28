@@ -41,6 +41,8 @@ public class Profile {
     
     private String preferredDestinations;  // 선호 여행지 (기존 컬럼명 유지)
     
+    private String residence;              // 🏠 거주지 (예: "서울, 대한민국")
+    
     // ✅ @ElementCollection 개선: null 방지 + 기본값 설정
     @ElementCollection(fetch = FetchType.LAZY)
     @Enumerated(EnumType.STRING)
@@ -65,6 +67,7 @@ public class Profile {
         // null 값 방지
         if (this.bio == null) this.bio = "";
         if (this.preferredDestinations == null) this.preferredDestinations = "";
+        if (this.residence == null) this.residence = ""; // 🏠 거주지 null 방지
         if (this.travelStyles == null) this.travelStyles = new HashSet<>();
     }
     
@@ -93,6 +96,10 @@ public class Profile {
     
     public void setPreferredDestinations(String preferredDestinations) {
         this.preferredDestinations = preferredDestinations != null ? preferredDestinations : "";
+    }
+    
+    public void setResidence(String residence) {
+        this.residence = residence != null ? residence : ""; // 🏠 거주지 안전한 setter
     }
     
     public void setTravelStyles(Set<TravelStyle> travelStyles) {

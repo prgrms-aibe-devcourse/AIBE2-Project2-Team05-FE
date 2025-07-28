@@ -9,6 +9,7 @@ export interface ProfileData {
   profileImage?: string;
   age?: number;
   gender?: string;
+  residence?: string; // 🏠 거주지 추가
   followerCount: number;
   followingCount: number;
   postsCount: number;
@@ -115,6 +116,7 @@ class ProfileApiService {
     age?: number;
     gender?: string;
     preferredDestinations?: string;
+    residence?: string; // 🏠 거주지 추가
     travelStyle?: string;
     bio?: string;
     profileImage?: string;

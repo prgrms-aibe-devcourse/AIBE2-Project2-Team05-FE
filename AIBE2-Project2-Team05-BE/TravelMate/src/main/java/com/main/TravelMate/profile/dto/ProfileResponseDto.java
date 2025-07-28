@@ -19,6 +19,7 @@ public class ProfileResponseDto {
     private String profileImage;
     private int age;
     private String gender;
+    private String residence; // 🏠 거주지
     private int followerCount;
     private int followingCount;
     private int postsCount; // 게시물 수 추가

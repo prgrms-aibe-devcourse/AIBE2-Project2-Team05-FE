@@ -33,6 +33,7 @@ const SignupForm: React.FC = () => {
       realName: '',
       birthdate: '',
       gender: '',
+      residence: '', // 🏠 거주지 추가
       bio: '',
       travelStyles: [],
       profileImage: null,
@@ -51,6 +52,7 @@ const SignupForm: React.FC = () => {
       realName: Yup.string().required('이름은 필수 항목입니다.'),
       birthdate: Yup.date().required('생년월일은 필수 항목입니다.'),
       gender: Yup.string().required('성별은 필수 항목입니다.'),
+      residence: Yup.string().max(100, '거주지는 100자 이하로 입력해주세요.'), // 🏠 거주지 validation
       bio: Yup.string().max(150, '자기소개는 150자 이하로 작성해주세요.'),
       travelStyles: Yup.array().min(1, '여행 스타일을 1개 이상 선택해주세요.').required('여행 스타일은 필수 항목입니다.'),
       profileImage: Yup.mixed().nullable(),
@@ -70,6 +72,7 @@ const SignupForm: React.FC = () => {
                 ? new Date(values.birthdate).toISOString().split('T')[0]  // YYYY-MM-DD 형식으로 변환
                 : values.birthdate,
             gender: values.gender,
+            residence: values.residence, // 🏠 거주지 추가
             bio: values.bio,
             preferredDestinations: "", // ✅ 빈 문자열로 초기화
             travelStyles: values.travelStyles,
@@ -237,6 +240,17 @@ const SignupForm: React.FC = () => {
         </Select>
         {formik.touched.gender && formik.errors.gender && (
           <ErrorText>{formik.errors.gender}</ErrorText>
+        )}
+      </InputGroup>
+
+      <InputGroup>
+        <Label>거주지</Label>
+        <Input 
+          placeholder="예: 서울, 대한민국"
+          {...formik.getFieldProps('residence')} 
+        />
+        {formik.touched.residence && formik.errors.residence && (
+          <ErrorText>{formik.errors.residence}</ErrorText>
         )}
       </InputGroup>
     </StepContainer>

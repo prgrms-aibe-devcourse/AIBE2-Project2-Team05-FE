@@ -149,6 +149,7 @@ public class ProfileService {
                 .age(user.getProfile() != null ? user.getProfile().calculateAge() : 0) // ✅ calculateAge() 메서드 사용
                 .gender(user.getProfile() != null && user.getProfile().getGender() != null 
                        ? user.getProfile().getGender().getDisplayName() : "비공개") // ✅ Gender enum -> String 변환
+                .residence(user.getProfile() != null ? user.getProfile().getResidence() : "") // 🏠 거주지 추가
                 .followerCount(followerCount)
                 .followingCount(followingCount)
                 .postsCount(postsCount)
@@ -218,6 +219,7 @@ public class ProfileService {
         }
         
         profile.setPreferredDestinations(request.getPreferredDestinations());
+        profile.setResidence(request.getResidence()); // 🏠 거주지 업데이트
         
         // ✅ travelStyle -> travelStyles 처리
         if (request.getTravelStyle() != null) {
@@ -235,7 +237,11 @@ public class ProfileService {
         }
         
         profile.setBio(request.getBio());
-        profile.setProfileImage(request.getProfileImage());
+        
+        // 🔒 profileImage는 null이 아닐 때만 업데이트 (기존 이미지 보존)
+        if (request.getProfileImage() != null) {
+            profile.setProfileImage(request.getProfileImage());
+        }
 
         profileRepository.save(profile);
         user.setProfile(profile); // 양방향 연관관계 유지

@@ -114,6 +114,7 @@ public class UserService {
                     .gender(request.getGender())
                     .bio(request.getBio() != null ? request.getBio().trim() : "")
                     .preferredDestinations(request.getPreferredDestinations() != null ? request.getPreferredDestinations().trim() : "")
+                    .residence(request.getResidence() != null ? request.getResidence().trim() : "") // 🏠 거주지 추가
                     .travelStyles(request.getTravelStyles() != null ? request.getTravelStyles() : new HashSet<>())
                     .profileImage(profileImageUrl)
                     .build();

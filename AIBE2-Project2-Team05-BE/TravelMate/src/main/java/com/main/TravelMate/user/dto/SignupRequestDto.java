@@ -46,6 +46,9 @@ public class SignupRequestDto {
 
     private String preferredDestinations;
 
+    @Size(max = 100, message = "거주지는 최대 100자까지 입력 가능합니다.")
+    private String residence; // 🏠 거주지 (예: "서울, 대한민국")
+
     // ✅ @NotNull 제거 - 빈 Set도 허용하도록 변경
     private Set<TravelStyle> travelStyles;
 }
