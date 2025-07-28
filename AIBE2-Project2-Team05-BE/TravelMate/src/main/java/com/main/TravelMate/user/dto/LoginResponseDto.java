@@ -12,4 +12,5 @@ public class LoginResponseDto {
     private String email;
     private String nickname; // 닉네임 추가
     private Role role;
+    private Long userId; // 사용자 ID 추가
 }

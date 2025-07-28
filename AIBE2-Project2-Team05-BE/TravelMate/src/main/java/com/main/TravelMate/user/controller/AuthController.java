@@ -61,6 +61,36 @@ public class AuthController {
         }
     }
 
+    /**
+     * 현재 로그인한 사용자의 ID를 반환하는 엔드포인트
+     * GET /api/auth/current-user-id
+     */
+    @GetMapping("/current-user-id")
+    public ResponseEntity<Long> getCurrentUserId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+        
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(userDetails.getUserId());
+    }
+
+    /**
+     * 이메일로 사용자 ID를 조회하는 엔드포인트
+     * GET /api/auth/user-id-by-email?email={email}
+     */
+    @GetMapping("/user-id-by-email")
+    public ResponseEntity<Long> getUserIdByEmail(@RequestParam String email) {
+        User user = userRepository.findByEmail(email)
+                .orElse(null);
+        
+        if (user == null) {
+            return ResponseEntity.status(404).build();
+        }
+        
+        return ResponseEntity.ok(user.getId());
+    }
+
 
     @PostMapping("/oauth/google")
     public ResponseEntity<LoginResponseDto> googleLogin(@RequestParam String token) {
@@ -81,6 +111,6 @@ public class AuthController {
 
         // JWT 발급
         String jwt = jwtTokenProvider.createToken(user.getEmail(), user.getRole());
-        return ResponseEntity.ok(new LoginResponseDto(jwt, user.getEmail(), user.getNickname(), user.getRole()));
+        return ResponseEntity.ok(new LoginResponseDto(jwt, user.getEmail(), user.getNickname(), user.getRole(), user.getId()));
     }
 }

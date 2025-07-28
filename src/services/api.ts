@@ -46,6 +46,20 @@ api.interceptors.request.use(
       }
     });
 
+    // 🔍 디버깅: 현재 요청 URL과 공개 API 여부 로그
+    console.log('🔍 API 요청 분석:', {
+      url: config.url,
+      method: config.method?.toUpperCase(),
+      isPublicAPI: isPublicAPI,
+      matchedPatterns: publicPatterns.filter(pattern => {
+        if (typeof pattern === 'string') {
+          return config.url?.includes(pattern);
+        } else {
+          return pattern.test(config.url || '');
+        }
+      })
+    });
+
     // ✅ accessToken을 우선적으로 사용
     const accessToken = localStorage.getItem('accessToken');
     const token = localStorage.getItem('token'); // 하위 호환성
@@ -64,6 +78,11 @@ api.interceptors.request.use(
         url: config.url,
         tokenSource: accessToken ? 'accessToken' : 'token',
         tokenLength: finalToken?.length || 0,
+        // 채팅 API인 경우 토큰 내용도 확인
+        ...(config.url?.includes('/api/chat') && {
+          tokenPreview: finalToken ? `${finalToken.substring(0, 20)}...` : 'none',
+          fullToken: finalToken // 채팅 API의 경우 전체 토큰 출력
+        })
       });
     } else if (!isPublicAPI && !finalToken) {
       // 비공개 API인데 토큰이 없는 경우만 경고
@@ -96,13 +115,26 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // 401 Unauthorized 에러 시 로그아웃 처리
+    // 401 Unauthorized 에러 시 토큰 갱신 시도 후 로그아웃
     if (error.response && error.response.status === 401) {
-      console.warn('⚠️ 토큰이 만료되었습니다. 로그아웃합니다.');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // 페이지 새로고침하여 로그인 페이지로 이동
-      window.location.reload();
+      console.warn('⚠️ 401 Unauthorized 오류 발생');
+      
+      // 채팅 API 관련 요청인지 확인
+      const isChatAPI = error.config?.url?.includes('/api/chat');
+      
+      if (isChatAPI) {
+        console.log('💬 채팅 API 401 오류 - 에러를 그대로 전달');
+        // 채팅 API의 경우 에러를 그대로 전달하여 각 함수에서 처리하도록 함
+        return Promise.reject(error);
+      } else {
+        // 채팅 API가 아닌 경우 기존 로직 유지
+        console.warn('⚠️ 토큰이 만료되었습니다. 로그아웃합니다.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        // 페이지 새로고침하여 로그인 페이지로 이동
+        window.location.reload();
+      }
     }
     return Promise.reject(error);
   },

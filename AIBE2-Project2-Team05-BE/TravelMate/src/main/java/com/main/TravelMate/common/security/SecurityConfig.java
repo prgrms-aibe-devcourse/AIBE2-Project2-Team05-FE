@@ -68,7 +68,7 @@ public class SecurityConfig {
                         // 🌟 후기 조회 API (읽기 전용 공개)
                         .requestMatchers(HttpMethod.GET, "/api/review/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
-                        // 🔐 나머지는 모두 인증 필요
+                        // 🔐 나머지는 모두 인증 필요 (채팅 API 포함)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

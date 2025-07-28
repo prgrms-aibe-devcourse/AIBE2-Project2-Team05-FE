@@ -1,6 +1,7 @@
 package com.main.TravelMate.user.entity;
 
 
+import com.main.TravelMate.chat.domain.ChatRoom;
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.profile.entity.Profile;
 import com.main.TravelMate.user.domain.Role;
@@ -10,7 +11,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -44,6 +47,9 @@ public class User {
     private Profile profile;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @ManyToMany(mappedBy = "participants")
+    private Set<ChatRoom> chatRooms = new HashSet<>();
 
     // 연관관계와 비즈니스 로직
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)

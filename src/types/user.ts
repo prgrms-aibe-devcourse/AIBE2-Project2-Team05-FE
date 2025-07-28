@@ -1,5 +1,5 @@
 export interface User {
-  id?: number;                    // 사용자 ID
+  id: number;                    // 사용자 ID (필수)
   email: string;                 // 이메일 (필수)
   role: string;                  // 권한 (필수)
   nickname?: string;             // 닉네임

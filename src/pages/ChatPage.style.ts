@@ -25,6 +25,14 @@ export const SearchBox = styled.div`
   background-color: #f3f4f6;
   border-radius: 8px;
   padding: 10px 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e5e7eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 
   i {
     color: #9ca3af;
@@ -37,6 +45,7 @@ export const SearchBox = styled.div`
     width: 100%;
     outline: none;
     font-size: 14px;
+    cursor: pointer;
   }
 `;
 

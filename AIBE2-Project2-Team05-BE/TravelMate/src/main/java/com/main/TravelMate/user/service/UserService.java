@@ -7,6 +7,7 @@ import com.main.TravelMate.profile.repository.ProfileRepository;
 import com.main.TravelMate.user.dto.LoginRequestDto;
 import com.main.TravelMate.user.dto.LoginResponseDto;
 import com.main.TravelMate.user.dto.SignupRequestDto;
+import com.main.TravelMate.user.dto.UserSearchResponseDto;
 import com.main.TravelMate.user.entity.User;
 import com.main.TravelMate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -138,7 +141,7 @@ public class UserService {
         }
 
         String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole());
-        return new LoginResponseDto(token, user.getEmail(), user.getNickname(), user.getRole());
+        return new LoginResponseDto(token, user.getEmail(), user.getNickname(), user.getRole(), user.getId());
     }
 
     @Transactional
@@ -167,5 +170,33 @@ public class UserService {
         userRepository.save(user);
         
         log.info("비밀번호 변경 완료 - 사용자: {}", email);
+    }
+
+    /**
+     * 채팅용 사용자 검색 메서드
+     * 닉네임으로 사용자를 검색하여 최대 10명까지 반환
+     * @param nickname 검색할 닉네임 (부분 일치)
+     * @return 검색된 사용자 리스트 (UserSearchResponseDto)
+     */
+    @Transactional(readOnly = true)
+    public List<UserSearchResponseDto> searchUsersByNickname(String nickname) {
+        log.info("사용자 검색 요청 - 닉네임: {}", nickname);
+        
+        // 빈 문자열이나 null인 경우 빈 리스트 반환
+        if (nickname == null || nickname.trim().isEmpty()) {
+            return List.of();
+        }
+        
+        // 닉네임으로 사용자 검색 (활성 상태인 사용자만)
+        List<User> users = userRepository.findByNicknameContainingIgnoreCaseAndStatusActive(nickname.trim());
+        
+        // 최대 10명까지만 반환 (성능 고려)
+        List<UserSearchResponseDto> result = users.stream()
+                .limit(10)
+                .map(UserSearchResponseDto::fromUser)
+                .collect(Collectors.toList());
+        
+        log.info("사용자 검색 완료 - 검색어: {}, 결과 수: {}", nickname, result.size());
+        return result;
     }
 }

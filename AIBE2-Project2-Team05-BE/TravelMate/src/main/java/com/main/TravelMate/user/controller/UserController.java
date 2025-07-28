@@ -5,6 +5,7 @@ import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.plan.entity.TravelPlan;
 import com.main.TravelMate.user.dto.SignupRequestDto;
 import com.main.TravelMate.user.dto.PasswordChangeRequestDto;
+import com.main.TravelMate.user.dto.UserSearchResponseDto;
 import com.main.TravelMate.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.CascadeType;
@@ -124,6 +125,35 @@ public class UserController {
         } catch (Exception e) {
             log.error("비밀번호 변경 실패:", e);
             return ResponseEntity.badRequest().body("비밀번호 변경 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 채팅용 사용자 검색 API
+     * 닉네임으로 사용자를 검색합니다.
+     * 
+     * @param nickname 검색할 닉네임 (부분 일치)
+     * @return 검색된 사용자 리스트 (최대 10명)
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchUsers(@RequestParam(value = "nickname", required = false) String nickname) {
+        try {
+            log.info("사용자 검색 API 호출 - 닉네임: {}", nickname);
+            
+            // 검색어가 비어있으면 빈 리스트 반환
+            if (nickname == null || nickname.trim().isEmpty()) {
+                return ResponseEntity.ok(List.of());
+            }
+            
+            // 사용자 검색 서비스 호출
+            List<UserSearchResponseDto> searchResults = userService.searchUsersByNickname(nickname);
+            
+            log.info("사용자 검색 완료 - 검색어: {}, 결과 수: {}", nickname, searchResults.size());
+            return ResponseEntity.ok(searchResults);
+            
+        } catch (Exception e) {
+            log.error("사용자 검색 실패: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("사용자 검색 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 

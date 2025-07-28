@@ -69,12 +69,13 @@ const LoginForm: React.FC = () => {
         password,
       });
 
-      const { accessToken, email: responseEmail, nickname, role } = response.data;
-      console.log('✅ 로그인 API 성공:', { email: responseEmail, nickname, role });
+      const { accessToken, email: responseEmail, nickname, role, userId } = response.data;
+      console.log('✅ 로그인 API 성공:', { email: responseEmail, nickname, role, userId });
 
       if (accessToken) {
-        // 🎯 로그인 응답에서 직접 받은 닉네임 사용 (더 이상 별도 API 호출 불필요)
+        // 🎯 로그인 응답에서 직접 받은 닉네임과 사용자 ID 사용
         const userData = {
+          id: userId, // 사용자 ID 추가
           email: responseEmail || email,
           role: role.toString(),
           nickname: nickname, // 백엔드에서 직접 받은 정확한 닉네임 사용

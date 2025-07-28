@@ -4,14 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
-import { jwtDecode } from 'jwt-decode';
-
-interface DecodedToken {
-    sub: string; // email
-    role: string;
-    iat: number;
-    exp: number;
-}
 
 const AdminLoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -35,11 +27,12 @@ const AdminLoginPage: React.FC = () => {
                 password,
             });
 
-            const { accessToken } = response.data;
-            const decodedToken = jwtDecode<DecodedToken>(accessToken);
+            const { accessToken, email: responseEmail, nickname, role, userId } = response.data;
             const userInfo = {
-                email: decodedToken.sub,
-                role: decodedToken.role
+                id: userId,
+                email: responseEmail,
+                role: role,
+                nickname: nickname
             };
             
             auth.login(accessToken, userInfo);
