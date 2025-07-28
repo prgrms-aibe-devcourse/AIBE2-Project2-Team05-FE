@@ -33,10 +33,10 @@ export interface LikeUsersResponse {
 
 /**
  * 피드에 좋아요를 추가하거나 제거하는 함수
- * @param travelFeedId 여행 피드 ID (숫자) 또는 여행 계획 ID (문자열)
+ * @param travelFeedId 여행 피드 ID (숫자)
  * @returns 좋아요 처리 결과
  */
-export const toggleFeedLike = async (travelFeedId: number | string): Promise<LikeResponse> => {
+export const toggleFeedLike = async (travelFeedId: number): Promise<LikeResponse> => {
   try {
     // console.log(`🔄 좋아요 토글 API 호출: travelFeedId=${travelFeedId}`);
     
@@ -75,10 +75,10 @@ export const toggleFeedLike = async (travelFeedId: number | string): Promise<Lik
 
 /**
  * 피드의 현재 좋아요 상태를 조회하는 함수
- * @param travelFeedId 여행 피드 ID (숫자) 또는 여행 계획 ID (문자열)
+ * @param travelFeedId 여행 피드 ID (숫자)
  * @returns 좋아요 상태 정보
  */
-export const getFeedLikeStatus = async (travelFeedId: number | string): Promise<LikeStatusResponse> => {
+export const getFeedLikeStatus = async (travelFeedId: number): Promise<LikeStatusResponse> => {
   try {
     // console.log(`🔄 좋아요 상태 조회 API 호출: travelFeedId=${travelFeedId}`);
     
@@ -108,10 +108,10 @@ export const getFeedLikeStatus = async (travelFeedId: number | string): Promise<
 
 /**
  * 피드의 좋아요 개수만 조회하는 함수
- * @param travelFeedId 여행 피드 ID (숫자) 또는 여행 계획 ID (문자열)
+ * @param travelFeedId 여행 피드 ID (숫자)
  * @returns 좋아요 개수
  */
-export const getFeedLikeCount = async (travelFeedId: number | string): Promise<number> => {
+export const getFeedLikeCount = async (travelFeedId: number): Promise<number> => {
   try {
     // console.log(`🔄 좋아요 개수 조회 API 호출: travelFeedId=${travelFeedId}`);
     
@@ -132,10 +132,10 @@ export const getFeedLikeCount = async (travelFeedId: number | string): Promise<n
 
 /**
  * 피드에 좋아요한 사용자 목록을 조회하는 함수
- * @param travelFeedId 여행 피드 ID (숫자) 또는 여행 계획 ID (문자열)
+ * @param travelFeedId 여행 피드 ID (숫자)
  * @returns 좋아요한 사용자 목록
  */
-export const getFeedLikeUsers = async (travelFeedId: number | string): Promise<LikeUsersResponse> => {
+export const getFeedLikeUsers = async (travelFeedId: number): Promise<LikeUsersResponse> => {
   try {
     const response = await api.get<LikeUsersResponse>(`/api/feed/like/users`, {
       params: { travelFeedId: travelFeedId }

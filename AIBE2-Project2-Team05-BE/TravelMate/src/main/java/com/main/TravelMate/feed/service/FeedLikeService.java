@@ -77,14 +77,17 @@ public class FeedLikeService {
      */
     public LikeStatusResponseDto getLikeStatus(Long travelFeedId, String userEmail) {
         try {
-            log.info("🔍 좋아요 상태 조회 - travelFeedId: {}, userEmail: {}", travelFeedId, userEmail);
+            log.info("🔍 좋아요 상태 조회 - travelFeedId: {}, userEmail: {}", travelFeedId, (userEmail != null ? userEmail : "anonymous"));
 
-            // 사용자 조회
-            User user = userRepository.findByEmail(userEmail)
-                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userEmail));
-
-            // 좋아요 여부 확인
-            boolean liked = feedLikeRepository.existsByTravelFeedIdAndUser(travelFeedId, user);
+            boolean liked = false;
+            if (userEmail != null) {
+                // 로그인 상태일 때만 DB에서 사용자 정보를 조회합니다.
+                Optional<User> userOptional = userRepository.findByEmail(userEmail);
+                if (userOptional.isPresent()) {
+                    liked = feedLikeRepository.existsByTravelFeedIdAndUser(travelFeedId, userOptional.get());
+                }
+            }
+            // 비로그인 상태일 경우, liked는 false를 유지합니다.
 
             // 총 좋아요 개수 조회
             long likeCount = feedLikeRepository.countByTravelFeedId(travelFeedId);
@@ -96,7 +99,7 @@ public class FeedLikeService {
 
         } catch (Exception e) {
             log.error("❌ 좋아요 상태 조회 실패 - travelFeedId: {}, userEmail: {}, error: {}", 
-                    travelFeedId, userEmail, e.getMessage(), e);
+                    travelFeedId, (userEmail != null ? userEmail : "anonymous"), e.getMessage(), e);
             return LikeStatusResponseDto.error();
         }
     }

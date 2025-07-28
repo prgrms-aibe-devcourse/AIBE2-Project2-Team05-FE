@@ -761,40 +761,41 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
 
         // 🌟 좋아요 상태 로드 (모달/페이지 공통)
         try {
-          // 🌟 올바른 우선순위로 ID 선택
-          let travelFeedId = (loadedPlan as any)?.feedId; // 1순위: travel_feed.id
+          const travelFeedId = (loadedPlan as any)?.feedId; // ✅ 오직 travel_feed.id만 사용
           
-          if (!travelFeedId && (loadedPlan as any)?.realTravelPlanId) {
-            // 2순위: 실제 travel_plan.id (숫자)
-            travelFeedId = (loadedPlan as any).realTravelPlanId;
-            console.log(`🔄 [좋아요 로드 폴백] feedId가 없어서 realTravelPlanId 사용: ${travelFeedId}`);
-          } else if (!travelFeedId && (loadedPlan as any)?.id) {
-            // 3순위: 문자열 planId에서 숫자 추출 (마지막 수단)
-            const planId = (loadedPlan as any).id;
-            console.log(`🔄 [좋아요 로드 폴백] realTravelPlanId도 없어서 planId 파싱 시도: ${planId}`);
-            
-            // ⚠️ 주의: 마지막 숫자는 user_id일 수 있음
-            const numericMatch = planId.match(/_(\d+)$/);
-            if (numericMatch) {
-              travelFeedId = parseInt(numericMatch[1]);
-              console.warn(`⚠️ [좋아요 로드 폴백] planId에서 숫자 추출 (user_id일 수 있음): ${planId} → ${travelFeedId}`);
-            } else {
-              travelFeedId = planId;
-              console.log(`🔄 [좋아요 로드 폴백] planId 전체 사용: ${travelFeedId}`);
-            }
-          }
-          
-          if (travelFeedId) {
+          if (travelFeedId && typeof travelFeedId === 'number') {
             console.log(`🔍 [좋아요 로드] Travel Feed ID: ${travelFeedId} (모드: ${isModal ? '모달' : '페이지'})`);
 
             const likeStatus = await likeApi.getFeedLikeStatus(travelFeedId);
             if (likeStatus.success) {
-              setIsLiked(likeStatus.liked);
+              setIsLiked(true);
               setLikeCount(likeStatus.likeCount);
               console.log(`✅ 좋아요 상태 로드 성공 - Travel Feed ${travelFeedId}: liked=${likeStatus.liked}, count=${likeStatus.likeCount}`);
+              
+              // 🎯 현재 사용자가 좋아요를 눌렀는지 직접 확인
+              if (user?.email && !likeStatus.liked) {
+                // 백엔드에서 liked=false로 왔지만, 현재 사용자가 실제로 좋아요를 눌렀는지 다시 확인
+                try {
+                  const likeUsers = await likeApi.getFeedLikeUsers(travelFeedId);
+                  if (likeUsers.success) {
+                    const currentUserLiked = likeUsers.users.some(likeUser => 
+                      likeUser.nickname === user.nickname || 
+                      likeUser.userId.toString() === user.email ||
+                      likeUser.userId === parseInt(user.email.split('@')[0]) // 이메일에서 숫자 추출
+                    );
+                    if (!currentUserLiked) {
+                      setIsLiked(false);
+                    }
+                  }
+                } catch (error) {
+                  console.warn('좋아요 사용자 목록 확인 실패:', error);
+                }
+              }
+            } else {
+              console.warn(`⚠️ [좋아요 로드] 유효한 travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}`);
             }
           } else {
-            console.warn(`⚠️ [좋아요 로드] travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}, planId: ${(loadedPlan as any)?.id}`);
+            console.warn(`⚠️ [좋아요 로드] 유효한 travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}`);
           }
         } catch (likeError) {
           console.warn('좋아요 상태 로드 실패:', likeError);
@@ -959,7 +960,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       console.log('🗑️ 여행 계획 삭제 시도:', plan.id);
 
       // 백엔드 API 호출 - 상태를 DELETED로 변경
-      const response = await fetch(
+      const deleteResponse = await fetch(
         `http://localhost:8080/api/plan/${plan.id}`,
         {
           method: 'DELETE',
@@ -970,7 +971,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         },
       );
 
-      if (response.ok) {
+      if (deleteResponse.ok) {
         console.log('✅ 여행 계획 삭제 성공');
         alert('여행 계획이 삭제되었습니다.');
 
@@ -1122,40 +1123,18 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
     // 이미 로딩 중이면 함수 종료
     if (isLikeLoading) return;
 
+    const travelFeedId = (plan as any)?.feedId; // 🌟 feedId만 사용
+
+    if (!travelFeedId || typeof travelFeedId !== 'number') {
+      console.error(`❌ [좋아요 토글] 유효한 travelFeedId를 찾을 수 없습니다: ${travelFeedId}`);
+      alert('좋아요를 처리할 수 없습니다. 피드 정보가 없습니다.');
+      return;
+    }
+
     try {
       setIsLikeLoading(true); // 로딩 시작
       
-      // 🌟 올바른 우선순위로 ID 선택
-      let travelFeedId = (plan as any)?.feedId; // 1순위: travel_feed.id
-      
-      if (!travelFeedId && (plan as any)?.realTravelPlanId) {
-        // 2순위: 실제 travel_plan.id (숫자)
-        travelFeedId = (plan as any).realTravelPlanId;
-        // console.log(`🔄 [좋아요 토글 폴백] feedId가 없어서 realTravelPlanId 사용: ${travelFeedId}`);
-      } else if (!travelFeedId && (plan as any)?.id) {
-        // 3순위: 문자열 planId에서 숫자 추출 (마지막 수단)
-        const planId = (plan as any).id; // plan_1753627206875_58
-        // console.log(`🔄 [좋아요 토글 폴백] realTravelPlanId도 없어서 planId 파싱 시도: ${planId}`);
-        
-        // ⚠️ 주의: 마지막 숫자는 user_id일 수 있음
-        const numericMatch = planId.match(/_(\d+)$/);
-        if (numericMatch) {
-          travelFeedId = parseInt(numericMatch[1]);
-          // console.warn(`⚠️ [좋아요 토글 폴백] planId에서 숫자 추출 (user_id일 수 있음): ${planId} → ${travelFeedId}`);
-        } else {
-          // 숫자 추출 실패시 planId 전체 사용
-          travelFeedId = planId;
-          // console.log(`🔄 [좋아요 토글 폴백] planId 전체 사용: ${travelFeedId}`);
-        }
-      }
-      
-      if (!travelFeedId) {
-        console.error(`❌ [좋아요 토글] travel_feed.id를 찾을 수 없음 - feedId: ${(plan as any)?.feedId}, planId: ${(plan as any)?.id}`);
-        alert('좋아요를 처리할 수 없습니다. 피드 정보가 없습니다.');
-        return;
-      }
-      
-      // console.log(`🔄 [좋아요 토글] Travel Feed ID: ${travelFeedId}, 현재 상태: ${isLiked}`);
+      console.log(`🔄 [좋아요 토글] Travel Feed ID: ${travelFeedId}, 현재 상태: ${isLiked}`);
 
       // 백엔드 API 호출
       const response = await likeApi.toggleFeedLike(travelFeedId);
@@ -1165,7 +1144,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         setIsLiked(response.liked);
         setLikeCount(response.likeCount);
         
-        // console.log(`✅ 좋아요 토글 성공 - Travel Feed ${travelFeedId}: liked=${response.liked}, count=${response.likeCount}`);
+        console.log(`✅ 좋아요 토글 성공 - Travel Feed ${travelFeedId}: liked=${response.liked}, count=${response.likeCount}`);
 
         // localStorage 업데이트 (백엔드 응답값으로)
         if (plan) {
@@ -1176,6 +1155,21 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           };
           localStorage.setItem('currentTravelPlan', JSON.stringify(updatedPlan));
         }
+
+        // 🎯 토글 후 잠시 대기한 다음 상태를 다시 조회하여 동기화
+        setTimeout(async () => {
+          try {
+            const likeStatus = await likeApi.getFeedLikeStatus(travelFeedId);
+            if (likeStatus.success) {
+              setIsLiked(likeStatus.liked);
+              setLikeCount(likeStatus.likeCount);
+              console.log(`🔄 [상태 재조회] Travel Feed ${travelFeedId}: liked=${likeStatus.liked}, count=${likeStatus.likeCount}`);
+            }
+          } catch (error) {
+            console.warn('상태 재조회 실패:', error);
+          }
+        }, 500); // 500ms 후 재조회
+
       } else {
         // 백엔드 API 실패 시 에러 표시
         console.error('❌ 좋아요 토글 실패:', response.message);
@@ -1193,29 +1187,16 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   const fetchLikeUsers = async () => {
     if (likeUsersLoading) return;
 
+    const travelFeedId = (plan as any)?.feedId; // 🌟 feedId만 사용
+
+    if (!travelFeedId || typeof travelFeedId !== 'number') {
+      console.error('❌ 좋아요한 사용자 목록 조회 실패: travelFeedId를 찾을 수 없음');
+      alert('좋아요한 사용자 목록을 불러올 수 없습니다.');
+      return;
+    }
+
     try {
       setLikeUsersLoading(true);
-
-      // ID 우선순위: feedId > realTravelPlanId > planId 파싱
-      let travelFeedId = (plan as any)?.feedId;
-      
-      if (!travelFeedId && (plan as any)?.realTravelPlanId) {
-        travelFeedId = (plan as any).realTravelPlanId;
-      } else if (!travelFeedId && (plan as any)?.id) {
-        const planId = (plan as any).id;
-        const numericMatch = planId.match(/_(\d+)$/);
-        if (numericMatch) {
-          travelFeedId = parseInt(numericMatch[1]);
-        } else {
-          travelFeedId = planId;
-        }
-      }
-
-      if (!travelFeedId) {
-        console.error('❌ 좋아요한 사용자 목록 조회 실패: travelFeedId를 찾을 수 없음');
-        alert('좋아요한 사용자 목록을 불러올 수 없습니다.');
-        return;
-      }
 
       const response = await likeApi.getFeedLikeUsers(travelFeedId);
       
@@ -1923,13 +1904,13 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           <S.LikeButton 
             onClick={toggleLike} 
             $isLiked={isLiked}
-            disabled={isLikeLoading || (!(plan as any)?.feedId && !(plan as any)?.id)}
+            disabled={isLikeLoading || !(plan as any)?.feedId}
             style={{
-              opacity: (isLikeLoading || (!(plan as any)?.feedId && !(plan as any)?.id)) ? 0.6 : 1,
-              cursor: (isLikeLoading || (!(plan as any)?.feedId && !(plan as any)?.id)) ? 'not-allowed' : 'pointer',
+              opacity: isLikeLoading || !(plan as any)?.feedId ? 0.6 : 1,
+              cursor: isLikeLoading || !(plan as any)?.feedId ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease',
             }}
-            title={(!(plan as any)?.feedId && !(plan as any)?.id) ? '피드 정보가 없어 좋아요를 사용할 수 없습니다' : ''}
+            title={!(plan as any)?.feedId ? '피드 정보가 없어 좋아요를 사용할 수 없습니다' : ''}
           >
             <i 
               className={
@@ -1948,13 +1929,13 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
           <S.LikeText
             style={{
-              cursor: (likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? 'pointer' : 'default',
-              textDecoration: (likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? 'underline' : 'none',
-              color: (likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? '#3682F8' : 'inherit',
+              cursor: likeCount > 0 && (plan as any)?.feedId ? 'pointer' : 'default',
+              textDecoration: likeCount > 0 && (plan as any)?.feedId ? 'underline' : 'none',
+              color: likeCount > 0 && (plan as any)?.feedId ? '#3682F8' : 'inherit',
             }}
-            onClick={(likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? fetchLikeUsers : undefined}
+            onClick={likeCount > 0 && (plan as any)?.feedId ? fetchLikeUsers : undefined}
           >
-            {(!(plan as any)?.feedId && !(plan as any)?.id)
+            {!(plan as any)?.feedId
               ? '피드 정보가 없습니다'
               : likeCount > 0
                 ? `좋아요한 사람 ${likeCount}명 보기`

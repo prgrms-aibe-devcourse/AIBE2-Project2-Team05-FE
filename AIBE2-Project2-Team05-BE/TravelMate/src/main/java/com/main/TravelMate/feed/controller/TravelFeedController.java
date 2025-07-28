@@ -306,16 +306,21 @@ public class TravelFeedController {
      */
     @GetMapping("/like/status")
     public ResponseEntity<LikeStatusResponseDto> getLikeStatus(
-            @RequestParam Long travelFeedId,
+            @RequestParam String travelFeedId,
             Authentication authentication) {
         
         try {
+            // 🎯 비로그인 사용자도 조회 가능하도록 수정
+            String userEmail = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : null;
+
+            Long feedId = Long.parseLong(travelFeedId);
+
             log.info("🔍 [좋아요 상태] 조회 - travelFeedId: {}, user: {}", 
-                    travelFeedId, authentication.getName());
+                    feedId, userEmail != null ? userEmail : "anonymous");
             
             LikeStatusResponseDto response = feedLikeService.getLikeStatus(
-                    travelFeedId, 
-                    authentication.getName()
+                    feedId, 
+                    userEmail // userEmail이 null일 수 있음
             );
             
             log.info("✅ [좋아요 상태] 조회 완료 - liked: {}, count: {}", 
@@ -335,12 +340,13 @@ public class TravelFeedController {
      * 좋아요 개수만 조회 (인증 불필요)
      */
     @GetMapping("/like/count")
-    public ResponseEntity<Map<String, Object>> getLikeCount(@RequestParam Long travelFeedId) {
+    public ResponseEntity<Map<String, Object>> getLikeCount(@RequestParam String travelFeedId) {
         
         try {
-            log.info("📊 [좋아요 개수] 조회 - travelFeedId: {}", travelFeedId);
+            Long feedId = Long.parseLong(travelFeedId);
+            log.info("📊 [좋아요 개수] 조회 - travelFeedId: {}", feedId);
             
-            long likeCount = feedLikeService.getLikeCount(travelFeedId);
+            long likeCount = feedLikeService.getLikeCount(feedId);
             
             log.info("✅ [좋아요 개수] 조회 완료 - count: {}", likeCount);
             
@@ -364,12 +370,13 @@ public class TravelFeedController {
      * 좋아요한 사용자 목록 조회 (인증 불필요)
      */
     @GetMapping("/like/users")
-    public ResponseEntity<LikeUsersResponseDto> getLikeUsers(@RequestParam Long travelFeedId) {
+    public ResponseEntity<LikeUsersResponseDto> getLikeUsers(@RequestParam String travelFeedId) {
         
         try {
-            log.info("👥 [좋아요 사용자] 조회 - travelFeedId: {}", travelFeedId);
+            Long feedId = Long.parseLong(travelFeedId);
+            log.info("👥 [좋아요 사용자] 조회 - travelFeedId: {}", feedId);
             
-            LikeUsersResponseDto response = feedLikeService.getLikeUsers(travelFeedId);
+            LikeUsersResponseDto response = feedLikeService.getLikeUsers(feedId);
             
             log.info("✅ [좋아요 사용자] 조회 완료 - count: {}", response.getTotalCount());
             
