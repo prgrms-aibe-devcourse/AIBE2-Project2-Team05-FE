@@ -15,6 +15,7 @@ import api from '../services/api'; // api 인스턴스 추가
 import { getValidImageUrl } from '../utils/imageUtils'; // 이미지 유틸리티 추가
 import { updateTravelStatusApi } from '../services/feedTravelStatusApi'; // 백엔드 API 추가
 import * as reviewBackendApi from '../services/reviewBackendApi'; // 후기 백엔드 API 추가
+import * as likeApi from '../services/likeApi'; // 좋아요 백엔드 API 추가
 
 // ✅ src/types/plan.ts에서 TravelPlan, TravelDay, TravelEvent 타입 import 사용
 
@@ -133,21 +134,21 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   const id = propPlanId || paramId; // props로 받은 planId 우선 사용
 
   // ✅ 디버깅: authorInfo 확인
-  console.log('🔍 PlanPage - authorInfo 데이터:', {
-    isModal,
-    authorInfo,
-    hasAuthorInfo: !!authorInfo,
-  });
+  // console.log('🔍 PlanPage - authorInfo 데이터:', {
+  //   isModal,
+  //   authorInfo,
+  //   hasAuthorInfo: !!authorInfo,
+  // });
 
   // ✅ 작성자 정보 렌더링 조건 확인
   useEffect(() => {
     if (isModal) {
-      console.log('🔍 모달 모드 - 작성자 정보 체크:', {
-        authorInfo,
-        hasAuthor: !!authorInfo?.author,
-        hasAvatar: !!authorInfo?.avatar,
-        hasAge: !!authorInfo?.age,
-      });
+      // console.log('🔍 모달 모드 - 작성자 정보 체크:', {
+      //   authorInfo,
+      //   hasAuthor: !!authorInfo?.author,
+      //   hasAvatar: !!authorInfo?.avatar,
+      //   hasAge: !!authorInfo?.age,
+      // });
     }
   }, [isModal, authorInfo]);
 
@@ -155,6 +156,10 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false); // 좋아요 로딩 상태
+  const [likeUsersModalOpen, setLikeUsersModalOpen] = useState(false); // 좋아요한 사용자 목록 모달
+  const [likeUsers, setLikeUsers] = useState<any[]>([]); // 좋아요한 사용자 목록
+  const [likeUsersLoading, setLikeUsersLoading] = useState(false); // 좋아요한 사용자 목록 로딩
 
   // 피드 상태 관리 state  
   const [feedStatus, setFeedStatus] = useState<TravelStatus | null>(null); // 🌟 초기값을 null로 설정
@@ -322,15 +327,15 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
               }
               
               const data = await response.json();
-              console.log('✅ 관리자 모달: 백엔드 데이터 로드 성공:', data);
-              console.log('📊 백엔드 응답 데이터 구조:', {
-                hasSchedules: !!data.schedules,
-                schedulesType: typeof data.schedules,
-                schedulesContent: data.schedules ? data.schedules.substring(0, 100) + '...' : 'null',
-                title: data.title,
-                destination: data.destination,
-                authorNickname: data.authorNickname
-              });
+              // console.log('✅ 관리자 모달: 백엔드 데이터 로드 성공:', data);
+              // console.log('📊 백엔드 응답 데이터 구조:', {
+              //   hasSchedules: !!data.schedules,
+              //   schedulesType: typeof data.schedules,
+              //   schedulesContent: data.schedules ? data.schedules.substring(0, 100) + '...' : 'null',
+              //   title: data.title,
+              //   destination: data.destination,
+              //   authorNickname: data.authorNickname
+              // });
 
               if (data) {
                 // 📊 백엔드 데이터 구조 확인 및 변환
@@ -393,12 +398,16 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   likedUsers: [],
                   isLiked: false,
                   travelStatus: data.travelStatus ? data.travelStatus.toLowerCase() : 'recruiting', // 🌟 백엔드 여행 상태 포함 (대소문자 변환)
+                  feedId: data.feedId || null, // 🌟 관리자 모달에서도 feedId 설정 (없으면 null)
+                  realTravelPlanId: data.id || data.travelPlanId, // 🌟 실제 travel_plan.id
                   author: {
                     id: data.authorId?.toString() || 'unknown',
                     name: data.authorNickname || '사용자',
                     profileImage: data.authorProfileImage || '👤',
                   },
                 };
+                
+                console.log('🔍 [관리자 모달] feedId 설정:', data.feedId, '→', loadedPlan.feedId);
 
                 console.log('🎯 최종 변환된 여행 계획:', loadedPlan);
                 console.log('✅ 관리자 모달: 변환 성공, plan 설정 예정');
@@ -437,17 +446,21 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
             
             try {
               // 🌟 하이브리드 접근법: 두 API를 모두 호출해서 데이터 조합
-              console.log('📡 [하이브리드] TravelPlan API 호출 (상세 내용용)');
+              // console.log('📡 [하이브리드] TravelPlan API 호출 (상세 내용용)');
               const planResponse = await api.get(`/api/plan/${id}`);
+              // console.log('📊 [디버깅] planResponse:', planResponse.data);
               
-              console.log('📡 [하이브리드] TravelFeed API 호출 (상태용)');
+              // console.log('📡 [하이브리드] TravelFeed API 호출 (상태용)');
               const feedResponse = await api.get(`/api/feed/plan/${id}`);
+              // console.log('📊 [디버깅] feedResponse:', feedResponse.data);
               
               if (planResponse.data && feedResponse.data) {
                 // TravelPlan 데이터 (상세 내용)
                 const planData = planResponse.data;
                 // TravelFeed 데이터 (상태)
                 const feedData = feedResponse.data;
+                
+                // console.log('🔍 [상세 디버깅] feedData.id:', feedData.id, '| feedData 전체:', feedData);
                 
                 // 두 데이터를 조합
                 const data = {
@@ -459,6 +472,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 
                 console.log('✅ [하이브리드] 조합된 데이터 로드 성공:', data);
                 console.log('🌟 [중요] 백엔드 travelStatus:', data.travelStatus);
+                console.log('🔍 [ID 디버깅] travel_plan.id:', data.planId || data.id, '| travel_feed.id:', data.feedId);
                 
                 // 🌟 즉시 피드 상태를 백엔드 데이터로 설정 (대소문자 변환)
                 if (data.travelStatus) {
@@ -485,8 +499,8 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 });
 
                 // 백엔드 데이터를 TravelPlan 형식으로 변환
-                console.log('📊 백엔드 원본 데이터:', data);
-                console.log('📍 nearbyRecommendations:', data.nearbyRecommendations);
+                // console.log('📊 백엔드 원본 데이터:', data);
+                // console.log('📍 nearbyRecommendations:', data.nearbyRecommendations);
 
                 // schedules가 문자열이면 파싱
                 let parsedSchedules = {};
@@ -501,6 +515,13 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   }
                 }
 
+                console.log('🔍 [ID 매핑 확인] 백엔드 데이터의 ID 관련 필드들:');
+                console.log('  - data.id:', data.id);
+                console.log('  - data.planId:', data.planId);
+                console.log('  - data.travelPlanId:', data.travelPlanId);
+                console.log('  - data.authorId:', data.authorId);
+                console.log('  - data.feedId:', data.feedId);
+                
                 loadedPlan = {
                   id: data.planId || data.id,
                   title: data.title,
@@ -515,6 +536,8 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   likedUsers: [],
                   isLiked: false,
                   travelStatus: data.travelStatus ? data.travelStatus.toLowerCase() : 'recruiting', // 🌟 백엔드 여행 상태 포함 (대소문자 변환)
+                  feedId: data.feedId, // 🌟 travel_feed.id
+                  realTravelPlanId: data.id || data.travelPlanId, // 🌟 실제 travel_plan.id (숫자)
                   author: {
                     id: data.authorId || 'user',
                     name: data.authorNickname || '사용자',
@@ -561,9 +584,64 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 }
               } else {
                 console.warn('⚠️ [하이브리드] 백엔드 응답 데이터가 없음');
-                console.warn('📊 planResponse:', planResponse.data);
-                console.warn('📊 feedResponse:', feedResponse.data);
-                throw new Error('Failed to load plan or feed data');
+                console.warn('📊 planResponse.data:', planResponse.data);
+                console.warn('📊 feedResponse.data:', feedResponse.data);
+                console.warn('📊 planResponse 상태:', !!planResponse.data);
+                console.warn('📊 feedResponse 상태:', !!feedResponse.data);
+                
+                // 🌟 Plan 데이터만 있는 경우 (Feed가 없는 경우) 처리
+                if (planResponse.data && !feedResponse.data) {
+                  console.log('🔄 [폴백] TravelPlan 데이터만 사용 (TravelFeed 없음)');
+                  const planData = planResponse.data;
+                  
+                  // Feed 없이 Plan 데이터만으로 구성
+                  const data = {
+                    ...planData,
+                    travelStatus: 'recruiting', // 기본값
+                    feedId: null, // ❌ travel_feed가 없음
+                    caption: planData.title || '여행 계획',
+                  };
+                  
+                  console.log('✅ [폴백] Plan 전용 데이터 구성:', data);
+                  console.log('⚠️ [폴백] feedId가 null이므로 좋아요 기능 비활성화됨');
+                  
+                  // Plan 데이터로 계속 진행
+                  loadedPlan = {
+                    id: data.planId || data.id,
+                    title: data.title,
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    destination: data.location || data.destination,
+                    budget: data.budget?.toString() || '0',
+                    people: data.numberOfPeople?.toString() || data.people?.toString() || '0',
+                    period: `${calculateDays(data.startDate, data.endDate)}일`,
+                    days: convertSchedulesToDays(typeof data.schedules === 'string' ? JSON.parse(data.schedules) : data.schedules, data.startDate),
+                    likes: 0,
+                    likedUsers: [],
+                                         isLiked: false,
+                     travelStatus: data.travelStatus,
+                     feedId: data.feedId, // null
+                     realTravelPlanId: data.id || data.travelPlanId, // 🌟 실제 travel_plan.id
+                     author: {
+                      id: data.authorId || 'user',
+                      name: data.authorNickname || '사용자',
+                      profileImage: data.authorProfileImage || '👤',
+                    },
+                    styleLabels: data.interests ? [data.interests] : [],
+                    aiHashtags: data.aiHashtags ? JSON.parse(data.aiHashtags) : [],
+                    nearbyRecommendations: data.nearbyRecommendations 
+                      ? JSON.parse(data.nearbyRecommendations) 
+                      : [],
+                  };
+                  
+                  setPlan(loadedPlan);
+                  setIsLiked(false);
+                  setLikeCount(0);
+                  
+                  console.log('✅ [폴백] Plan 전용 데이터로 setPlan 완료');
+                } else {
+                  throw new Error('Failed to load plan or feed data');
+                }
               }
             } catch (error) {
               console.error('❌ [하이브리드] 백엔드 로드 실패:', error);
@@ -662,29 +740,79 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
 
         // 🌟 후기 데이터 로드 (모달/페이지 공통)
         try {
-          const feedId = (loadedPlan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
-          console.log(`🔍 [후기 로드] 피드 ID: ${feedId} (모드: ${isModal ? '모달' : '페이지'})`);
+          const travelFeedId = (loadedPlan as any)?.feedId; // ✅ 오직 travel_feed.id만 사용
+          
+          if (travelFeedId) {
+            console.log(`🔍 [후기 로드] Travel Feed ID: ${travelFeedId} (모드: ${isModal ? '모달' : '페이지'})`);
 
-          const reviewResponse = await reviewBackendApi.getReviewsByFeedId(feedId);
-          if (reviewResponse.success) {
-            setUserReviews(reviewResponse.reviews);
-            console.log(`✅ 후기 로드 성공 - 피드 ${feedId}: ${reviewResponse.reviews.length}개`, reviewResponse.reviews);
+            const reviewResponse = await reviewBackendApi.getReviewsByFeedId(travelFeedId);
+            if (reviewResponse.success) {
+              setUserReviews(reviewResponse.reviews);
+              console.log(`✅ 후기 로드 성공 - Travel Feed ${travelFeedId}: ${reviewResponse.reviews.length}개`, reviewResponse.reviews);
+            }
+          } else {
+            console.warn(`⚠️ [후기 로드] travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}`);
+            setUserReviews([]);
           }
         } catch (reviewError) {
           console.warn('후기 로드 실패:', reviewError);
           setUserReviews([]);
         }
 
+        // 🌟 좋아요 상태 로드 (모달/페이지 공통)
+        try {
+          // 🌟 올바른 우선순위로 ID 선택
+          let travelFeedId = (loadedPlan as any)?.feedId; // 1순위: travel_feed.id
+          
+          if (!travelFeedId && (loadedPlan as any)?.realTravelPlanId) {
+            // 2순위: 실제 travel_plan.id (숫자)
+            travelFeedId = (loadedPlan as any).realTravelPlanId;
+            console.log(`🔄 [좋아요 로드 폴백] feedId가 없어서 realTravelPlanId 사용: ${travelFeedId}`);
+          } else if (!travelFeedId && (loadedPlan as any)?.id) {
+            // 3순위: 문자열 planId에서 숫자 추출 (마지막 수단)
+            const planId = (loadedPlan as any).id;
+            console.log(`🔄 [좋아요 로드 폴백] realTravelPlanId도 없어서 planId 파싱 시도: ${planId}`);
+            
+            // ⚠️ 주의: 마지막 숫자는 user_id일 수 있음
+            const numericMatch = planId.match(/_(\d+)$/);
+            if (numericMatch) {
+              travelFeedId = parseInt(numericMatch[1]);
+              console.warn(`⚠️ [좋아요 로드 폴백] planId에서 숫자 추출 (user_id일 수 있음): ${planId} → ${travelFeedId}`);
+            } else {
+              travelFeedId = planId;
+              console.log(`🔄 [좋아요 로드 폴백] planId 전체 사용: ${travelFeedId}`);
+            }
+          }
+          
+          if (travelFeedId) {
+            console.log(`🔍 [좋아요 로드] Travel Feed ID: ${travelFeedId} (모드: ${isModal ? '모달' : '페이지'})`);
+
+            const likeStatus = await likeApi.getFeedLikeStatus(travelFeedId);
+            if (likeStatus.success) {
+              setIsLiked(likeStatus.liked);
+              setLikeCount(likeStatus.likeCount);
+              console.log(`✅ 좋아요 상태 로드 성공 - Travel Feed ${travelFeedId}: liked=${likeStatus.liked}, count=${likeStatus.likeCount}`);
+            }
+          } else {
+            console.warn(`⚠️ [좋아요 로드] travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}, planId: ${(loadedPlan as any)?.id}`);
+          }
+        } catch (likeError) {
+          console.warn('좋아요 상태 로드 실패:', likeError);
+          // 실패 시 기본값 유지
+        }
+
         // 피드 상태 관련 로직은 모달이 아닐 때만 실행
         if (!isModal) {
           try {
-            const planId = loadedPlan?.id || 'default';
-            const planNumericId = typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
-            const feedId = parseInt(String(planNumericId)) || 1;
+            const travelFeedId = (loadedPlan as any)?.feedId; // ✅ 오직 travel_feed.id만 사용
 
-            // 후기 작성 완료 여부 확인 (localStorage 기반)
-            const hasReview = feedStatusService.hasReviewWritten(feedId);
-            setReviewCompleted(hasReview);
+            if (travelFeedId) {
+              // 후기 작성 완료 여부 확인 (localStorage 기반)
+              const hasReview = feedStatusService.hasReviewWritten(travelFeedId);
+              setReviewCompleted(hasReview);
+            } else {
+              console.warn(`⚠️ [피드 상태] travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}`);
+            }
           } catch (statusError) {
             console.error('피드 상태 로드 오류:', statusError);
           }
@@ -756,9 +884,14 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       return;
     }
 
-    const feedId = (plan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
+    const travelFeedId = (plan as any)?.feedId; // ✅ 오직 travel_feed.id만 사용
 
-    if (feedStatusService.hasReviewWritten(feedId)) {
+    if (!travelFeedId) {
+      alert('피드 정보를 찾을 수 없어 후기를 작성할 수 없습니다.');
+      return;
+    }
+
+    if (feedStatusService.hasReviewWritten(travelFeedId)) {
       alert('이미 후기를 작성한 여행입니다.');
       return;
     }
@@ -769,23 +902,29 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   // 후기 작성 완료 핸들러
   const handleReviewSubmit = async (reviewData: any) => {
     try {
-      const feedId = (plan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
+      const travelFeedId = (plan as any)?.feedId; // ✅ 오직 travel_feed.id만 사용
+
+      if (!travelFeedId) {
+        console.error('❌ travel_feed.id를 찾을 수 없어 후기 처리가 불가능합니다.');
+        alert('후기 처리 중 오류가 발생했습니다. 피드 정보가 없습니다.');
+        return;
+      }
 
       console.log('🌟 후기 작성 완료 - 백엔드에서 최신 후기 목록 로드 중...');
 
       // 🌟 백엔드에서 최신 후기 목록 다시 로드
       try {
-        const reviewResponse = await reviewBackendApi.getReviewsByFeedId(feedId);
+        const reviewResponse = await reviewBackendApi.getReviewsByFeedId(travelFeedId);
         if (reviewResponse.success) {
           setUserReviews(reviewResponse.reviews);
-          console.log(`✅ 후기 작성 후 최신 목록 로드 성공 - 피드 ${feedId}: ${reviewResponse.reviews.length}개`);
+          console.log(`✅ 후기 작성 후 최신 목록 로드 성공 - Travel Feed ${travelFeedId}: ${reviewResponse.reviews.length}개`);
         }
       } catch (reviewError) {
         console.warn('후기 목록 재로드 실패:', reviewError);
       }
 
       // 후기 작성 완료 표시 (로컬 상태 관리용)
-      feedStatusService.markReviewCompleted(feedId);
+      feedStatusService.markReviewCompleted(travelFeedId);
 
       // 상태 업데이트
       setReviewCompleted(true);
@@ -978,19 +1117,119 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
     );
   }
 
-  // 좋아요 토글 함수
-  const toggleLike = () => {
-    setIsLiked(!isLiked);
-    setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+  // 좋아요 토글 함수 (백엔드 연동)
+  const toggleLike = async () => {
+    // 이미 로딩 중이면 함수 종료
+    if (isLikeLoading) return;
 
-    // localStorage 업데이트
-    if (plan) {
-      const updatedPlan = {
-        ...plan,
-        isLiked: !isLiked,
-        likes: isLiked ? likeCount - 1 : likeCount + 1,
-      };
-      localStorage.setItem('currentTravelPlan', JSON.stringify(updatedPlan));
+    try {
+      setIsLikeLoading(true); // 로딩 시작
+      
+      // 🌟 올바른 우선순위로 ID 선택
+      let travelFeedId = (plan as any)?.feedId; // 1순위: travel_feed.id
+      
+      if (!travelFeedId && (plan as any)?.realTravelPlanId) {
+        // 2순위: 실제 travel_plan.id (숫자)
+        travelFeedId = (plan as any).realTravelPlanId;
+        // console.log(`🔄 [좋아요 토글 폴백] feedId가 없어서 realTravelPlanId 사용: ${travelFeedId}`);
+      } else if (!travelFeedId && (plan as any)?.id) {
+        // 3순위: 문자열 planId에서 숫자 추출 (마지막 수단)
+        const planId = (plan as any).id; // plan_1753627206875_58
+        // console.log(`🔄 [좋아요 토글 폴백] realTravelPlanId도 없어서 planId 파싱 시도: ${planId}`);
+        
+        // ⚠️ 주의: 마지막 숫자는 user_id일 수 있음
+        const numericMatch = planId.match(/_(\d+)$/);
+        if (numericMatch) {
+          travelFeedId = parseInt(numericMatch[1]);
+          // console.warn(`⚠️ [좋아요 토글 폴백] planId에서 숫자 추출 (user_id일 수 있음): ${planId} → ${travelFeedId}`);
+        } else {
+          // 숫자 추출 실패시 planId 전체 사용
+          travelFeedId = planId;
+          // console.log(`🔄 [좋아요 토글 폴백] planId 전체 사용: ${travelFeedId}`);
+        }
+      }
+      
+      if (!travelFeedId) {
+        console.error(`❌ [좋아요 토글] travel_feed.id를 찾을 수 없음 - feedId: ${(plan as any)?.feedId}, planId: ${(plan as any)?.id}`);
+        alert('좋아요를 처리할 수 없습니다. 피드 정보가 없습니다.');
+        return;
+      }
+      
+      // console.log(`🔄 [좋아요 토글] Travel Feed ID: ${travelFeedId}, 현재 상태: ${isLiked}`);
+
+      // 백엔드 API 호출
+      const response = await likeApi.toggleFeedLike(travelFeedId);
+      
+      if (response.success) {
+        // 백엔드 응답으로 상태 업데이트
+        setIsLiked(response.liked);
+        setLikeCount(response.likeCount);
+        
+        // console.log(`✅ 좋아요 토글 성공 - Travel Feed ${travelFeedId}: liked=${response.liked}, count=${response.likeCount}`);
+
+        // localStorage 업데이트 (백엔드 응답값으로)
+        if (plan) {
+          const updatedPlan = {
+            ...plan,
+            isLiked: response.liked,
+            likes: response.likeCount,
+          };
+          localStorage.setItem('currentTravelPlan', JSON.stringify(updatedPlan));
+        }
+      } else {
+        // 백엔드 API 실패 시 에러 표시
+        console.error('❌ 좋아요 토글 실패:', response.message);
+        alert(response.message || '좋아요 처리 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 좋아요 토글 중 예외 발생:', error);
+      alert('좋아요 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsLikeLoading(false); // 로딩 종료
+    }
+  };
+
+  // 좋아요한 사용자 목록 조회 함수
+  const fetchLikeUsers = async () => {
+    if (likeUsersLoading) return;
+
+    try {
+      setLikeUsersLoading(true);
+
+      // ID 우선순위: feedId > realTravelPlanId > planId 파싱
+      let travelFeedId = (plan as any)?.feedId;
+      
+      if (!travelFeedId && (plan as any)?.realTravelPlanId) {
+        travelFeedId = (plan as any).realTravelPlanId;
+      } else if (!travelFeedId && (plan as any)?.id) {
+        const planId = (plan as any).id;
+        const numericMatch = planId.match(/_(\d+)$/);
+        if (numericMatch) {
+          travelFeedId = parseInt(numericMatch[1]);
+        } else {
+          travelFeedId = planId;
+        }
+      }
+
+      if (!travelFeedId) {
+        console.error('❌ 좋아요한 사용자 목록 조회 실패: travelFeedId를 찾을 수 없음');
+        alert('좋아요한 사용자 목록을 불러올 수 없습니다.');
+        return;
+      }
+
+      const response = await likeApi.getFeedLikeUsers(travelFeedId);
+      
+      if (response.success) {
+        setLikeUsers(response.users);
+        setLikeUsersModalOpen(true);
+      } else {
+        alert(response.message || '좋아요한 사용자 목록을 불러올 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 좋아요한 사용자 목록 조회 중 예외 발생:', error);
+      alert('좋아요한 사용자 목록을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLikeUsersLoading(false);
     }
   };
 
@@ -1265,7 +1504,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       )}
 
       {/* 🧪 임시 디버깅 정보 */}
-      <div
+      {/* <div
         style={{
           position: 'absolute',
           top: '80px',
@@ -1280,7 +1519,9 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         }}
       >
         🔍 디버깅: feedStatus={feedStatus} | isAuthor={isAuthor ? 'YES' : 'NO'} | reviews={userReviews.length}
-      </div>
+        <br/>
+        📊 feedId={(plan as any)?.feedId || 'undefined'} | realTravelPlanId={(plan as any)?.realTravelPlanId || 'undefined'} | planId={plan?.id || 'undefined'}
+      </div> */}
 
       {/* ✅ 작성자 정보 섹션 (모달에서만 표시) */}
       {isModal && authorInfo && (
@@ -1679,12 +1920,46 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       {/* 푸터 */}
       <S.Footer>
         <S.Likes>
-          <S.LikeButton onClick={toggleLike} $isLiked={isLiked}>
-            <i className={isLiked ? 'ri-heart-fill' : 'ri-heart-line'}></i>
+          <S.LikeButton 
+            onClick={toggleLike} 
+            $isLiked={isLiked}
+            disabled={isLikeLoading || (!(plan as any)?.feedId && !(plan as any)?.id)}
+            style={{
+              opacity: (isLikeLoading || (!(plan as any)?.feedId && !(plan as any)?.id)) ? 0.6 : 1,
+              cursor: (isLikeLoading || (!(plan as any)?.feedId && !(plan as any)?.id)) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title={(!(plan as any)?.feedId && !(plan as any)?.id) ? '피드 정보가 없어 좋아요를 사용할 수 없습니다' : ''}
+          >
+            <i 
+              className={
+                isLikeLoading 
+                  ? 'ri-loader-4-line' 
+                  : isLiked 
+                    ? 'ri-heart-fill' 
+                    : 'ri-heart-line'
+              }
+              style={{
+                animation: isLikeLoading ? 'spin 1s linear infinite' : 'none',
+              }}
+            ></i>
             <span>{likeCount}</span>
           </S.LikeButton>
           <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
-          <S.LikeText>좋아요 누른 사람을 보기</S.LikeText>
+          <S.LikeText
+            style={{
+              cursor: (likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? 'pointer' : 'default',
+              textDecoration: (likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? 'underline' : 'none',
+              color: (likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? '#3682F8' : 'inherit',
+            }}
+            onClick={(likeCount > 0 && ((plan as any)?.feedId || (plan as any)?.id)) ? fetchLikeUsers : undefined}
+          >
+            {(!(plan as any)?.feedId && !(plan as any)?.id)
+              ? '피드 정보가 없습니다'
+              : likeCount > 0
+                ? `좋아요한 사람 ${likeCount}명 보기`
+                : '아직 좋아요한 사람이 없습니다'}
+          </S.LikeText>
         </S.Likes>
 
         {/* 버튼 그룹 */}
@@ -1970,10 +2245,10 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       </S.Footer>
 
       {/* 후기 작성 모달 */}
-      {reviewModalOpen && plan && (
+      {reviewModalOpen && plan && (plan as any)?.feedId && (
         <ReviewWriteModal
           isOpen={reviewModalOpen}
-          feedId={(plan as any)?.feedId || 17}
+          feedId={(plan as any).feedId}
           planId={plan.id}
           destination={plan.destination}
           onClose={() => setReviewModalOpen(false)}
@@ -1992,6 +2267,161 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           placeName={selectedPlace || plan.destination}
           region={plan.destination}
         />
+      )}
+
+      {/* 좋아요한 사용자 목록 모달 */}
+      {likeUsersModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setLikeUsersModalOpen(false);
+            }
+          }}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              width: '400px',
+              maxWidth: '90vw',
+              maxHeight: '70vh',
+              overflow: 'hidden',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            }}
+          >
+            {/* 모달 헤더 */}
+            <div 
+              style={{
+                padding: '20px',
+                borderBottom: '1px solid #f0f0f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                좋아요한 사람 ({likeUsers.length}명)
+              </h3>
+              <button
+                onClick={() => setLikeUsersModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  padding: '0',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* 모달 내용 */}
+            <div 
+              style={{
+                padding: '20px',
+                maxHeight: '400px',
+                overflowY: 'auto',
+              }}
+            >
+              {likeUsersLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div 
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid #f3f3f3',
+                      borderTop: '3px solid #3682F8',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto 16px',
+                    }}
+                  />
+                  <p style={{ color: '#666', fontSize: '14px' }}>사용자 목록을 불러오는 중...</p>
+                </div>
+              ) : likeUsers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>
+                  <p>아직 좋아요한 사람이 없습니다.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {likeUsers.map((user, index) => (
+                    <div 
+                      key={index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        backgroundColor: '#f8f9fa',
+                        gap: '12px',
+                      }}
+                    >
+                      {/* 프로필 이미지 */}
+                      <div 
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          backgroundColor: '#e9ecef',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          color: '#495057',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {user.profileImageUrl ? (
+                          <img 
+                            src={user.profileImageUrl} 
+                            alt={user.nickname}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          user.nickname?.charAt(0)?.toUpperCase() || '👤'
+                        )}
+                      </div>
+
+                      {/* 사용자 정보 */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
+                          {user.nickname || '익명 사용자'}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>
+                          {user.likedAt}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </S.Container>
   );

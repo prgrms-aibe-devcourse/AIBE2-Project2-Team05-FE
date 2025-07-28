@@ -10,6 +10,11 @@ import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.feed.repository.TravelFeedRepository;
 import com.main.TravelMate.feed.service.TravelFeedService;
 import com.main.TravelMate.feed.service.TravelFeedMigrationService;
+import com.main.TravelMate.feed.service.FeedLikeService;
+import com.main.TravelMate.feed.dto.LikeToggleRequestDto;
+import com.main.TravelMate.feed.dto.LikeResponseDto;
+import com.main.TravelMate.feed.dto.LikeStatusResponseDto;
+import com.main.TravelMate.feed.dto.LikeUsersResponseDto;
 import com.main.TravelMate.plan.dto.TravelDayDto;
 import com.main.TravelMate.plan.dto.TravelScheduleDto;
 import com.main.TravelMate.plan.entity.TravelPlan;
@@ -38,6 +43,7 @@ public class TravelFeedController {
 
     private final TravelFeedRepository feedRepository;
     private final TravelFeedService feedService; // ✅ 서비스 추가
+    private final FeedLikeService feedLikeService; // ✅ 좋아요 서비스 추가
 
     // ✅ 기존 페이지 기반 피드 목록 조회
     @GetMapping
@@ -260,6 +266,120 @@ public class TravelFeedController {
                     "message", "상태 확인 실패: " + e.getMessage(),
                     "timestamp", LocalDateTime.now()
                 ));
+        }
+    }
+
+    // ====== 좋아요 관련 API ======
+
+    /**
+     * 좋아요 토글 (추가/제거)
+     */
+    @PostMapping("/like/toggle")
+    public ResponseEntity<LikeResponseDto> toggleLike(
+            @RequestBody LikeToggleRequestDto request,
+            Authentication authentication) {
+        
+        try {
+            log.info("🔄 [좋아요 토글] 요청 - travelFeedId: {}, user: {}", 
+                    request.getTravelFeedId(), authentication.getName());
+            
+            LikeResponseDto response = feedLikeService.toggleLike(
+                    request.getTravelFeedId(), 
+                    authentication.getName()
+            );
+            
+            log.info("✅ [좋아요 토글] 완료 - liked: {}, count: {}", 
+                    response.isLiked(), response.getLikeCount());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("❌ [좋아요 토글] 실패 - error: {}", e.getMessage(), e);
+            
+            LikeResponseDto errorResponse = LikeResponseDto.error("좋아요 처리 중 오류가 발생했습니다");
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * 좋아요 상태 조회
+     */
+    @GetMapping("/like/status")
+    public ResponseEntity<LikeStatusResponseDto> getLikeStatus(
+            @RequestParam Long travelFeedId,
+            Authentication authentication) {
+        
+        try {
+            log.info("🔍 [좋아요 상태] 조회 - travelFeedId: {}, user: {}", 
+                    travelFeedId, authentication.getName());
+            
+            LikeStatusResponseDto response = feedLikeService.getLikeStatus(
+                    travelFeedId, 
+                    authentication.getName()
+            );
+            
+            log.info("✅ [좋아요 상태] 조회 완료 - liked: {}, count: {}", 
+                    response.isLiked(), response.getLikeCount());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("❌ [좋아요 상태] 조회 실패 - error: {}", e.getMessage(), e);
+            
+            LikeStatusResponseDto errorResponse = LikeStatusResponseDto.error();
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * 좋아요 개수만 조회 (인증 불필요)
+     */
+    @GetMapping("/like/count")
+    public ResponseEntity<Map<String, Object>> getLikeCount(@RequestParam Long travelFeedId) {
+        
+        try {
+            log.info("📊 [좋아요 개수] 조회 - travelFeedId: {}", travelFeedId);
+            
+            long likeCount = feedLikeService.getLikeCount(travelFeedId);
+            
+            log.info("✅ [좋아요 개수] 조회 완료 - count: {}", likeCount);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "likeCount", likeCount
+            ));
+            
+        } catch (Exception e) {
+            log.error("❌ [좋아요 개수] 조회 실패 - error: {}", e.getMessage(), e);
+            
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "likeCount", 0,
+                "message", "좋아요 개수 조회 중 오류가 발생했습니다"
+            ));
+        }
+    }
+
+    /**
+     * 좋아요한 사용자 목록 조회 (인증 불필요)
+     */
+    @GetMapping("/like/users")
+    public ResponseEntity<LikeUsersResponseDto> getLikeUsers(@RequestParam Long travelFeedId) {
+        
+        try {
+            log.info("👥 [좋아요 사용자] 조회 - travelFeedId: {}", travelFeedId);
+            
+            LikeUsersResponseDto response = feedLikeService.getLikeUsers(travelFeedId);
+            
+            log.info("✅ [좋아요 사용자] 조회 완료 - count: {}", response.getTotalCount());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("❌ [좋아요 사용자] 조회 실패 - error: {}", e.getMessage(), e);
+            
+            LikeUsersResponseDto errorResponse = LikeUsersResponseDto.error("좋아요한 사용자 목록 조회 중 오류가 발생했습니다");
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 

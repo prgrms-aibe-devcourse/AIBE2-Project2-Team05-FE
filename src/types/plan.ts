@@ -56,6 +56,8 @@ export interface TravelPlan {
   likedUsers: string[];
   isLiked: boolean;
   travelStatus?: TravelStatus; // 🌟 여행 진행 상태 (recruiting, traveling, completed)
+  feedId?: number | null; // 🌟 연결된 travel_feed.id (좋아요 기능용)
+  realTravelPlanId?: number; // 🌟 실제 travel_plan.id (숫자, 좋아요 폴백용)
   author: Author;
   
   // 백엔드 응답 필드 (작성자 정보)
