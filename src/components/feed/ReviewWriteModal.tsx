@@ -71,9 +71,10 @@ const ReviewWriteModal: React.FC<ReviewWriteModalProps> = ({
         imageUrls: [], // 이미지 업로드 기능은 추후 구현
       };
 
-      const response = await reviewBackendApi.createReview(feedId, reviewRequest);
+      // 🔧 TravelPlan ID로 후기 작성 (TravelFeed 자동 조회)
+      const response = await reviewBackendApi.createReviewByPlanId(feedId, reviewRequest);
 
-      console.log(`✅ 백엔드 후기 작성 완료 - 피드 ${feedId}`, response);
+      console.log(`✅ 백엔드 후기 작성 완료 - Plan ID ${feedId}`, response);
 
       // 피드에 후기 작성 완료 표시 (로컬 상태 관리용)
       feedStatusService.markReviewCompleted(feedId);

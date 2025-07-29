@@ -93,6 +93,38 @@ export const createReview = async (
 };
 
 /**
+ * TravelPlan ID로 후기 작성 (TravelFeed를 먼저 조회 후 후기 작성)
+ */
+export const createReviewByPlanId = async (
+  planId: number,
+  reviewData: ReviewCreateRequest,
+): Promise<ReviewCreateResponse> => {
+  try {
+    console.log(`🔍 [API] TravelPlan ID로 후기 작성 요청 - Plan ID: ${planId}`, reviewData);
+
+    // 1. TravelPlan ID로 TravelFeed 조회
+    const feedResponse = await axios.get(`${API_BASE_URL}/api/feed/plan/${planId}`);
+    const travelFeed = feedResponse.data;
+    
+    if (!travelFeed || !travelFeed.id) {
+      throw new Error(`TravelPlan ID ${planId}에 해당하는 TravelFeed를 찾을 수 없습니다`);
+    }
+
+    console.log(`✅ [API] TravelFeed 조회 성공 - Plan ID: ${planId} → Feed ID: ${travelFeed.id}`);
+
+    // 2. TravelFeed ID로 후기 작성
+    return await createReview(travelFeed.id, reviewData);
+    
+  } catch (error: any) {
+    console.error(`❌ [API] TravelPlan ID로 후기 작성 실패 - Plan ID: ${planId}`, error);
+    
+    const errorMessage =
+      error.response?.data?.message || error.message || `후기 작성 실패: ${error.message}`;
+    throw new Error(errorMessage);
+  }
+};
+
+/**
  * 특정 피드의 모든 후기 조회
  */
 export const getReviewsByFeedId = async (
@@ -118,6 +150,7 @@ export const getReviewsByFeedId = async (
 
 /**
  * 특정 여행 계획의 모든 후기 조회 (planId 기반)
+ * TravelFeed를 먼저 조회한 후 해당 Feed의 후기를 조회
  */
 export const getReviewsByPlanId = async (
   planId: number,
@@ -125,12 +158,31 @@ export const getReviewsByPlanId = async (
   try {
     console.log(`📋 [API] 여행 계획 후기 조회 - Plan ID: ${planId}`);
 
-    const response = await axios.get(
-      `${API_BASE_URL}/api/review/plan/${planId}`,
-    );
+    // 1. TravelPlan ID로 TravelFeed 조회
+    const feedResponse = await axios.get(`${API_BASE_URL}/api/feed/plan/${planId}`);
+    const travelFeed = feedResponse.data;
+    
+    if (!travelFeed || !travelFeed.id) {
+      console.log(`ℹ️ [API] Plan ID ${planId}에 해당하는 TravelFeed가 없음 - 빈 결과 반환`);
+      return {
+        success: true,
+        reviews: [],
+        stats: {
+          averageRating: 0,
+          reviewCount: 0
+        },
+        timestamp: new Date().toISOString()
+      };
+    }
 
-    console.log(`✅ [API] 여행 계획 후기 조회 성공 - Plan ID: ${planId}`, response.data);
-    return response.data;
+    console.log(`✅ [API] TravelFeed 조회 성공 - Plan ID: ${planId} → Feed ID: ${travelFeed.id}`);
+
+    // 2. TravelFeed ID로 후기 조회
+    const reviewResponse = await axios.get(`${API_BASE_URL}/api/review/feed/${travelFeed.id}`);
+
+    console.log(`✅ [API] 여행 계획 후기 조회 성공 - Plan ID: ${planId} (Feed ID: ${travelFeed.id})`, reviewResponse.data);
+    return reviewResponse.data;
+    
   } catch (error: any) {
     console.error(`❌ [API] 여행 계획 후기 조회 실패 - Plan ID: ${planId}`, error);
     

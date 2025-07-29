@@ -2,6 +2,8 @@ package com.main.TravelMate.review.service;
 
 import com.main.TravelMate.feed.entity.TravelFeed;
 import com.main.TravelMate.feed.repository.TravelFeedRepository;
+import com.main.TravelMate.match.domain.MatchingStatus;
+import com.main.TravelMate.match.repository.MatchingRepository;
 import com.main.TravelMate.review.dto.ReviewCreateRequestDto;
 import com.main.TravelMate.review.dto.ReviewResponseDto;
 import com.main.TravelMate.review.entity.Review;
@@ -26,6 +28,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final TravelFeedRepository travelFeedRepository;
     private final UserRepository userRepository;
+    private final MatchingRepository matchingRepository;
     private final ObjectMapper objectMapper;
 
     /**
@@ -100,7 +103,7 @@ public class ReviewService {
     /**
      * 후기 작성 권한 체크
      * - 여행 작성자는 항상 가능
-     * - 여행 참여자도 가능 (추후 매칭 시스템과 연동)
+     * - 매칭이 승인된(ACCEPTED) 참여자도 가능
      */
     private boolean canWriteReview(TravelFeed feed, User user) {
         // 1. 여행 작성자인지 확인
@@ -109,10 +112,26 @@ public class ReviewService {
             return true;
         }
 
-        // 2. 여행 참여자인지 확인 (현재는 임시로 모든 사용자 허용, 추후 매칭 시스템과 연동)
-        // TODO: 매칭 시스템이 구현되면 실제 참여자인지 확인하는 로직 추가
-        log.info("✅ 참여자 권한으로 후기 작성 가능 (임시) - 사용자 ID: {}", user.getId());
-        return true;
+        // 2. TravelFeed에 연결된 TravelPlan이 있는지 확인
+        if (feed.getTravelPlan() == null) {
+            log.warn("⚠️ TravelFeed에 TravelPlan이 연결되지 않음 - 피드 ID: {}", feed.getId());
+            return false;
+        }
+
+        // 3. 매칭이 승인된 참여자인지 확인
+        Long planId = feed.getTravelPlan().getId();
+        boolean isAcceptedParticipant = matchingRepository.existsByPlanIdAndSenderIdAndStatus(
+                planId, user.getId(), MatchingStatus.ACCEPTED);
+
+        if (isAcceptedParticipant) {
+            log.info("✅ 매칭 승인된 참여자 권한으로 후기 작성 가능 - 사용자 ID: {}, 계획 ID: {}", 
+                    user.getId(), planId);
+            return true;
+        }
+
+        log.warn("🚫 후기 작성 권한 없음 - 사용자 ID: {}, 계획 ID: {} (작성자도 아니고 승인된 참여자도 아님)", 
+                user.getId(), planId);
+        return false;
     }
 
     /**

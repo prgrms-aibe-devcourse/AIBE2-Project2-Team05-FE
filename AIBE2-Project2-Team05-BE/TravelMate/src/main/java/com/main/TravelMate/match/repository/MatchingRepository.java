@@ -16,4 +16,7 @@ public interface MatchingRepository extends JpaRepository<Matching, Long> {
     
     // 🔧 새로 추가: 특정 여행계획에 대한 특정 상태 매칭 수 조회
     long countByPlanIdAndStatus(Long planId, MatchingStatus status);
+    
+    // 🔧 새로 추가: 특정 여행계획에 대한 특정 발신자의 특정 상태 매칭 존재 여부 확인 (후기 작성 권한용)
+    boolean existsByPlanIdAndSenderIdAndStatus(Long planId, Long senderId, MatchingStatus status);
 }
