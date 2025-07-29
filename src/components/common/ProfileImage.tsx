@@ -41,38 +41,55 @@ const ProfileImage: React.FC<ProfileImageProps> = ({
 
   // 프로필 이미지 URL을 useMemo로 캐싱
   const imageSrc = useMemo(() => {
+    console.log('🔍 ProfileImage 디버깅:', { 
+      src, 
+      hasError, 
+      hasValidSrc, 
+      defaultImageSrc,
+      isLoading 
+    });
+    
     // null, undefined, 빈 문자열 등 모든 경우에 기본 이미지 사용
     if (hasError || !hasValidSrc) {
+      console.log('🎯 기본 이미지 사용:', defaultImageSrc);
       return defaultImageSrc;
     }
     
     // 백엔드 API 경로인 경우 전체 URL로 변환
     if (src!.startsWith('/api/')) {
-      return `http://localhost:8080${src}`;
+      const fullUrl = `http://localhost:8080${src}`;
+      console.log('🔗 API URL 변환:', { src, fullUrl });
+      return fullUrl;
     }
     
+    console.log('✅ 원본 URL 사용:', src);
     return src!;
   }, [src, hasError, hasValidSrc, defaultImageSrc]);
 
   // 이미지 로드 성공
   const handleLoad = useCallback(() => {
+    console.log('✅ ProfileImage 로드 성공:', imageSrc);
     setIsLoading(false);
     setHasError(false);
-  }, []);
+  }, [imageSrc]);
 
   // 이미지 로드 실패
   const handleError = useCallback(() => {
+    console.log('❌ ProfileImage 로드 실패:', imageSrc);
     setIsLoading(false);
     if (!hasError) { // 이미 에러 상태가 아닐 때만 상태 변경
       setHasError(true);
     }
-  }, [hasError]);
+  }, [hasError, imageSrc]);
 
   // 실제 이미지가 있을 때만 로딩 상태 설정
   useEffect(() => {
+    console.log('🔄 ProfileImage 로딩 상태 변경:', { hasValidSrc, hasError });
     if (hasValidSrc && !hasError) {
+      console.log('⏳ 로딩 시작');
       setIsLoading(true);
     } else {
+      console.log('⏹️ 로딩 종료');
       setIsLoading(false);
     }
   }, [hasValidSrc, hasError]);

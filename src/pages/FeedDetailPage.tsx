@@ -4,16 +4,20 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { BackendFeedResponse } from '../services/feedApi';
+import { createOrGetChatRoom, searchUsers } from '../services/chatApi'; // 🔧 채팅 API 추가
+import { useAuth } from '../contexts/AuthContext'; // 🔧 인증 컨텍스트 추가
 import ImageModal from '../components/profile/ImageModal';
 
 const FeedDetailPage: React.FC = () => {
   const { id: feedId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth(); // 🔧 현재 로그인한 사용자 정보
 
   const [feedData, setFeedData] = useState<BackendFeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false); // 🔧 채팅방 생성 로딩 상태
 
   // 피드 데이터 로드
   useEffect(() => {
@@ -42,6 +46,85 @@ const FeedDetailPage: React.FC = () => {
     loadFeedData();
   }, [feedId]);
 
+  // 🔧 작성자와 채팅 시작하기
+  const handleStartChat = async () => {
+    if (!feedData || !user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    const authorName = feedData.createdBy || feedData.authorName;
+    if (!authorName) {
+      alert('작성자 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    // 자신의 피드인 경우 채팅 불가 (닉네임으로 비교)
+    if (authorName === user.nickname) {
+      alert('본인이 작성한 피드입니다.');
+      return;
+    }
+
+    setChatLoading(true);
+    try {
+      console.log('🔧 작성자 검색 시도:', { authorName });
+
+      // 1. 먼저 작성자 이름으로 사용자 검색
+      const searchResults = await searchUsers(authorName);
+      
+      if (searchResults.length === 0) {
+        alert('작성자를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 정확히 일치하는 사용자 찾기
+      const exactMatch = searchResults.find(result => 
+        result.nickname === authorName
+      );
+
+      if (!exactMatch) {
+        alert('작성자를 정확히 찾을 수 없습니다.');
+        return;
+      }
+
+      console.log('🔧 채팅방 생성 시도:', {
+        targetUserId: exactMatch.id,
+        authorName: exactMatch.nickname
+      });
+
+      // 2. 채팅방 생성 또는 기존 채팅방 반환
+      const chatRoom = await createOrGetChatRoom(exactMatch.id);
+      
+      if (chatRoom) {
+        console.log('✅ 채팅방 생성/반환 성공:', chatRoom);
+        // 채팅 페이지로 이동
+        navigate('/chat', { 
+          state: { 
+            selectedRoomId: chatRoom.id,
+            authorName: exactMatch.nickname
+          }
+        });
+      } else {
+        alert('채팅방 생성에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('❌ 채팅방 생성 실패:', error);
+      
+      if (error.message?.includes('토큰이 만료')) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        // 로그인 페이지로 이동하거나 새로고침
+        window.location.reload();
+      } else if (error.message?.includes('로그인이 필요')) {
+        alert('로그인이 필요합니다. 다시 로그인해주세요.');
+        window.location.reload();
+      } else {
+        alert(`채팅방 생성 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
+      }
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   // 로딩 상태
   if (loading) {
     return (
@@ -67,6 +150,10 @@ const FeedDetailPage: React.FC = () => {
       </Container>
     );
   }
+
+  // 🔧 채팅 버튼 표시 여부 결정
+  const authorName = feedData.createdBy || feedData.authorName;
+  const canStartChat = user && authorName && authorName !== user.nickname;
 
   return (
     <Container>
@@ -103,8 +190,28 @@ const FeedDetailPage: React.FC = () => {
           </TravelMeta>
           
           <AuthorInfo>
-            <AuthorLabel>여행 계획 작성자</AuthorLabel>
-            <AuthorName>{feedData.createdBy || feedData.authorName}</AuthorName>
+            <AuthorSection>
+              <AuthorLabel>여행 계획 작성자</AuthorLabel>
+              <AuthorName>{feedData.createdBy || feedData.authorName}</AuthorName>
+            </AuthorSection>
+            {/* 🔧 채팅 시작 버튼 추가 */}
+            {canStartChat && (
+              <ChatButton 
+                onClick={handleStartChat}
+                disabled={chatLoading}
+              >
+                {chatLoading ? (
+                  <>
+                    <ChatButtonSpinner />
+                    연결 중...
+                  </>
+                ) : (
+                  <>
+                    💬 채팅하기
+                  </>
+                )}
+              </ChatButton>
+            )}
           </AuthorInfo>
 
           {feedData.description && (
@@ -284,6 +391,16 @@ const AuthorInfo = styled.div`
   padding: 16px;
   background: #f8f9fa;
   border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+// 🔧 새로 추가된 스타일 컴포넌트들
+const AuthorSection = styled.div`
+  flex: 1;
 `;
 
 const AuthorLabel = styled.div`
@@ -296,6 +413,47 @@ const AuthorName = styled.div`
   font-size: 18px;
   font-weight: 600;
   color: #3682F8;
+`;
+
+const ChatButton = styled.button`
+  background: #3682F8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: #2c5aa0;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+`;
+
+const ChatButtonSpinner = styled.div`
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `;
 
 const Description = styled.p`

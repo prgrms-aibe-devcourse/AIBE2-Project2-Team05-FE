@@ -23,6 +23,8 @@ import com.main.TravelMate.places.dto.PlaceImageResponse;
 // 매칭 관련 import 추가
 import com.main.TravelMate.match.repository.MatchingRepository;
 import com.main.TravelMate.match.domain.MatchingStatus;
+// 장소 카테고리 서비스 import 추가
+import com.main.TravelMate.plan.service.PlaceCategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

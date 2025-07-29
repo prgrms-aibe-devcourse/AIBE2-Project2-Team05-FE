@@ -76,6 +76,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/review/**").permitAll()
                         // 🗺️ 여행 계획 조회 API (읽기 전용 공개)
                         .requestMatchers(HttpMethod.GET, "/api/plan/**").permitAll()
+                        // 💬 채팅 API (인증 필요) - 채팅 기능은 로그인한 사용자만 이용 가능
+                        .requestMatchers("/api/chat/**").authenticated()
+                        // 👥 사용자 관련 API (인증 필요) - 채팅을 위한 사용자 검색 및 현재 사용자 정보 조회
+                        .requestMatchers("/api/users/search").authenticated()
+                        .requestMatchers("/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
                 // 🔐 나머지는 모두 인증 필요 (매칭 API 포함)
                 .anyRequest().authenticated()

@@ -157,6 +157,13 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   const [reviewCompleted, setReviewCompleted] = useState(false);
   const [userReviews, setUserReviews] = useState<any[]>([]);
 
+  // 🔍 authorInfo 디버깅
+  useEffect(() => {
+    if (isModal && authorInfo) {
+      console.log('📸 PlanPage authorInfo 확인:', authorInfo);
+    }
+  }, [isModal, authorInfo]);
+
   // 목적지 카테고리 상태 (현재 사용되지 않음)
   // const [destinationCategory, setDestinationCategory] = useState<{
   //   category: string;

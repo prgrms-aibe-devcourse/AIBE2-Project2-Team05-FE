@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -167,5 +169,96 @@ public class UserService {
         userRepository.save(user);
         
         log.info("비밀번호 변경 완료 - 사용자: {}", email);
+    }
+
+    /**
+     * 💬 현재 사용자 정보 조회 (채팅을 위한 사용자 ID 조회)
+     * 이메일로 현재 사용자의 정보를 조회합니다.
+     * 
+     * @param email 사용자 이메일
+     * @return 현재 사용자 정보 (ID 포함)
+     */
+    public UserSearchResultDto getCurrentUserInfo(String email) {
+        try {
+            log.info("현재 사용자 정보 조회 - 이메일: {}", email);
+            
+            // 이메일로 사용자 조회
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + email));
+            
+            // DTO로 변환 (ID 포함)
+            UserSearchResultDto result = UserSearchResultDto.builder()
+                    .id(user.getId())
+                    .nickname(user.getNickname())
+                    .email(user.getEmail())
+                    .profileImage(null) // 🔧 임시로 null 설정 (User 엔티티 확인 후 수정 필요)
+                    .build();
+            
+            log.info("현재 사용자 정보 조회 성공 - ID: {}, 닉네임: {}", result.getId(), result.getNickname());
+            return result;
+            
+        } catch (Exception e) {
+            log.error("현재 사용자 정보 조회 실패 - 이메일: {}, 오류: {}", email, e.getMessage());
+            throw new RuntimeException("사용자 정보 조회 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 💬 사용자 검색 (채팅을 위한 사용자 검색)
+     * 닉네임이나 이메일로 사용자를 검색합니다.
+     * 
+     * @param query 검색 키워드 (닉네임 또는 이메일)
+     * @return 검색된 사용자 목록 (간단한 정보만 포함)
+     */
+    public List<UserSearchResultDto> searchUsers(String query) {
+        try {
+            log.info("사용자 검색 - 키워드: {}", query);
+            
+            // 닉네임 또는 이메일로 검색 (부분일치)
+            List<User> users = userRepository.findByNicknameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query);
+            
+            // 검색 결과를 DTO로 변환 (민감한 정보 제외)
+            List<UserSearchResultDto> result = users.stream()
+                    .map(user -> UserSearchResultDto.builder()
+                            .id(user.getId())
+                            .nickname(user.getNickname())
+                            .email(user.getEmail())
+                            .profileImage(getProfileImageUrl(user))
+                            .build())
+                    .collect(Collectors.toList());
+            
+            log.info("사용자 검색 완료 - 총 {}명 찾음", result.size());
+            return result;
+            
+        } catch (Exception e) {
+            log.error("사용자 검색 중 오류:", e);
+            throw new RuntimeException("사용자 검색 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 사용자의 프로필 이미지 URL 조회 헬퍼 메서드
+     */
+    private String getProfileImageUrl(User user) {
+        try {
+            Profile profile = profileRepository.findByUserId(user.getId()).orElse(null);
+            return profile != null ? profile.getProfileImage() : null;
+        } catch (Exception e) {
+            log.warn("프로필 이미지 조회 실패 - 사용자 ID: {}", user.getId());
+            return null;
+        }
+    }
+
+    /**
+     * 💬 사용자 검색 결과 DTO
+     * 채팅을 위한 사용자 검색 시 반환할 정보를 정의합니다.
+     */
+    @lombok.Builder
+    @lombok.Data
+    public static class UserSearchResultDto {
+        private Long id;
+        private String nickname;
+        private String email;
+        private String profileImage; // 프로필 이미지 URL (선택적)
     }
 }

@@ -1,5 +1,6 @@
 import api from './api';
 import profileApiService from './profileApi';
+import { createChatRoomFromMatching } from './chatApi'; // 🔧 채팅 API 추가
 
 // 매칭 관련 타입 정의
 export interface MatchRecommendation {
@@ -78,7 +79,7 @@ class MatchingApiService {
   }
 
   /**
-   * 매칭 요청에 응답 (수락/거절)
+   * 🔧 개선된 매칭 요청에 응답 (수락/거절) - 채팅방 자동 생성 포함
    */
   async respondToMatchRequest(matchId: number, status: 'ACCEPTED' | 'REJECTED'): Promise<string> {
     try {
@@ -87,6 +88,28 @@ class MatchingApiService {
         status
       });
       console.log('✅ 매칭 요청 응답 성공:', response.data);
+      
+      // 🔧 매칭 수락 시 자동으로 채팅방 생성
+      if (status === 'ACCEPTED') {
+        try {
+          // 먼저 매칭 정보를 조회하여 상대방 ID를 가져옴
+          const matchDetails = await this.getMatchDetails(matchId);
+          if (matchDetails && matchDetails.senderId) {
+            console.log('🔧 매칭 수락됨 - 채팅방 생성 시도:', {
+              matchId,
+              otherUserId: matchDetails.senderId
+            });
+            
+            // 채팅방 생성
+            await createChatRoomFromMatching(matchId, matchDetails.senderId);
+            console.log('✅ 매칭 수락 후 채팅방 생성 완료');
+          }
+        } catch (chatError) {
+          console.error('❌ 채팅방 생성 실패 (매칭은 성공):', chatError);
+          // 채팅방 생성 실패해도 매칭은 성공한 상태로 유지
+        }
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ 매칭 요청 응답 실패:', error);
@@ -244,6 +267,34 @@ class MatchingApiService {
     } catch (error) {
       console.error('❌ 거절 취소 실패:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 🔧 새로 추가: 매칭 상세 정보 조회
+   * @param matchId 매칭 ID
+   * @returns 매칭 상세 정보
+   */
+  private async getMatchDetails(matchId: number): Promise<MatchResponse | null> {
+    try {
+      // 받은 매칭 요청에서 해당 매칭 찾기
+      const receivedRequests = await this.getMyReceivedRequests();
+      const sentRequests = await this.getMySentRequests();
+      
+      // 받은 요청과 보낸 요청에서 모두 검색
+      const allRequests = [...receivedRequests, ...sentRequests];
+      const matchDetails = allRequests.find(req => req.matchId === matchId);
+      
+      if (matchDetails) {
+        console.log('✅ 매칭 상세 정보 조회 성공:', matchDetails);
+        return matchDetails;
+      }
+      
+      console.warn('⚠️ 매칭 상세 정보를 찾을 수 없음:', matchId);
+      return null;
+    } catch (error) {
+      console.error('❌ 매칭 상세 정보 조회 실패:', error);
+      return null;
     }
   }
 }

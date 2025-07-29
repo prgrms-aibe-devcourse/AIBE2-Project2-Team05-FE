@@ -36,6 +36,7 @@ api.interceptors.request.use(
       ...publicPaths,
       /^\/api\/feed$/,            // 피드 목록 조회만 공개 (GET /api/feed)
       /^\/api\/feed\?/,           // 피드 목록 쿼리 조회 (GET /api/feed?...)
+      /^\/api\/feed\//,           // 🔧 모든 피드 하위 API 공개 (GET /api/feed/cursor, /api/feed/123 등)
     ];
 
     // 현재 요청 URL이 공개 API인지 확인
