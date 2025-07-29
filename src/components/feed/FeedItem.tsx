@@ -72,12 +72,7 @@ const TravelPlanModal: React.FC<{
   onClose: () => void;
 }> = ({ planId, authorInfo, onClose }) => {
   
-  // ✅ 프로필 정보 전달 확인
-  console.log('🔄 TravelPlanModal에서 받은 작성자 정보:', {
-    planId,
-    authorInfo,
-    '전달할 정보': authorInfo ? `${authorInfo.author} (${authorInfo.age}세)` : '없음'
-  });
+
   const modalContent = (
     <ModalOverlay
       initial={{ opacity: 0 }}
@@ -121,24 +116,6 @@ const FeedItem: React.FC<FeedItemProps> = memo(({ feed }) => {
   };
 
   const handleFeedClick = () => {
-    const authorInfoData = {
-      author: feed.author,
-      avatar: feed.avatar,
-      age: userAge,
-    };
-    
-    console.log('🔍 피드 클릭 - 여행 계획 모달 열기:', {
-      feedId: feed.id,
-      authorInfo: authorInfoData
-    });
-    
-    console.log('📋 작성자 정보 상세:', {
-      '작성자 이름': authorInfoData.author,
-      '프로필 이미지': authorInfoData.avatar,
-      '나이': authorInfoData.age,
-      '모든 피드 데이터': feed
-    });
-    
     setIsTravelPlanModalOpen(true);
   };
 

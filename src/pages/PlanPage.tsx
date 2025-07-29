@@ -6,6 +6,7 @@ import AIRecommendationSection from '../components/AIRecommendationSection';
 import FeedStatusBadge from '../components/feed/FeedStatusBadge';
 import ReviewWriteModal from '../components/feed/ReviewWriteModal';
 import PlaceDetailModal from '../components/PlaceDetailModal';
+import ProfileImage from '../components/common/ProfileImage';
 import feedStatusService from '../services/feedStatusService';
 import openaiService from '../services/openaiApi';
 import { TravelStatus } from '../types/feed';
@@ -141,6 +142,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
 
   const [plan, setPlan] = useState<TravelPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
@@ -519,23 +521,37 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 console.warn('📊 feedResponse:', feedResponse.data);
                 throw new Error('Failed to load plan or feed data');
               }
-            } catch (error) {
+            } catch (error: any) {
               console.error('❌ [하이브리드] 백엔드 로드 실패:', error);
-              // 폴백: localStorage 체크
-              const savedPlan = localStorage.getItem('currentTravelPlan');
-              if (savedPlan) {
-                const parsedPlan = JSON.parse(savedPlan);
-                loadedPlan = parsedPlan;
-                setPlan(parsedPlan);
-                setIsLiked(parsedPlan.isLiked || false);
-                setLikeCount(parsedPlan.likes || 0);
+              
+              // 403 Forbidden 에러인 경우 권한 없음 처리
+              if (error?.response?.status === 403) {
+                console.warn('🚫 해당 여행 계획에 접근 권한이 없습니다.');
+                // 에러 상태로 설정하고 사용자에게 알림
+                setError('이 여행 계획에 접근할 권한이 없습니다.');
+                return;
+              }
+              
+              // 다른 에러인 경우에만 localStorage 폴백 사용 (모달이 아닐 때만)
+              if (!isModal) {
+                const savedPlan = localStorage.getItem('currentTravelPlan');
+                if (savedPlan) {
+                  const parsedPlan = JSON.parse(savedPlan);
+                  loadedPlan = parsedPlan;
+                  setPlan(parsedPlan);
+                  setIsLiked(parsedPlan.isLiked || false);
+                  setLikeCount(parsedPlan.likes || 0);
+                } else {
+                  // 기본 계획 사용
+                  const defaultPlan = createDefaultPlan();
+                  loadedPlan = defaultPlan;
+                  setPlan(defaultPlan);
+                  setIsLiked(defaultPlan.isLiked);
+                  setLikeCount(defaultPlan.likes);
+                }
               } else {
-                // 기본 계획 사용
-                const defaultPlan = createDefaultPlan();
-                loadedPlan = defaultPlan;
-                setPlan(defaultPlan);
-                setIsLiked(defaultPlan.isLiked);
-                setLikeCount(defaultPlan.likes);
+                // 모달에서는 에러 상태 표시
+                setError('여행 계획을 불러올 수 없습니다.');
               }
             }
           }
@@ -1191,6 +1207,24 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
 
   return (
     <S.Container>
+      {/* 에러 상태 표시 */}
+      {error && (
+        <div
+          style={{
+            padding: '20px',
+            margin: '20px',
+            backgroundColor: '#fee',
+            border: '1px solid #f88',
+            borderRadius: '8px',
+            color: '#c44',
+            textAlign: 'center',
+            fontSize: '16px',
+          }}
+        >
+          ❌ {error}
+        </div>
+      )}
+
       {/* 상단 여행 상태 표시 */}
       {feedStatus && (
         <div
@@ -1209,31 +1243,16 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         </div>
       )}
 
-      {/* 🧪 임시 디버깅 정보 */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '80px',
-          left: '20px',
-          zIndex: 10,
-          background: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          padding: '8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontFamily: 'monospace',
-        }}
-      >
-        🔍 디버깅: feedStatus={feedStatus} | isAuthor={isAuthor ? 'YES' : 'NO'} | isAcceptedParticipant={isAcceptedParticipant ? 'YES' : 'NO'} | reviews={userReviews.length}
-      </div>
+
 
       {/* ✅ 작성자 정보 섹션 (모달에서만 표시) */}
       {isModal && authorInfo && (
         <S.AuthorSection>
           <S.AuthorProfile>
-            <S.AuthorAvatar 
+            <ProfileImage 
               src={authorInfo.avatar} 
               alt={authorInfo.author}
+              size={60}
             />
           </S.AuthorProfile>
           <S.AuthorInfo>
