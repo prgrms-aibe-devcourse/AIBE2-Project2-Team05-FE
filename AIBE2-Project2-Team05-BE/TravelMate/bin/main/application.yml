@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    url: jdbc:mysql://travelmate.cd0m2au6cgqt.ap-southeast-2.rds.amazonaws.com:3306/travelmate
+    username: admin
+    password: teamsomac123!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # 기존 데이터 보존하면서 스키마 점진적 업데이트
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        
+  # ✅ 파일 크기 제한 증가 (프로필 이미지 업로드용)
+  servlet:
+    multipart:
+      max-file-size: 50MB          # 개별 파일 최대 크기
+      max-request-size: 100MB      # 전체 요청 최대 크기
+
+# ✅ 서버 인코딩 설정 (한국어 파라미터 처리용)
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+jwt:
+  secret: ZJHdk45nvEJGwrj3MneJND8rhgiF39vNSjRUGOWUdn4=
+  expiration: 3600000 # 1시간
+
+# Google Places API 설정
+google:
+  places:
+    api:
+      # API 키 직접 설정 (개발용)
+      key: AIzaSyCDdmyQ1ZMwjj7iorE7uUZzJHwp387zSOU
+
+# OpenAI API 설정 (장소 카테고리 분류용)
+openai:
+  api:
+    # API 키 설정 (환경변수 OPENAI_API_KEY로도 설정 가능)
+    key: ${OPENAI_API_KEY:}
+
+# 로깅 설정 추가
+logging:
+  level:
+    com.main.TravelMate.user: INFO         # User 관련 로그를 INFO로 조정
+    com.main.TravelMate.common.security.JwtAuthenticationFilter: INFO  # JWT 필터 디버깅
+    com.main.TravelMate.feed.controller: INFO     # 피드 컨트롤러 디버깅  
+    com.main.TravelMate.feed.service: INFO        # 피드 서비스 디버깅
+    org.springframework.security: DEBUG           # Spring Security 전체 디버깅
+    com.main.TravelMate.profile: INFO      # Profile 관련 로그를 INFO로 조정
+    com.main.TravelMate.common.security: WARN  # Security 로그를 WARN으로 조정
+    root: INFO                             # 전체 기본 로그 레벨

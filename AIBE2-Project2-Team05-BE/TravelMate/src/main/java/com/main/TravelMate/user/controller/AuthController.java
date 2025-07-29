@@ -91,7 +91,6 @@ public class AuthController {
         return ResponseEntity.ok(user.getId());
     }
 
-
     @PostMapping("/oauth/google")
     public ResponseEntity<LoginResponseDto> googleLogin(@RequestParam String token) {
         String email = googleOAuthService.verifyIdTokenAndGetEmail(token);

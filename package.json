@@ -38,6 +38,7 @@
   "scripts": {
     "start": "npx kill-port 3000 && npx react-scripts start",
     "start:dev": "REACT_APP_ENV=development npm start",
+    "start:no-deprecation": "npx kill-port 3000 && NODE_OPTIONS=--no-deprecation npx react-scripts start",
     "build": "react-scripts build",
     "build:production": "GENERATE_SOURCEMAP=false REACT_APP_ENV=production npm run build",
     "build:analyze": "npm run build && npx serve -s build",
