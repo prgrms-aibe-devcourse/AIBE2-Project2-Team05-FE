@@ -4,6 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
+import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
+
+interface DecodedToken {
+    sub: string; // email
+    role: string;
+    id: number;
+    name: string;
+    iat: number;
+    exp: number;
+}
 
 const AdminLoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -22,17 +33,21 @@ const AdminLoginPage: React.FC = () => {
         }
 
         try {
-            const response = await api.post('/api/admin/login', {
+            const response = await axios.post('http://localhost:8080/api/admin/login', {
                 email,
                 password,
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
-            const { accessToken, email: responseEmail, nickname, role, userId } = response.data;
+            const { accessToken } = response.data;
+            const decodedToken = jwtDecode<DecodedToken>(accessToken);
             const userInfo = {
-                id: userId,
-                email: responseEmail,
-                role: role,
-                nickname: nickname
+                id: decodedToken.id,
+                email: decodedToken.sub,
+                role: decodedToken.role
             };
             
             auth.login(accessToken, userInfo);

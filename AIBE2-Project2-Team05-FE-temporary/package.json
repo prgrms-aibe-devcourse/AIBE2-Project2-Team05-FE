@@ -1,0 +1,91 @@
+{
+  "name": "temp-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@stomp/stompjs": "^7.1.1",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.126",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "axios": "^1.10.0",
+    "chart.js": "^4.5.0",
+    "formik": "^2.4.6",
+    "framer-motion": "^12.23.9",
+    "jwt-decode": "^4.0.0",
+    "react": "^19.1.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.1.0",
+    "react-error-boundary": "^6.0.0",
+    "react-hot-toast": "^2.5.2",
+    "react-icons": "^5.5.0",
+    "react-kakao-maps-sdk": "^1.2.0",
+    "react-router-dom": "^6.14.0",
+    "react-scripts": "5.0.1",
+    "react-window": "^1.8.11",
+    "react-window-infinite-loader": "^1.0.10",
+    "sockjs-client": "^1.6.1",
+    "styled-components": "^6.0.0",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4",
+    "yup": "^1.6.1"
+  },
+  "scripts": {
+    "start": "npx kill-port 3000 && npx react-scripts start",
+    "start:dev": "REACT_APP_ENV=development npm start",
+    "build": "react-scripts build",
+    "build:production": "GENERATE_SOURCEMAP=false REACT_APP_ENV=production npm run build",
+    "build:analyze": "npm run build && npx serve -s build",
+    "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
+    "eject": "react-scripts eject",
+    "clean": "rm -rf build node_modules/.cache",
+    "prebuild": "npm run clean",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "structure:check": "echo '📁 프로젝트 구조:' && find src -type d | head -20",
+    "dev:all": "npm run lint && npm run type-check && npm start"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest",
+      "plugin:prettier/recommended",
+      "prettier"
+    ],
+    "rules": {
+      "linebreak-style": 0,
+      "prettier/prettier": 0
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all",
+      "supports es6-module"
+    ],
+    "development": [
+      "last 2 chrome version",
+      "last 2 firefox version",
+      "last 2 safari version",
+      "last 2 edge version"
+    ]
+  },
+  "devDependencies": {
+    "@types/react-window": "^1.8.8",
+    "@types/react-window-infinite-loader": "^1.0.9",
+    "@types/sockjs-client": "^1.5.4",
+    "@types/styled-components": "^5.1.34",
+    "@types/yup": "^0.29.14",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.1",
+    "kill-port": "^2.0.1",
+    "prettier": "^3.6.2"
+  }
+}

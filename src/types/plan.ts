@@ -55,6 +55,7 @@ export interface TravelPlan {
   likes: number;
   likedUsers: string[];
   isLiked: boolean;
+  feedId?: number; // 🌟 피드 ID (좋아요 기능용)
   travelStatus?: TravelStatus; // 🌟 여행 진행 상태 (recruiting, traveling, completed)
   author: Author;
   

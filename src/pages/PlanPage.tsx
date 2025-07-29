@@ -15,6 +15,7 @@ import api from '../services/api'; // api 인스턴스 추가
 import { getValidImageUrl } from '../utils/imageUtils'; // 이미지 유틸리티 추가
 import { updateTravelStatusApi } from '../services/feedTravelStatusApi'; // 백엔드 API 추가
 import * as reviewBackendApi from '../services/reviewBackendApi'; // 후기 백엔드 API 추가
+import * as likeApi from '../services/likeApi'; // 좋아요 백엔드 API 추가
 
 // ✅ src/types/plan.ts에서 TravelPlan, TravelDay, TravelEvent 타입 import 사용
 
@@ -155,6 +156,10 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false); // 좋아요 로딩 상태
+  const [likeUsersModalOpen, setLikeUsersModalOpen] = useState(false); // 좋아요한 사용자 목록 모달
+  const [likeUsers, setLikeUsers] = useState<any[]>([]); // 좋아요한 사용자 목록
+  const [likeUsersLoading, setLikeUsersLoading] = useState(false); // 좋아요한 사용자 목록 로딩
 
   // 피드 상태 관리 state  
   const [feedStatus, setFeedStatus] = useState<TravelStatus | null>(null); // 🌟 초기값을 null로 설정
@@ -392,6 +397,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   likes: 0,
                   likedUsers: [],
                   isLiked: false,
+                  feedId: data.id, // 🌟 관리자 모달에서는 data.id를 feedId로 사용
                   travelStatus: data.travelStatus ? data.travelStatus.toLowerCase() : 'recruiting', // 🌟 백엔드 여행 상태 포함 (대소문자 변환)
                   author: {
                     id: data.authorId?.toString() || 'unknown',
@@ -457,6 +463,15 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   caption: feedData.caption,  // 피드 캡션 추가
                 };
                 
+                // 🌟 디버깅: feedId 확인
+                console.log('🔍 [디버깅] feedData 확인:', {
+                  feedData: feedData,
+                  feedDataId: feedData.id,
+                  feedDataType: typeof feedData.id,
+                  combinedData: data,
+                  combinedFeedId: data.feedId
+                });
+                
                 console.log('✅ [하이브리드] 조합된 데이터 로드 성공:', data);
                 console.log('🌟 [중요] 백엔드 travelStatus:', data.travelStatus);
                 
@@ -514,6 +529,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   likes: 0,
                   likedUsers: [],
                   isLiked: false,
+                  feedId: data.feedId, // 🌟 feedId 추가 (좋아요 기능용)
                   travelStatus: data.travelStatus ? data.travelStatus.toLowerCase() : 'recruiting', // 🌟 백엔드 여행 상태 포함 (대소문자 변환)
                   author: {
                     id: data.authorId || 'user',
@@ -548,6 +564,13 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   })(),
                 };
 
+                // 🌟 디버깅: loadedPlan에 feedId 확인
+                console.log('🔍 [디버깅] loadedPlan 확인:', {
+                  loadedPlan: loadedPlan,
+                  feedId: (loadedPlan as any)?.feedId,
+                  feedIdType: typeof (loadedPlan as any)?.feedId
+                });
+                
                 setPlan(loadedPlan);
                 setIsLiked(false);
                 setLikeCount(0);
@@ -698,6 +721,46 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         });
 
         setLoading(false);
+      }
+
+      // 🌟 좋아요 상태 로드 (모달/페이지 공통)
+      if (loadedPlan && (loadedPlan as any)?.feedId) {
+        try {
+          const travelFeedId = (loadedPlan as any).feedId;
+          console.log(`🔍 [좋아요 로드] Travel Feed ID: ${travelFeedId} (모드: ${isModal ? '모달' : '페이지'})`);
+          
+          const likeStatus = await likeApi.getFeedLikeStatus(travelFeedId);
+          
+          if (likeStatus.success) {
+            setIsLiked(likeStatus.liked);
+            setLikeCount(likeStatus.likeCount);
+            console.log(`✅ 좋아요 상태 로드 성공 - Travel Feed ${travelFeedId}: liked=${likeStatus.liked}, count=${likeStatus.likeCount}`);
+            
+            // 🎯 현재 사용자가 좋아요를 눌렀는지 직접 확인
+            // 백엔드에서 liked=false로 왔지만, 현재 사용자가 실제로 좋아요를 눌렀는지 다시 확인
+            try {
+              const likeUsers = await likeApi.getFeedLikeUsers(travelFeedId);
+              if (likeUsers.success && user?.email) {
+                const currentUserLiked = likeUsers.users.some((likeUser: any) => 
+                  likeUser.email === user.email
+                );
+                if (currentUserLiked !== likeStatus.liked) {
+                  console.log(`🔄 [좋아요 상태 수정] 사용자 확인 결과: ${currentUserLiked} (기존: ${likeStatus.liked})`);
+                  setIsLiked(currentUserLiked);
+                }
+              }
+            } catch (userCheckError) {
+              console.warn('좋아요 사용자 목록 확인 실패:', userCheckError);
+            }
+          }
+        } catch (likeError) {
+          if ((loadedPlan as any)?.feedId) {
+            console.warn(`⚠️ [좋아요 로드] 유효한 travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}`);
+          } else {
+            console.warn(`⚠️ [좋아요 로드] 유효한 travel_feed.id를 찾을 수 없음 - feedId: ${(loadedPlan as any)?.feedId}`);
+          }
+          console.warn('좋아요 상태 로드 실패:', likeError);
+        }
       }
     };
 
@@ -978,19 +1041,99 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
     );
   }
 
-  // 좋아요 토글 함수
-  const toggleLike = () => {
-    setIsLiked(!isLiked);
-    setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+  // 좋아요 토글 함수 (백엔드 연동)
+  const toggleLike = async () => {
+    // 이미 로딩 중이면 함수 종료
+    if (isLikeLoading) return;
 
-    // localStorage 업데이트
-    if (plan) {
-      const updatedPlan = {
-        ...plan,
-        isLiked: !isLiked,
-        likes: isLiked ? likeCount - 1 : likeCount + 1,
-      };
-      localStorage.setItem('currentTravelPlan', JSON.stringify(updatedPlan));
+    const travelFeedId = (plan as any)?.feedId; // 🌟 feedId만 사용
+
+    if (!travelFeedId || typeof travelFeedId !== 'number') {
+      console.error(`❌ [좋아요 토글] 유효한 travelFeedId를 찾을 수 없습니다: ${travelFeedId}`);
+      alert('좋아요를 처리할 수 없습니다. 피드 정보가 없습니다.');
+      return;
+    }
+
+    try {
+      setIsLikeLoading(true); // 로딩 시작
+      
+      console.log(`🔄 [좋아요 토글] Travel Feed ID: ${travelFeedId}, 현재 상태: ${isLiked}`);
+
+      // 백엔드 API 호출
+      const response = await likeApi.toggleFeedLike(travelFeedId);
+      
+      if (response.success) {
+        // 백엔드 응답으로 상태 업데이트
+        setIsLiked(response.liked);
+        setLikeCount(response.likeCount);
+        
+        console.log(`✅ 좋아요 토글 성공 - Travel Feed ${travelFeedId}: liked=${response.liked}, count=${response.likeCount}`);
+
+        // localStorage 업데이트 (백엔드 응답값으로)
+        if (plan) {
+          const updatedPlan = {
+            ...plan,
+            isLiked: response.liked,
+            likes: response.likeCount,
+          };
+          localStorage.setItem('currentTravelPlan', JSON.stringify(updatedPlan));
+        }
+
+        // 🎯 토글 후 잠시 대기한 다음 상태를 다시 조회하여 동기화
+        setTimeout(async () => {
+          try {
+            const likeStatus = await likeApi.getFeedLikeStatus(travelFeedId);
+            if (likeStatus.success) {
+              setIsLiked(likeStatus.liked);
+              setLikeCount(likeStatus.likeCount);
+              console.log(`🔄 [상태 재조회] Travel Feed ${travelFeedId}: liked=${likeStatus.liked}, count=${likeStatus.likeCount}`);
+            }
+          } catch (error) {
+            console.warn('상태 재조회 실패:', error);
+          }
+        }, 500); // 500ms 후 재조회
+
+      } else {
+        // 백엔드 API 실패 시 에러 표시
+        console.error('❌ 좋아요 토글 실패:', response.message);
+        alert(response.message || '좋아요 처리 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 좋아요 토글 중 예외 발생:', error);
+      alert('좋아요 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsLikeLoading(false); // 로딩 종료
+    }
+  };
+
+  // 좋아요한 사용자 목록 조회 함수
+  const fetchLikeUsers = async () => {
+    if (likeUsersLoading) return;
+
+    const travelFeedId = (plan as any)?.feedId; // 🌟 feedId만 사용
+
+    if (!travelFeedId || typeof travelFeedId !== 'number') {
+      console.error('❌ 좋아요한 사용자 목록 조회 실패: travelFeedId를 찾을 수 없음');
+      alert('좋아요한 사용자 목록을 불러올 수 없습니다.');
+      return;
+    }
+
+    try {
+      setLikeUsersLoading(true);
+
+      const response = await likeApi.getFeedLikeUsers(travelFeedId);
+      
+      if (response.success) {
+        setLikeUsers(response.users);
+        setLikeUsersModalOpen(true);
+      } else {
+        alert(response.message || '좋아요한 사용자 목록을 불러올 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 좋아요한 사용자 목록 조회 중 예외 발생:', error);
+      alert('좋아요한 사용자 목록을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLikeUsersLoading(false);
     }
   };
 
@@ -1679,12 +1822,35 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       {/* 푸터 */}
       <S.Footer>
         <S.Likes>
-          <S.LikeButton onClick={toggleLike} $isLiked={isLiked}>
-            <i className={isLiked ? 'ri-heart-fill' : 'ri-heart-line'}></i>
+          <S.LikeButton 
+            onClick={toggleLike} 
+            $isLiked={isLiked}
+            disabled={isLikeLoading}
+            title={!(plan as any)?.feedId ? '피드 정보가 없어 좋아요를 사용할 수 없습니다' : ''}
+          >
+            <i 
+              className={
+                isLikeLoading 
+                  ? 'ri-loader-4-line' 
+                  : isLiked 
+                    ? 'ri-heart-fill' 
+                    : 'ri-heart-line'
+              }
+              style={{
+                animation: isLikeLoading ? 'spin 1s linear infinite' : 'none'
+              }}
+            ></i>
             <span>{likeCount}</span>
           </S.LikeButton>
           <S.ProfileImages>{/* 좋아요한 사용자들 표시 생략 */}</S.ProfileImages>
-          <S.LikeText>좋아요 누른 사람을 보기</S.LikeText>
+          <S.LikeText 
+            onClick={fetchLikeUsers}
+            style={{ cursor: 'pointer' }}
+          >
+            {likeCount > 0 
+              ? `좋아요한 사람 ${likeCount}명 보기`
+              : '아직 좋아요한 사람이 없습니다'}
+          </S.LikeText>
         </S.Likes>
 
         {/* 버튼 그룹 */}
@@ -1992,6 +2158,133 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           placeName={selectedPlace || plan.destination}
           region={plan.destination}
         />
+      )}
+
+      {/* 좋아요한 사용자 목록 모달 */}
+      {likeUsersModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setLikeUsersModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '400px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                좋아요한 사람 ({likeUsers.length}명)
+              </h3>
+              <button
+                onClick={() => setLikeUsersModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {likeUsersLoading ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <i 
+                  className="ri-loader-4-line" 
+                  style={{ 
+                    fontSize: '24px', 
+                    animation: 'spin 1s linear infinite',
+                    color: '#3b82f6'
+                  }}
+                ></i>
+                <p style={{ marginTop: '8px', color: '#6b7280' }}>로딩 중...</p>
+              </div>
+            ) : likeUsers.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {likeUsers.map((user, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      backgroundColor: '#f9fafb',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: '#e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '18px',
+                      }}
+                    >
+                      {user.profileImageUrl ? (
+                        <img
+                          src={user.profileImageUrl}
+                          alt="프로필"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      ) : (
+                        '👤'
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                        {user.nickname || user.email || '익명'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {user.email}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <p>아직 좋아요한 사람이 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </S.Container>
   );

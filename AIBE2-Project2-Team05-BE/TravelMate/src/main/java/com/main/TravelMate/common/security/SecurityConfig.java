@@ -34,6 +34,8 @@ public class SecurityConfig {
         return (web) -> web.ignoring()
                 .requestMatchers("/api/users/signup")    // 회원가입만 Spring Security에서 완전 제외
                 .requestMatchers("/api/auth/login")      // 로그인만 제외  
+                .requestMatchers("/api/admin/signup")    // 관리자 회원가입 제외
+                .requestMatchers("/api/admin/login")     // 관리자 로그인 제외
                 .requestMatchers("/uploads/**")          // 파일 업로드 경로 제외
                 .requestMatchers("/api/profile/create/**")  // 프로필 생성 API 제외
                 .requestMatchers("/api/profile/create-all")  // 프로필 일괄 생성 API 제외
@@ -52,6 +54,8 @@ public class SecurityConfig {
                         // 🔓 공개 API (인증 불필요)
                         .requestMatchers("/api/users/signup").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/admin/signup").permitAll()  // 🌟 관리자 회원가입 허용
+                        .requestMatchers("/api/admin/login").permitAll()   // 🌟 관리자 로그인 허용
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         // 🔧 프로필 생성 API (테스트용)
@@ -89,6 +93,7 @@ public class SecurityConfig {
         configuration.addAllowedOrigin("http://localhost:3000");        // 개발환경 React 주소
         configuration.addAllowedOrigin("http://127.0.0.1:3000");        // 로컬호스트 다른 형태  
         configuration.addAllowedOrigin("https://localhost:3000");       // HTTPS로도 접근 가능하도록
+        configuration.addAllowedOrigin("*");                           // 모든 origin 허용 (임시)
         
         // 모든 HTTP 메서드 허용 (명시적으로 설정)
         configuration.addAllowedMethod("GET");

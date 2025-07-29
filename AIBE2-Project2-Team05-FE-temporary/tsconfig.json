@@ -1,0 +1,81 @@
+{
+  "compilerOptions": {
+    // TypeScript 4.9+ 호환 target 설정 (React 19와 호환)
+    "target": "es2020",
+    "lib": [
+      "dom", 
+      "dom.iterable", 
+      "esnext"
+    ],
+    
+    // 기본 JavaScript 호환성 설정
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    
+    // Strict 모드 유지 (타입 안전성 보장)
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    
+    // 파일 시스템 관련 설정
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    
+    // 모듈 시스템 설정 (TypeScript 4.9 호환)
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    
+    // React 19 환경에 최적화된 설정
+    "jsx": "react-jsx",
+    "noEmit": true,
+    
+    // 경로 별칭 설정 (프로젝트 통합 최적화)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/pages/*": ["src/pages/*"],
+      "@/services/*": ["src/services/*"],
+      "@/types/*": ["src/types/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@/contexts/*": ["src/contexts/*"],
+      "@/styles/*": ["src/styles/*"],
+      "@/data/*": ["src/data/*"]
+    },
+    
+    // 개발 경험 개선
+    "incremental": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": true
+  },
+  
+  // 포함할 파일 및 디렉터리 설정
+  "include": [
+    "src",
+    "src/**/*",
+    "src/**/*.json"
+  ],
+  
+  // 제외할 파일 및 디렉터리 설정
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts", 
+    "**/*.spec.tsx",
+    // 통합 과정에서 임시로 제외할 디렉터리들
+    "AIBE2-Project2-Team05-FE-part2_page",
+    "TravelMate"
+  ]
+}
