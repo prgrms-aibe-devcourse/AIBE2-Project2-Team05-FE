@@ -186,4 +186,20 @@ public class TravelPlanController {
             return ResponseEntity.badRequest().body("디버깅 실패: " + e.getMessage());
         }
     }
+    
+    /**
+     * 현재 매칭 상태를 기반으로 current_people 업데이트
+     * POST /api/plan/update-current-people
+     */
+    @PostMapping("/update-current-people")
+    public ResponseEntity<String> updateCurrentPeople() {
+        logger.info("🔄 current_people 컬럼 업데이트 요청");
+        try {
+            String result = planService.updateCurrentPeopleBasedOnMatching();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("❌ current_people 업데이트 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("업데이트 실패: " + e.getMessage());
+        }
+    }
 }

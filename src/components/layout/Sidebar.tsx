@@ -39,6 +39,9 @@ const Sidebar = () => {
         <StyledNavLink to="/match/recommend">
           <CompassIcon /> <span>여행 메이트 찾기</span>
         </StyledNavLink>
+        <StyledNavLink to="/match/requests">
+          <HeartIcon /> <span>매칭 요청 관리</span>
+        </StyledNavLink>
         <StyledNavLink to="/notifications">
           <HeartIcon /> <span>알림</span>
         </StyledNavLink>

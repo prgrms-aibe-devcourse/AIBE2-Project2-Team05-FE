@@ -19,6 +19,7 @@ import FeedListPage from './pages/FeedListPage'; // 새로 만든 목록 페이�
 import FeedDetailPage from './pages/FeedDetailPage'; // 방금 만든 상세 페이지
 import MatchPage from './pages/MatchPage';
 import MatchRecommendPage from './pages/MatchRecommendPage';
+import MatchRequestPage from './pages/MatchRequestPage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import MyPage from './pages/MyPage';
@@ -100,6 +101,7 @@ function App() {
                   path="/match/recommend"
                   element={<MatchRecommendPage />}
                 />
+                <Route path="/match/requests" element={<MatchRequestPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route
                   path="/profile"

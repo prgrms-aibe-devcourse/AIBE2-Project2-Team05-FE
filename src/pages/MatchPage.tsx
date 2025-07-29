@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import matePostService from '../services/matePostService';
 import travelPlanApiService from '../services/travelPlanApi'; // 백엔드 API 추가
+import matchingApiService from '../services/matchingApi'; // 매칭 API 서비스 추가
 
 interface MatePost {
   id: number;
@@ -31,6 +32,7 @@ interface MatePost {
   status: string;
   createdAt: string;
   tags: string[];
+  planId?: string; // 🔧 연결된 여행계획 ID 추가
 }
 
 interface FilterState {
@@ -160,8 +162,8 @@ const MatchPage: React.FC = () => {
           posts = backendPlans.map((plan) => ({
             id: parseInt(plan.planId),
             userId: plan.userId,
-            userName: plan.author.name,
-            userAvatar: plan.author.profileImage || '👤',
+            userName: plan.authorNickname || plan.authorName || '알 수 없음', // 🔧 안전한 접근
+            userAvatar: plan.authorProfileImage || '👤', // 🔧 안전한 접근
             title: `${plan.title} (메이트 모집)`,
             destination: plan.destination,
             startDate: plan.startDate,
@@ -186,7 +188,7 @@ const MatchPage: React.FC = () => {
             createdAt: plan.createdAt,
             tags: [
               `#${plan.destination}`,
-              ...plan.styleLabels.map((style: string) => `#${style}`),
+              ...(plan.styleLabels || []).map((style: string) => `#${style}`),
             ],
             planId: plan.planId, // 원본 여행계획과 연결
           }));
@@ -198,20 +200,69 @@ const MatchPage: React.FC = () => {
             );
           } else {
             console.log('📝 백엔드에 작성된 여행메이트 모집글이 없습니다.');
+            // 🔧 임시 mock 데이터 생성 (테스트용)
+            posts = [{
+              id: 1,
+              userId: '58',
+              userName: 'Lotus3',
+              userAvatar: '👤',
+              title: '인천 여행메이트 모집 (테스트)',
+              destination: '인천',
+              startDate: '2025-07-27',
+              endDate: '2025-07-28',
+              period: '1박 2일',
+              budget: '100000',
+              currentPeople: 1,
+              maxPeople: 3,
+              preferences: {
+                gender: '무관',
+                age: '무관',
+                language: '한국어',
+                memo: '인천 여행을 함께할 메이트를 찾습니다!',
+              },
+              styles: ['미식투어', '문화탐방'],
+              image: '/default-place-image.jpg',
+              likes: 0,
+              views: 0,
+              status: 'recruiting',
+              createdAt: new Date().toISOString(),
+              tags: ['#인천', '#미식투어', '#문화탐방'],
+              planId: '25',
+            }];
+            console.log('🎭 임시 테스트 데이터를 생성했습니다.');
           }
-        } catch (backendError) {
-          console.error(
-            '❌ 백엔드 매칭 포스트 로드 실패, 로컬 데이터 사용:',
-            backendError,
-          );
-
-          // 백엔드 실패 시 로컬 데이터 사용 (폴백)
-          posts = matePostService.getAllMatePosts();
-          console.log(`🔄 로컬에서 ${posts.length}개의 매칭 포스트 로드`);
-
-          if (posts.length === 0) {
-            console.log('📝 로컬에도 여행메이트 모집글이 없습니다.');
-          }
+        } catch (error) {
+          console.error('❌ 백엔드 매칭 포스트 로드 실패:', error);
+          // 🔧 백엔드 오류 시 임시 mock 데이터 사용
+          posts = [{
+            id: 1,
+            userId: '58',
+            userName: 'Lotus3',
+            userAvatar: '👤',
+            title: '인천 여행메이트 모집 (백엔드 오류 시 테스트)',
+            destination: '인천',
+            startDate: '2025-07-27',
+            endDate: '2025-07-28',
+            period: '1박 2일',
+            budget: '100000',
+            currentPeople: 1,
+            maxPeople: 3,
+            preferences: {
+              gender: '무관',
+              age: '무관',
+              language: '한국어',
+              memo: '인천 여행을 함께할 메이트를 찾습니다!',
+            },
+            styles: ['미식투어', '문화탐방'],
+            image: '/default-place-image.jpg',
+            likes: 0,
+            views: 0,
+            status: 'recruiting',
+            createdAt: new Date().toISOString(),
+            tags: ['#인천', '#미식투어', '#문화탐방'],
+            planId: '25',
+          }];
+          console.log('🔧 백엔드 오류로 인해 임시 테스트 데이터를 사용합니다.');
         }
 
         setMatePosts(posts);
@@ -283,6 +334,42 @@ const MatchPage: React.FC = () => {
       ...prev,
       [filterType]: value,
     }));
+  };
+
+  // 관심 표시 핸들러 (매칭 거절 - 추천에서 제외)
+  const handleInterest = async (post: MatePost) => {
+    try {
+      console.log(`💫 ${post.userName}님의 여행에 관심 표시`);
+      // 백엔드 API로 매칭 거절 처리 (관심 표시는 일단 거절로 처리)
+      if (post.planId) {
+        await matchingApiService.rejectPlan(parseInt(post.planId));
+        console.log('✅ 관심 표시 완료');
+      }
+    } catch (error) {
+      console.error('❌ 관심 표시 실패:', error);
+      alert('관심 표시 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 지원하기 핸들러 (매칭 요청 전송)
+  const handleApply = async (post: MatePost) => {
+    try {
+      console.log(`🤝 ${post.userName}님에게 매칭 요청 전송`);
+      
+      // 백엔드 API로 매칭 요청 전송
+      const matchRequest = {
+        receiverId: parseInt(post.userId), // 상대방 사용자 ID
+        planId: post.planId ? parseInt(post.planId) : post.id // 여행 계획 ID
+      };
+
+      const response = await matchingApiService.sendMatchRequest(matchRequest);
+      console.log('✅ 매칭 요청 전송 성공:', response);
+      
+      alert(`${post.userName}님에게 매칭 요청을 보냈습니다! 🎉`);
+    } catch (error) {
+      console.error('❌ 매칭 요청 전송 실패:', error);
+      alert('매칭 요청 전송 중 오류가 발생했습니다.');
+    }
   };
 
   if (loading) {
@@ -449,8 +536,17 @@ const MatchPage: React.FC = () => {
                           <Stat>👁️ {post.views}</Stat>
                         </PostStats>
                         <PostActions>
-                          <ActionButton>관심 표시</ActionButton>
-                          <ActionButton $primary>지원하기</ActionButton>
+                          <ActionButton 
+                            onClick={() => handleInterest(post)}
+                          >
+                            관심 표시
+                          </ActionButton>
+                          <ActionButton 
+                            $primary 
+                            onClick={() => handleApply(post)}
+                          >
+                            지원하기
+                          </ActionButton>
                         </PostActions>
                       </PostFooter>
                     </PostContent>

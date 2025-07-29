@@ -21,6 +21,7 @@ public class TravelPlanResponseDto {
     private long budget;
     private String destination;
     private Integer numberOfPeople;
+    private Integer currentPeople; // 현재 참여 인원수 (매칭된 인원수)
     private LocalDateTime createdAt;
     
     // Legacy 호환 필드

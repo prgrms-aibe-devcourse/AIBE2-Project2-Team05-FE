@@ -20,6 +20,9 @@ import com.main.TravelMate.user.repository.UserRepository;
 import com.main.TravelMate.places.service.GooglePlacesService;
 import com.main.TravelMate.places.dto.PlaceImageRequest;
 import com.main.TravelMate.places.dto.PlaceImageResponse;
+// 매칭 관련 import 추가
+import com.main.TravelMate.match.repository.MatchingRepository;
+import com.main.TravelMate.match.domain.MatchingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -44,6 +47,8 @@ public class TravelPlanService {
     private final PlaceCategoryService placeCategoryService;
     // ✅ Google Places API 서비스 의존성 추가
     private final GooglePlacesService googlePlacesService;
+    // 매칭 리포지토리 추가
+    private final MatchingRepository matchingRepository;
 
     public void createPlan(String email, TravelPlanCreateRequestDto request) {
         log.info("🚀 여행 계획 생성 시작 - 사용자: {}, 제목: '{}'", email, request.getTitle());
@@ -424,6 +429,7 @@ public class TravelPlanService {
                 .endDate(plan.getEndDate())
                 .budget(plan.getBudget())
                 .numberOfPeople(plan.getNumberOfPeople())
+                .currentPeople(plan.getCurrentPeople()) // 현재 참여 인원수 추가
                 .interests(plan.getInterests())
                 .description(plan.getDescription())
                 .createdAt(plan.getCreatedAt())
@@ -528,6 +534,64 @@ public class TravelPlanService {
         } catch (Exception e) {
             log.error("❌ 디버깅 정보 수집 중 오류 발생: {}", e.getMessage());
             throw new RuntimeException("디버깅 정보 수집 실패", e);
+        }
+    }
+    
+    /**
+     * 현재 매칭 상태를 기반으로 모든 여행계획의 current_people 업데이트
+     */
+    @Transactional
+    public String updateCurrentPeopleBasedOnMatching() {
+        log.info("🔄 매칭 상태 기반 current_people 업데이트 시작");
+        
+        try {
+            // 모든 활성 여행계획 조회
+            List<TravelPlan> allPlans = travelPlanRepository.findAll().stream()
+                    .filter(plan -> plan.getStatus() == PlanStatus.ACTIVE)
+                    .toList();
+            
+            log.info("📊 업데이트 대상 여행계획 수: {}", allPlans.size());
+            
+            int updatedCount = 0;
+            StringBuilder resultLog = new StringBuilder();
+            resultLog.append("=== Current People 업데이트 결과 ===\n");
+            
+            for (TravelPlan plan : allPlans) {
+                try {
+                    // 해당 계획에 대한 ACCEPTED 상태 매칭 수 계산
+                    long acceptedMatchCount = matchingRepository.countByPlanIdAndStatus(plan.getId(), MatchingStatus.ACCEPTED);
+                    
+                    // current_people = 1 (작성자) + 매칭 수
+                    int newCurrentPeople = 1 + (int) acceptedMatchCount;
+                    int oldCurrentPeople = plan.getCurrentPeople();
+                    
+                    // 업데이트
+                    plan.setCurrentPeople(newCurrentPeople);
+                    travelPlanRepository.save(plan);
+                    
+                    updatedCount++;
+                    
+                    String planLog = String.format("계획 ID %d (%s): %d명 → %d명 (수락된 매칭: %d개)\n", 
+                        plan.getId(), plan.getTitle(), oldCurrentPeople, newCurrentPeople, acceptedMatchCount);
+                    
+                    resultLog.append(planLog);
+                    log.info("✅ " + planLog.trim());
+                    
+                } catch (Exception e) {
+                    String errorLog = String.format("❌ 계획 ID %d 업데이트 실패: %s\n", plan.getId(), e.getMessage());
+                    resultLog.append(errorLog);
+                    log.error(errorLog.trim(), e);
+                }
+            }
+            
+            resultLog.append(String.format("\n총 %d개 계획 중 %d개 업데이트 완료", allPlans.size(), updatedCount));
+            
+            log.info("✅ current_people 업데이트 완료 - 업데이트된 계획 수: {}/{}", updatedCount, allPlans.size());
+            return resultLog.toString();
+            
+        } catch (Exception e) {
+            log.error("❌ current_people 업데이트 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("current_people 업데이트 중 오류 발생: " + e.getMessage());
         }
     }
 }

@@ -459,6 +459,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 
                 console.log('✅ [하이브리드] 조합된 데이터 로드 성공:', data);
                 console.log('🌟 [중요] 백엔드 travelStatus:', data.travelStatus);
+                console.log('👥 [인원정보] currentPeople:', data.currentPeople, 'numberOfPeople:', data.numberOfPeople);
                 
                 // 🌟 즉시 피드 상태를 백엔드 데이터로 설정 (대소문자 변환)
                 if (data.travelStatus) {
@@ -509,6 +510,8 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                   destination: data.location || data.destination,
                   budget: data.budget?.toString() || '0',
                   people: data.numberOfPeople?.toString() || data.people?.toString() || '0',
+                  numberOfPeople: data.numberOfPeople, // 🔧 백엔드 총인원 필드 추가
+                  currentPeople: data.currentPeople,   // 🔧 백엔드 현재인원 필드 추가
                   period: `${calculateDays(data.startDate, data.endDate)}일`,
                   days: convertSchedulesToDays(parsedSchedules, data.startDate),
                   likes: 0,
@@ -660,15 +663,15 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           console.error('작성자 확인 오류:', authorCheckError);
         }
 
-        // 🌟 후기 데이터 로드 (모달/페이지 공통)
+        // 🌟 후기 데이터 로드 (planId 기반으로 수정)
         try {
-          const feedId = (loadedPlan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
-          console.log(`🔍 [후기 로드] 피드 ID: ${feedId} (모드: ${isModal ? '모달' : '페이지'})`);
+          const currentPlanId = parseInt(String(id)) || parseInt(String(loadedPlan?.id)) || 0;
+          console.log(`🔍 [후기 로드] Plan ID: ${currentPlanId} (모드: ${isModal ? '모달' : '페이지'})`);
 
-          const reviewResponse = await reviewBackendApi.getReviewsByFeedId(feedId);
+          const reviewResponse = await reviewBackendApi.getReviewsByPlanId(currentPlanId);
           if (reviewResponse.success) {
             setUserReviews(reviewResponse.reviews);
-            console.log(`✅ 후기 로드 성공 - 피드 ${feedId}: ${reviewResponse.reviews.length}개`, reviewResponse.reviews);
+            console.log(`✅ 후기 로드 성공 - Plan ${currentPlanId}: ${reviewResponse.reviews.length}개`, reviewResponse.reviews);
           }
         } catch (reviewError) {
           console.warn('후기 로드 실패:', reviewError);
@@ -678,12 +681,9 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
         // 피드 상태 관련 로직은 모달이 아닐 때만 실행
         if (!isModal) {
           try {
-            const planId = loadedPlan?.id || 'default';
-            const planNumericId = typeof planId === 'string' ? planId.replace(/[^\d]/g, '') : planId;
-            const feedId = parseInt(String(planNumericId)) || 1;
-
-            // 후기 작성 완료 여부 확인 (localStorage 기반)
-            const hasReview = feedStatusService.hasReviewWritten(feedId);
+            // 후기 작성 완료 여부 확인 (planId 기반)
+            const currentPlanId = parseInt(String(id)) || parseInt(String(loadedPlan?.id)) || 0;
+            const hasReview = feedStatusService.hasReviewWritten(currentPlanId);
             setReviewCompleted(hasReview);
           } catch (statusError) {
             console.error('피드 상태 로드 오류:', statusError);
@@ -756,9 +756,9 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       return;
     }
 
-    const feedId = (plan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
-
-    if (feedStatusService.hasReviewWritten(feedId)) {
+    // 이미 후기를 작성했는지 확인 (planId 기반)
+    const currentPlanId = parseInt(String(id)) || parseInt(String(plan?.id)) || 0;
+    if (feedStatusService.hasReviewWritten(currentPlanId)) {
       alert('이미 후기를 작성한 여행입니다.');
       return;
     }
@@ -769,23 +769,23 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
   // 후기 작성 완료 핸들러
   const handleReviewSubmit = async (reviewData: any) => {
     try {
-      const feedId = (plan as any)?.feedId || 17; // 🌟 백엔드에서 받은 실제 피드 ID 사용
+      const currentPlanId = parseInt(String(id)) || parseInt(String(plan?.id)) || 0;
 
       console.log('🌟 후기 작성 완료 - 백엔드에서 최신 후기 목록 로드 중...');
 
-      // 🌟 백엔드에서 최신 후기 목록 다시 로드
+      // 🌟 백엔드에서 최신 후기 목록 다시 로드 (planId 기반)
       try {
-        const reviewResponse = await reviewBackendApi.getReviewsByFeedId(feedId);
+        const reviewResponse = await reviewBackendApi.getReviewsByPlanId(currentPlanId);
         if (reviewResponse.success) {
           setUserReviews(reviewResponse.reviews);
-          console.log(`✅ 후기 작성 후 최신 목록 로드 성공 - 피드 ${feedId}: ${reviewResponse.reviews.length}개`);
+          console.log(`✅ 후기 작성 후 최신 목록 로드 성공 - Plan ${currentPlanId}: ${reviewResponse.reviews.length}개`);
         }
       } catch (reviewError) {
         console.warn('후기 목록 재로드 실패:', reviewError);
       }
 
       // 후기 작성 완료 표시 (로컬 상태 관리용)
-      feedStatusService.markReviewCompleted(feedId);
+      feedStatusService.markReviewCompleted(currentPlanId);
 
       // 상태 업데이트
       setReviewCompleted(true);
@@ -1331,7 +1331,18 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
           </S.SummaryCard>
           <S.SummaryCard>
             <S.CardTitle>여행 인원</S.CardTitle>
-            <S.CardValue>{plan.people}</S.CardValue>
+            <S.CardValue>
+              {(() => {
+                // 백엔드에서 currentPeople과 numberOfPeople을 받은 경우
+                if (plan.currentPeople !== undefined && plan.numberOfPeople !== undefined) {
+                  console.log('👥 [UI표시] 백엔드 인원정보 사용:', `${plan.currentPeople}/${plan.numberOfPeople}명`);
+                  return `${plan.currentPeople}/${plan.numberOfPeople}명`;
+                }
+                // 기존 legacy 방식 (people 필드)
+                console.log('👥 [UI표시] Legacy 인원정보 사용:', plan.people);
+                return plan.people;
+              })()}
+            </S.CardValue>
           </S.SummaryCard>
         </S.SummaryCards>
 
@@ -1743,13 +1754,40 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
                 <button
                   onClick={async () => {
                     try {
-                      // TravelPlan ID 추출 로직 (동일)
+                      // 🔧 정교한 TravelPlan ID 추출 로직 (여행 시작 버튼과 동일)
                       let travelPlanId: number | null = null;
                       
+                      console.log('🔍 [매칭완료] Plan 객체 전체:', plan);
+                      
+                      // 1순위: 백엔드에서 받은 travelPlanId 사용
                       if (plan && (plan as any).travelPlanId) {
                         travelPlanId = parseInt((plan as any).travelPlanId);
-                      } else if ((plan as any)?.authorNickname === 'Lotusrious3') {
-                        travelPlanId = 25;
+                        console.log(`🔍 [매칭완료] 백엔드 travelPlanId 사용: ${travelPlanId}`);
+                      }
+                      
+                      // 2순위: Lotusrious3 사용자의 경우 하드코딩된 TravelPlan ID 28 사용 (감귤최고 제주여행)
+                      if (!travelPlanId && (
+                        (plan as any)?.createdBy === 'Lotusrious3' ||
+                        (plan as any)?.authorNickname === 'Lotusrious3' ||
+                        plan?.author?.name === 'Lotusrious3'
+                      )) {
+                        travelPlanId = 28;
+                        console.log(`🔍 [매칭완료] Lotusrious3 사용자 → TravelPlan ID: 28`);
+                      }
+                      
+                      // 3순위: 백엔드 id가 숫자이고 User ID가 아닌 경우에만 사용
+                      if (!travelPlanId && plan && (plan as any).authorId) {
+                        const backendId = (plan as any).id;
+                        if (backendId && typeof backendId === 'number' && backendId !== 58) {
+                          travelPlanId = backendId;
+                          console.log(`🔍 [매칭완료] 백엔드 id 사용 (User ID 제외): ${travelPlanId}`);
+                        }
+                      }
+                      
+                      // 4순위: URL 파라미터 id 사용
+                      if (!travelPlanId && id) {
+                        travelPlanId = parseInt(String(id));
+                        console.log(`🔍 [매칭완료] URL 파라미터 id 사용: ${travelPlanId}`);
                       }
                       
                       if (travelPlanId) {
@@ -1973,7 +2011,7 @@ const PlanPage: React.FC<PlanPageProps> = (props) => {
       {reviewModalOpen && plan && (
         <ReviewWriteModal
           isOpen={reviewModalOpen}
-          feedId={(plan as any)?.feedId || 17}
+          feedId={parseInt(String(id)) || parseInt(String(plan?.id)) || 0}
           planId={plan.id}
           destination={plan.destination}
           onClose={() => setReviewModalOpen(false)}

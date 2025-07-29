@@ -5,11 +5,11 @@ spring:
     password: teamsomac123!
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
+    jpa:
     hibernate:
-      ddl-auto: update  # 기존 데이터 보존하면서 스키마 점진적 업데이트
-    show-sql: true
-    properties:
+      ddl-auto: none  # 🧪 테스트용: 스키마 검증 비활성화
+      show-sql: true
+      properties:
       hibernate:
         format_sql: true
         

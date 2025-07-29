@@ -18,4 +18,8 @@ public interface MatchingService {
     List<MatchResponseDto> getMyAcceptedMatches(Long userId);
     List<MatchResponseDto> getMySentRequests(Long userId);
     void updateTravelStatus(Long userId, Long travelPlanId, String status);
+    
+    // 🔧 새로 추가: 거절한 매칭 관리
+    List<MatchResponseDto> getMyRejectedMatches(Long userId);
+    void unrejectMatch(Long matchingId, Long userId);
 }

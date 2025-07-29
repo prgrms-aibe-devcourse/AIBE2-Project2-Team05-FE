@@ -25,6 +25,7 @@ const MainLayout = () => {
   const sidebarRoutes = [
     '/',
     '/match/recommend',
+    '/match/requests',
     '/chat',
     '/mypage',
     '/search',

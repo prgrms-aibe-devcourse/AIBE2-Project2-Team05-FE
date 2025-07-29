@@ -1,0 +1,77 @@
+{
+  "title": "테스트넷의 제주도 힐링 여행",
+  "location": "제주도",
+  "startDate": "2025-02-01",
+  "endDate": "2025-02-03",
+  "description": "제주도에서 힐링하며 맛있는 음식도 먹고 예쁜 곳도 구경하는 여행",
+  "interests": "맛집, 자연, 힐링",
+  "numberOfPeople": 2,
+  "budget": 500000,
+  "preferredGender": "상관없음",
+  "preferredAgeRange": "20-30대",
+  "preferredLanguage": "한국어",
+  "matchingNote": "같이 제주도 힐링 여행하실 분 찾아요! 맛집 투어와 예쁜 카페 탐방 좋아하시는 분 환영합니다 😊",
+  "matchingEnabled": true,
+  "days": [
+    {
+      "dayNumber": 1,
+      "date": "2025-02-01",
+      "schedules": [
+        {
+          "time": "10:00",
+          "place": "제주공항",
+          "activity": "제주도 도착",
+          "memo": "렌터카 픽업",
+          "cost": 0
+        },
+        {
+          "time": "12:00",
+          "place": "흑돼지 맛집",
+          "activity": "점심식사",
+          "memo": "제주 흑돼지 구이",
+          "cost": 40000
+        },
+        {
+          "time": "15:00",
+          "place": "성산일출봉",
+          "activity": "관광",
+          "memo": "일출봉 트레킹",
+          "cost": 5000
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "date": "2025-02-02",
+      "schedules": [
+        {
+          "time": "09:00",
+          "place": "카페 투어",
+          "activity": "카페 방문",
+          "memo": "제주 감귤 카페",
+          "cost": 15000
+        },
+        {
+          "time": "14:00",
+          "place": "한라산 둘레길",
+          "activity": "트레킹",
+          "memo": "자연 힐링",
+          "cost": 0
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "date": "2025-02-03",
+      "schedules": [
+        {
+          "time": "10:00",
+          "place": "동문시장",
+          "activity": "쇼핑",
+          "memo": "기념품 구매",
+          "cost": 30000
+        }
+      ]
+    }
+  ]
+}

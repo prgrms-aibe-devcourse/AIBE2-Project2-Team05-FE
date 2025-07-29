@@ -51,6 +51,8 @@ export interface TravelPlan {
   budget: string;
   people: string;
   period: string;
+  numberOfPeople?: number; // 총 인원수 (백엔드)
+  currentPeople?: number;  // 현재 참여 인원수 (백엔드)
   days: TravelDay[];
   likes: number;
   likedUsers: string[];

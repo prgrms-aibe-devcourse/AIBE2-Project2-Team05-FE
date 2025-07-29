@@ -62,6 +62,11 @@ export interface TravelPlanResponse extends TravelPlanData {
   matchingEnabled: boolean;
   createdAt: string;
   updatedAt: string;
+  // 백엔드에서 제공하는 작성자 정보 필드들 추가
+  authorId?: number;
+  authorNickname?: string;
+  authorProfileImage?: string;
+  authorName?: string; // legacy 호환
 }
 
 /**

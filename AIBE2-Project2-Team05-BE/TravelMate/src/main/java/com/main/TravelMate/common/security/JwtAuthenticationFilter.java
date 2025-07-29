@@ -71,6 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         boolean shouldSkip = (path.startsWith("/api/feed") && "GET".equals(method))        // 피드 조회만 허용
                 || (path.startsWith("/api/profile/user") && "GET".equals(method)) // 프로필 조회만 허용  
+                || (path.startsWith("/api/review") && "GET".equals(method))       // 후기 조회만 허용
                 || path.startsWith("/api/places")                            // 장소 API 모든 메서드 허용
                 || "OPTIONS".equals(method);                                 // CORS preflight 요청
         

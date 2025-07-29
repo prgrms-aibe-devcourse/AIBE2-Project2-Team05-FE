@@ -28,6 +28,7 @@ api.interceptors.request.use(
       '/api/places',              // 장소 검색
       '/api/profile/user',        // 공개 프로필 조회
       '/uploads',                 // 파일 접근
+      // 🔧 매칭 API 제거: 이제 실제 인증이 필요함
     ];
 
     // 정확한 경로 매칭을 위한 공개 API 패턴
@@ -99,8 +100,12 @@ api.interceptors.response.use(
     // 401 Unauthorized 에러 시 로그아웃 처리
     if (error.response && error.response.status === 401) {
       console.warn('⚠️ 토큰이 만료되었습니다. 로그아웃합니다.');
+      // ✅ 모든 토큰 관련 데이터 제거
       localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('currentTravelPlan');
       // 페이지 새로고침하여 로그인 페이지로 이동
       window.location.reload();
     }

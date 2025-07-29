@@ -117,6 +117,44 @@ export const getReviewsByFeedId = async (
 };
 
 /**
+ * 특정 여행 계획의 모든 후기 조회 (planId 기반)
+ */
+export const getReviewsByPlanId = async (
+  planId: number,
+): Promise<ReviewListResponse> => {
+  try {
+    console.log(`📋 [API] 여행 계획 후기 조회 - Plan ID: ${planId}`);
+
+    const response = await axios.get(
+      `${API_BASE_URL}/api/review/plan/${planId}`,
+    );
+
+    console.log(`✅ [API] 여행 계획 후기 조회 성공 - Plan ID: ${planId}`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`❌ [API] 여행 계획 후기 조회 실패 - Plan ID: ${planId}`, error);
+    
+    // 404 에러인 경우 빈 결과 반환
+    if (error.response?.status === 404) {
+      console.log(`ℹ️ [API] Plan ID ${planId}에 대한 후기가 없음 - 빈 결과 반환`);
+      return {
+        success: true,
+        reviews: [],
+        stats: {
+          averageRating: 0,
+          reviewCount: 0
+        },
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    const errorMessage =
+      error.response?.data?.message || error.message || '후기 조회 실패';
+    throw new Error(errorMessage);
+  }
+};
+
+/**
  * 특정 피드의 후기 통계 조회
  */
 export const getReviewStats = async (
