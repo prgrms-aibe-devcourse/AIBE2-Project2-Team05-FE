@@ -323,7 +323,7 @@ const PlanWritePage: React.FC = () => {
 
       try {
         // 🛡️ 안전한 순차 처리로 변경 (병렬 처리 시 오류 발생 가능성 낮춤)
-        console.log('🤖 AI 해시태그 생성 시작...');
+    
         let aiHashtags: string[] = [];
         let nearbyRecommendations: any[] = [];
 
@@ -343,7 +343,7 @@ const PlanWritePage: React.FC = () => {
             ),
             styles: getStyleLabels(formData.styles),
           });
-          console.log('✅ AI 해시태그 생성 성공:', aiHashtags.length, '개');
+  
         } catch (hashError) {
           console.error('⚠️ AI 해시태그 생성 실패:', hashError);
           aiHashtags = [
@@ -352,7 +352,7 @@ const PlanWritePage: React.FC = () => {
           ];
         }
 
-        console.log('🤖 AI 추천 장소 생성 시작...');
+        
         try {
           nearbyRecommendations =
             await openaiService.generateNearbyRecommendations(
@@ -371,11 +371,7 @@ const PlanWritePage: React.FC = () => {
                 ),
               },
             );
-          console.log(
-            '✅ AI 추천 장소 생성 성공:',
-            nearbyRecommendations.length,
-            '개',
-          );
+
         } catch (recommendError) {
           console.error('⚠️ AI 추천 장소 생성 실패:', recommendError);
           // 🔄 기본 추천 데이터 제공
@@ -429,10 +425,7 @@ const PlanWritePage: React.FC = () => {
       });
 
       try {
-        console.log(
-          '🤖 여행 플랜용 AI 추천 장소 생성 시작:',
-          formData.destination,
-        );
+
 
         // 방문 예정 장소 추출
         const visitedPlaces = Object.values(formData.schedules)
@@ -478,11 +471,7 @@ const PlanWritePage: React.FC = () => {
             `✅ AI 추천 완료! ${aiRecommendations.length}개의 맞춤 장소를 추천받았습니다.`,
             { id: 'ai-recommendations' },
           );
-          console.log(
-            '🎉 AI 추천 장소 생성 완료:',
-            aiRecommendations.length,
-            '개',
-          );
+
         } else {
           console.warn('⚠️ 방문 예정 장소가 없어 AI 추천을 생성하지 않습니다.');
           toast.dismiss('ai-recommendations');
@@ -502,9 +491,7 @@ const PlanWritePage: React.FC = () => {
       let destinationImageUrl = '';
 
       try {
-        console.log(
-          `🔍 구글 플레이스 API로 이미지 검색: ${formData.destination}`,
-        );
+
 
         const imageUrl = await getDestinationRepresentativeImage(
           formData.destination,
@@ -517,9 +504,7 @@ const PlanWritePage: React.FC = () => {
           toast.success('✅ 구글 플레이스에서 대표 이미지를 가져왔습니다!', {
             id: 'place-image',
           });
-          console.log(
-            `✅ 구글 플레이스 이미지 성공: ${formData.destination} -> ${imageUrl}`,
-          );
+
         } else {
           // 구글 플레이스에서 이미지를 찾지 못한 경우
           destinationImageUrl = getPlaceholderImageUrl(formData.destination);
@@ -549,7 +534,7 @@ const PlanWritePage: React.FC = () => {
       }
 
       // 🚀 백엔드 API에 여행 계획 저장 (우선)
-      console.log('💾 백엔드에 여행 계획 저장 시작...');
+
 
       try {
         // 백엔드 API 형식으로 데이터 변환
@@ -588,7 +573,7 @@ const PlanWritePage: React.FC = () => {
         // 백엔드 API 호출
         const savedPlan =
           await travelPlanApiService.saveTravelPlan(travelPlanData);
-        console.log('✅ 백엔드 저장 성공:', savedPlan.planId);
+
 
         // 성공 시 localStorage에도 저장 (동기화)
         localStorage.setItem(
@@ -599,7 +584,7 @@ const PlanWritePage: React.FC = () => {
           }),
         );
 
-        console.log('🎉 백엔드와 로컬스토리지 모두 저장 완료');
+        
 
         // 저장 성공 후 프로필 페이지로 이동하여 새로운 피드 확인
         setTimeout(() => {
@@ -610,7 +595,7 @@ const PlanWritePage: React.FC = () => {
 
         // 백엔드 실패 시 로컬스토리지에만 저장
         localStorage.setItem('currentTravelPlan', JSON.stringify(planData));
-        console.log('💾 로컬스토리지 폴백 저장 완료');
+        
       }
 
       // 1. 프로필 피드 데이터 생성
@@ -633,12 +618,7 @@ const PlanWritePage: React.FC = () => {
 
       // 3. 여행메이트 찾기 자동 등록/해제 (새로운 서비스 사용)
       try {
-        console.log('🎯 여행메이트 등록 시도:', {
-          matchingEnabled: formData.matchingEnabled,
-          planId: planId,
-          planTitle: planData.title,
-          planDestination: planData.destination,
-        });
+
 
         const mateRegistrationSuccess = matePostService.autoRegisterMatePost(
           planData,
@@ -646,25 +626,18 @@ const PlanWritePage: React.FC = () => {
         );
 
         if (mateRegistrationSuccess && formData.matchingEnabled) {
-          console.log('✅ 여행메이트 찾기에 성공적으로 등록되었습니다.');
+
 
           // 등록 확인
           const allMatePosts = matePostService.getAllMatePosts();
-          console.log(
-            '📋 현재 등록된 여행메이트 포스트 수:',
-            allMatePosts.length,
-          );
+
 
           const myMatePost = allMatePosts.find(
             (post) => post.planId === planId,
           );
-          if (myMatePost) {
-            console.log('🎉 방금 등록한 포스트 확인됨:', myMatePost);
-          } else {
-            console.warn('⚠️ 등록한 포스트를 찾을 수 없습니다.');
-          }
+
         } else if (mateRegistrationSuccess && !formData.matchingEnabled) {
-          console.log('🚫 여행메이트 찾기 등록이 해제되었습니다.');
+          
         } else {
           console.warn('❌ 여행메이트 등록에 실패했습니다.');
         }
@@ -894,7 +867,7 @@ const PlanWritePage: React.FC = () => {
     };
 
     // ✅ via.placeholder.com 대신 로컬 기본 이미지 사용으로 네트워크 에러 방지
-    console.log('🖼️ getPlaceholderImageUrl 호출됨:', destination, '→ 기본 이미지 반환');
+
     return DEFAULT_PLACE_IMAGE;
   };
 
@@ -1186,13 +1159,13 @@ const PlanWritePage: React.FC = () => {
                             // 장소 정보가 있으면 추가 데이터도 저장할 수 있음
                             if (placeInfo) {
                               // 나중에 장소 상세 정보 저장 기능 추가 가능
-                              console.log('선택된 장소 정보:', placeInfo);
+                        
                             }
                           }}
                           placeholder="장소를 검색하세요"
                           onPlaceSelect={(place) => {
                             // 장소 선택 시 추가 작업 수행 가능
-                            console.log('장소 선택됨:', place);
+  
                           }}
                         />
                       </S.FormGroup>

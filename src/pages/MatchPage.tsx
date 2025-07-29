@@ -56,7 +56,7 @@ const MatchPage: React.FC = () => {
   // 🔥 강력한 Mock 데이터 완전 정리 함수
   const clearMockData = () => {
     try {
-      console.log('🗑️ 모든 Mock 데이터 완전 정리 시작...');
+  
 
       // 🔥 1. matePosts 완전 삭제 (실제 사용자 데이터만 남기기)
       const existingMatePosts = localStorage.getItem('matePosts');

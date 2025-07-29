@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -102,7 +102,7 @@ const TravelPlanModal: React.FC<{
   return createPortal(modalContent, document.body);
 };
 
-const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
+const FeedItem: React.FC<FeedItemProps> = memo(({ feed }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isTravelPlanModalOpen, setIsTravelPlanModalOpen] = useState(false);
 
@@ -223,7 +223,10 @@ const FeedItem: React.FC<FeedItemProps> = ({ feed }) => {
       </AnimatePresence>
     </>
   );
-};
+});
+
+// 🚀 displayName 설정 (디버깅용)
+FeedItem.displayName = 'FeedItem';
 
 export default FeedItem;
 

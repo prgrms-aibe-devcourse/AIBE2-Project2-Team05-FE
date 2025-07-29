@@ -59,12 +59,12 @@ const MatchRecommendPage: React.FC = () => {
   useEffect(() => {
     const loadMatchingRecommendations = async () => {
       setIsLoadingUsers(true);
-      console.log('🔄 백엔드에서 매칭 추천 데이터 로드 시작...');
+
       
       try {
         // 백엔드 매칭 추천 API 호출
         const backendRecommendations = await matchingApiService.getRecommendations();
-        console.log(`📡 백엔드 매칭 추천 ${backendRecommendations.length}개 로드 성공`);
+
 
         // 백엔드 데이터를 MatchingUser 형식으로 변환
         const matchingUsers: MatchingUser[] = backendRecommendations.map((rec) => ({
@@ -86,7 +86,7 @@ const MatchRecommendPage: React.FC = () => {
         }));
 
         setAllUsers(matchingUsers);
-        console.log(`✅ 백엔드 매칭 추천에서 ${matchingUsers.length}개 사용자 생성`);
+
       } catch (error) {
         console.error('❌ 백엔드 매칭 추천 로드 실패:', error);
         setAllUsers([]);
@@ -112,7 +112,7 @@ const MatchRecommendPage: React.FC = () => {
 
       setIsLoadingProfile(true);
       try {
-        console.log(`👤 사용자 ${currentUser.name}(ID: ${currentUser.id})의 실제 프로필 정보 로드 시작`);
+    
         
         const profileData = await profileApiService.getProfile(currentUser.id);
         
@@ -122,11 +122,7 @@ const MatchRecommendPage: React.FC = () => {
           residence: profileData.residence
         });
         
-        console.log(`✅ 사용자 ${currentUser.name}의 실제 프로필 정보 로드 완료:`, {
-          profileImage: profileData.profileImage,
-          age: profileData.age,
-          residence: profileData.residence
-        });
+
       } catch (error) {
         console.error(`❌ 사용자 ${currentUser.name}의 프로필 정보 로드 실패:`, error);
         setCurrentUserProfile(null);
@@ -143,7 +139,7 @@ const MatchRecommendPage: React.FC = () => {
     if (!currentUser) return;
 
     try {
-      console.log(`💖 ${currentUser.name}님에게 매칭 요청 전송!`);
+  
       
       // travelPlanId가 없으면 요청을 보낼 수 없음
       if (!currentUser.travelPlanId) {
@@ -157,10 +153,10 @@ const MatchRecommendPage: React.FC = () => {
         planId: currentUser.travelPlanId // 여행 계획 ID (올바른 필드 사용)
       };
       
-      console.log('📤 매칭 요청 데이터:', matchRequest);
+      
 
       const response = await matchingApiService.sendMatchRequest(matchRequest);
-      console.log('✅ 매칭 요청 전송 성공:', response);
+      
 
       // 사용자를 처리완료 목록에 추가
       setProcessedUserIds(prev => new Set([...Array.from(prev), currentUser.id]));
@@ -189,11 +185,11 @@ const MatchRecommendPage: React.FC = () => {
     }
 
     try {
-      console.log(`⏭️ ${currentUser.name}님을 패스 (Plan ID: ${currentUser.travelPlanId})`);
+
       
       // 🔧 올바른 travelPlanId로 매칭 거절 처리
       await matchingApiService.rejectPlan(currentUser.travelPlanId);
-      console.log('✅ 매칭 거절 성공');
+      
 
       // 사용자를 처리완료 목록에 추가
       setProcessedUserIds(prev => new Set([...Array.from(prev), currentUser.id]));

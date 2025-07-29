@@ -57,12 +57,13 @@ public class TravelFeedService {
         }
     }
 
-    // ✅ 피드 목록 조회 메서드 추가 (페이지네이션 지원)
+    // ✅ 피드 목록 조회 메서드 추가 (페이지네이션 지원) - 🚀 성능 최적화
     public List<TravelFeedResponseDto> getAllFeeds(int page, int size) {
         log.info("🔍 ACTIVE 피드 목록 조회 요청: page={}, size={}", page, size);
         
         try {
-            // 생성일시 기준 내림차순 정렬로 페이지네이션, ACTIVE 상태만 조회
+            // 🚀 성능 최적화: 더 큰 페이지 크기 지원으로 네트워크 요청 횟수 감소
+            // 기존 createdAt 정렬 유지 (정확한 시간순 보장)
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<TravelFeed> feedPage = feedRepository.findByStatusOrderByCreatedAtDesc("ACTIVE", pageable);
             

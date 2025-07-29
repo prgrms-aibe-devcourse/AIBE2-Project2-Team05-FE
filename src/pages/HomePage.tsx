@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import HeroSection from '../components/home/HeroSection';
 import FeedIntroSection from '../components/home/FeedIntroSection';
-import OptimizedFeedList from '../components/feed/OptimizedFeedList';
+// import OptimizedFeedList from '../components/feed/OptimizedFeedList'; // 🔧 기존 컴포넌트
+import SuperOptimizedFeedList from '../components/feed/SuperOptimizedFeedList'; // 🚀 새로운 최적화 컴포넌트
 import * as S from './FeedPage.style'; // 스타일은 FeedPage의 것을 재사용합니다.
 
 const pageVariants = {
@@ -24,13 +25,13 @@ const HomePage = () => {
       <HeroSection />
       <FeedIntroSection />
 
-      {/* 최적화된 피드 섹션 */}
+      {/* 🚀 슈퍼 최적화된 피드 섹션 */}
       <S.MainContent>
         <S.FeedContainer>
-          <OptimizedFeedList 
-            maxItemsInMemory={150} // 메모리에 최대 150개 아이템 유지
-            pageSize={12} // 한 번에 12개씩 로드
-            prefetchThreshold={6} // 끝에서 6개 전에 프리패치
+          <SuperOptimizedFeedList 
+            maxItemsInMemory={300} // 🚀 더 많은 메모리 (기존 150 → 300)
+            pageSize={30} // 🚀 더 큰 페이지 크기 (기존 12 → 30)
+            prefetchThreshold={12} // 🚀 더 적극적인 프리패치 (기존 6 → 12)
           />
         </S.FeedContainer>
       </S.MainContent>

@@ -73,12 +73,7 @@ const TravelPlanModal: React.FC<{
   onClose: () => void;
 }> = ({ planId, authorInfo, onClose }) => {
   
-  // ✅ 프로필페이지 모달에서의 작성자 정보 로깅
-  console.log('🏡 프로필페이지 TravelPlanModal에서 받은 작성자 정보:', {
-    planId,
-    authorInfo,
-    '전달할 정보': authorInfo ? `${authorInfo.author} (${authorInfo.age}세)` : '없음'
-  });
+
 
   return (
     <ModalOverlay
@@ -153,10 +148,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       let profileData: any = null;
       if (isOwnProfile) {
         profileData = await profileApiService.getMyProfile();
-        console.log('👤 내 프로필 데이터 로드 성공:', profileData);
+
       } else if (nickname) {
         profileData = await profileApiService.getProfileByNickname(nickname);
-        console.log('👤 다른 사용자 프로필 데이터 로드 성공:', profileData);
+        
       } else {
         throw new Error('프로필을 불러올 수 없습니다.');
       }
@@ -167,13 +162,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
 ✨ ${feed.title || '여행 계획'}
 📅 ${feed.startDate ? new Date(feed.startDate).toLocaleDateString() : '날짜 미정'}`;
 
-        // 🔧 이미지 URL 디버깅 및 개선
-        console.log(`🖼️ [피드 ${index}] 이미지 확인:`, {
-          travelPlanId: feed.travelPlanId,
-          imageUrl: feed.imageUrl,
-          hasImage: !!feed.imageUrl,
-          location: feed.location
-        });
+
 
         return {
           id: `feed-${feed.travelPlanId}-${index}`,
@@ -196,10 +185,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       if (isOwnProfile && profileData && user) {
         const shouldUpdate = !user.nickname || user.nickname !== profileData.nickname;
         if (shouldUpdate) {
-          console.log('🔄 AuthContext 사용자 정보 업데이트:', {
-            기존: { nickname: user.nickname, profileImage: user.profileImage },
-            새로운: { nickname: profileData.nickname, profileImage: profileData.profileImage }
-          });
+
           updateUser({
             nickname: profileData.nickname,
             profileImage: profileData.profileImage,
@@ -211,13 +197,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
         }
       }
 
-      // ✅ 실제 백엔드 데이터 사용 (목 데이터 제거)
-      console.log('🔍 [나이 디버깅] 백엔드 프로필 데이터:', {
-        nickname: profileData.nickname,
-        age: profileData.age,
-        ageType: typeof profileData.age,
-        email: profileData.email
-      });
+
 
       setProfile({
         id: profileData.id,
@@ -234,18 +214,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
         isCurrentUser: isOwnProfile || (user?.email === profileData.email) || false,
       });
 
-      console.log('✅ [나이 디버깅] 프로필 설정 완료:', {
-        nickname: profileData.nickname,
-        설정된나이: profileData.age || 25
-      });
 
-      console.log('✅ 프로필 설정 완료:', {
-        nickname: profileData.nickname,
-        postsCount: profileData.postsCount,
-        followersCount: profileData.followerCount,
-        followingCount: profileData.followingCount,
-                 isCurrentUser: isOwnProfile || (user?.email === profileData.email) || false,
-      });
 
     } catch (error) {
       console.error('❌ 프로필 로드 실패:', error);
@@ -280,15 +249,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
       setSelectedPlanId(feed.planId || feed.id.toString());
       setTravelPlanModalOpen(true);
       
-      // ✅ 프로필페이지에서 모달 열기 로그
-      console.log('🏡 프로필페이지에서 여행계획 모달 열기:', {
-        feedId: feed.id,
-        planId: feed.planId,
-        profileInfo: profile ? {
-          nickname: profile.nickname,
-          profileImage: profile.profileImage
-        } : null
-      });
+
     }
   }, [profile]);
 
@@ -322,16 +283,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
     const isSameUser = user && profile && user.nickname === profile.nickname;
     const result = isOwnProfile || isOwnProfilePath || isSameUser;
     
-    // 디버깅 로그 추가
-    console.log('🔧 설정 버튼 표시 조건 확인:', {
-      isOwnProfile,
-      isOwnProfilePath,
-      isSameUser,
-      'location.pathname': location.pathname,
-      'user?.nickname': user?.nickname,
-      'profile?.nickname': profile?.nickname,
-      '최종 결과': result
-    });
+
     
     return result;
   }, [isOwnProfile, location.pathname, user, profile]);
@@ -396,14 +348,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOwnProfile = false }) => {
           authorInfo={{
             author: profile.nickname,
             avatar: profile.profileImage,
-            age: (() => {
-              console.log('🔍 [모달 나이] authorInfo 전달:', {
-                nickname: profile.nickname,
-                age: profile.age,
-                fallback: profile.age || 25
-              });
-              return profile.age || 25; // 🔧 백엔드에서 제공하는 실제 나이 사용
-            })()
+            age: profile.age || 25 // 🔧 백엔드에서 제공하는 실제 나이 사용
           }}
           onClose={closeTravelPlanModal}
         />

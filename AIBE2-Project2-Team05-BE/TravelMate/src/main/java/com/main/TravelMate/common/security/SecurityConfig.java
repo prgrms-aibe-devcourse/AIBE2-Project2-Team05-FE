@@ -32,8 +32,9 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
-                .requestMatchers("/api/users/signup")    // 회원가입만 Spring Security에서 완전 제외
-                .requestMatchers("/api/auth/login")      // 로그인만 제외  
+                .requestMatchers("/api/admin/login")     // 관리자 로그인 완전 제외
+                .requestMatchers("/api/auth/login")      // 사용자 로그인 완전 제외
+                .requestMatchers("/api/users/signup")    // 사용자 회원가입 완전 제외
                 .requestMatchers("/uploads/**")          // 파일 업로드 경로 제외
                 .requestMatchers("/api/profile/create/**")  // 프로필 생성 API 제외
                 .requestMatchers("/api/profile/create-all")  // 프로필 일괄 생성 API 제외
@@ -51,8 +52,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 🔓 공개 API (인증 불필요)
-                        .requestMatchers("/api/users/signup").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/signup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/admin/login").permitAll()  // 관리자 로그인 허용
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         // 🔧 프로필 생성 API (테스트용)
