@@ -1,0 +1,8 @@
+<svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 원 -->
+  <circle cx="75" cy="75" r="75" fill="#667eea"/>
+  
+  <!-- 사용자 아이콘 -->
+  <circle cx="75" cy="55" r="20" fill="white" opacity="0.9"/>
+  <path d="M75 85c-12 0-22 6-22 13v12h44V98c0-7-10-13-22-13z" fill="white" opacity="0.9"/>
+</svg>

@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { FeedItem as FeedItemType } from '../../services/feedApi';
 import ImageModal from '../profile/ImageModal';
 import LazyImage from '../common/LazyImage';
+import ProfileImageComponent from '../common/ProfileImage';
 import PlanPage from '../../pages/PlanPage';
 
 interface MemoizedFeedItemProps {
@@ -192,11 +193,6 @@ const MemoizedFeedItem: React.FC<MemoizedFeedItemProps> = memo(({
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   // 🚀 useMemo로 계산된 값들 캐싱
-  const profileImageSrc = useMemo(() => {
-    return feed.avatar?.startsWith('/api/') 
-      ? `http://localhost:8080${feed.avatar}`
-      : feed.avatar || '/api/profile/image/default';
-  }, [feed.avatar]);
 
   const feedImageSrc = useMemo(() => {
     return feed.image?.startsWith('/api/') 
@@ -251,14 +247,11 @@ const MemoizedFeedItem: React.FC<MemoizedFeedItemProps> = memo(({
         {/* 헤더 */}
         <FeedHeader>
           <ProfileImageContainer>
-            <ProfileImage
-              src={profileImageSrc}
+            <ProfileImageComponent
+              src={feed.avatar}
               alt={feed.author}
+              size={40}
               onClick={handleProfileClick}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/api/profile/image/default';
-              }}
             />
           </ProfileImageContainer>
           <AuthorInfo>
@@ -311,7 +304,9 @@ const MemoizedFeedItem: React.FC<MemoizedFeedItemProps> = memo(({
       <AnimatePresence>
         {showProfileModal && (
           <ImageModal
-            imageUrl={profileImageSrc}
+            imageUrl={feed.avatar?.startsWith('/api/') 
+              ? `http://localhost:8080${feed.avatar}`
+              : feed.avatar || '/default-avatar.svg'}
             onClose={closeProfileModal}
           />
         )}

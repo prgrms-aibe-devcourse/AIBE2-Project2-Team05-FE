@@ -25,6 +25,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -133,6 +134,52 @@ public class TravelFeedService {
         }
     }
 
+    /**
+     * 프로필 이미지 파일이 실제로 존재하는지 확인하는 메서드
+     * @param profileImagePath 프로필 이미지 경로
+     * @return 파일이 존재하면 원본 경로, 존재하지 않으면 null
+     */
+    private String validateProfileImagePath(String profileImagePath) {
+        log.info("🔍 [DEBUG] validateProfileImagePath 시작 - 입력값: {}", profileImagePath);
+        
+        if (profileImagePath == null || profileImagePath.trim().isEmpty()) {
+            log.info("🔍 [DEBUG] profileImagePath가 null 또는 빈 값");
+            return null;
+        }
+        
+        try {
+            // API 경로인 경우 파일 시스템 경로로 변환
+            String filePath = profileImagePath;
+            if (profileImagePath.startsWith("http://localhost:8080/uploads/")) {
+                // 완전한 URL에서 파일 경로 부분만 추출
+                filePath = "uploads" + profileImagePath.substring("http://localhost:8080/uploads".length());
+                log.info("🔗 완전한 URL에서 파일 경로 추출: {} → {}", profileImagePath, filePath);
+            } else if (profileImagePath.startsWith("/uploads/")) {
+                filePath = "uploads" + profileImagePath.substring("/uploads".length());
+            } else if (profileImagePath.startsWith("/api/uploads/")) {
+                filePath = "uploads" + profileImagePath.substring("/api/uploads".length());
+            }
+            
+            log.info("🔍 [DEBUG] 변환된 파일 경로: {}", filePath);
+            log.info("🔍 [DEBUG] 현재 작업 디렉토리: {}", System.getProperty("user.dir"));
+            
+            File file = new File(filePath);
+            log.info("🔍 [DEBUG] 절대 파일 경로: {}", file.getAbsolutePath());
+            log.info("🔍 [DEBUG] 파일 존재 여부: {}, 파일인지 여부: {}", file.exists(), file.isFile());
+            
+            if (file.exists() && file.isFile()) {
+                log.info("✅ 프로필 이미지 파일 존재 확인: {}", profileImagePath);
+                return profileImagePath; // 원본 경로 반환
+            } else {
+                log.warn("🚫 프로필 이미지 파일 없음: {} (파일 경로: {})", profileImagePath, filePath);
+                return null; // 파일이 없으면 null 반환
+            }
+        } catch (Exception e) {
+            log.error("❌ 프로필 이미지 파일 존재 확인 중 오류: {}, 경로: {}", e.getMessage(), profileImagePath);
+            return null;
+        }
+    }
+
     // ✅ TravelFeed를 TravelFeedResponseDto로 변환하는 헬퍼 메서드
     private TravelFeedResponseDto convertToResponseDto(TravelFeed feed) {
         TravelPlan plan = feed.getTravelPlan();
@@ -161,6 +208,16 @@ public class TravelFeedService {
         List<ReviewResponseDto> reviews = reviewService.getReviewsByFeedId(feed.getId());
         ReviewService.ReviewStatsDto stats = reviewService.getReviewStats(feed.getId());
 
+        // 🔧 프로필 이미지 파일 존재 여부 확인
+        log.info("🔍 [DEBUG] convertToResponseDto - 사용자 정보: {}, 프로필 존재: {}", 
+                user.getNickname(), user.getProfile() != null);
+        
+        String profileImagePath = user.getProfile() != null ? user.getProfile().getProfileImage() : null;
+        log.info("🔍 [DEBUG] convertToResponseDto - 원본 프로필 이미지 경로: {}", profileImagePath);
+        
+        String validatedProfileImage = validateProfileImagePath(profileImagePath);
+        log.info("🔍 [DEBUG] convertToResponseDto - 검증된 프로필 이미지: {}", validatedProfileImage);
+
         // 피드 응답 DTO 구성
         return TravelFeedResponseDto.builder()
                 .id(feed.getId()) // TravelFeed ID 추가
@@ -175,7 +232,7 @@ public class TravelFeedService {
                 .endDate(plan.getEndDate())
                 .days(dayDtos)
                 .createdBy(user.getNickname())
-                .profileImage(user.getProfile() != null ? user.getProfile().getProfileImage() : null)
+                .profileImage(validatedProfileImage) // 🔧 검증된 프로필 이미지만 반환
                 .imageUrl(plan.getImageUrl()) // 🔧 TravelPlan의 imageUrl 사용 (프로필페이지와 동일)
                 .caption(feed.getCaption())
                 .status(feed.getStatus()) // ✅ 피드 상태 포함

@@ -35,7 +35,7 @@ export interface BackendFeedResponse {
 export interface FeedItem {
   id: number;
   author: string;
-  avatar: string;
+  avatar: string | null; // null 허용
   image: string;
   likes: number;
   caption: string;
@@ -70,19 +70,33 @@ export const getFeedsWithCursor = async (
     });
 
     // 백엔드 응답을 프론트엔드 형식으로 변환
-    const feeds: FeedItem[] = response.data.feeds.map((feed, index) => ({
-      id: feed.travelPlanId || (index + 1),
-      author: feed.createdBy || feed.authorName || '익명',
-      avatar: feed.profileImage || '/api/profile/image/default',
-      image: feed.imageUrl || '/default-place-image.jpg',
-      likes: feed.reviewCount || 0,
-      caption: feed.caption || `${feed.title} - ${feed.location}`,
-      location: feed.location,
-      startDate: feed.startDate,
-      endDate: feed.endDate,
-      budget: feed.budget,
-      numberOfPeople: feed.numberOfPeople,
-    }));
+    const feeds: FeedItem[] = response.data.feeds.map((feed, index) => {
+      // 이미지 URL 처리 - 백엔드 API 경로인 경우 완전한 URL로 변환
+      let imageUrl = feed.imageUrl || '/default-place-image.jpg';
+      if (imageUrl.startsWith('/api/')) {
+        imageUrl = `http://localhost:8080${imageUrl}`;
+      }
+      
+      // 프로필 이미지 URL 처리 - 백엔드 API 경로인 경우 완전한 URL로 변환
+      let avatarUrl: string | null = feed.profileImage || null; // undefined를 null로 변환
+      if (avatarUrl && avatarUrl.startsWith('/api/')) {
+        avatarUrl = `http://localhost:8080${avatarUrl}`;
+      }
+      
+      return {
+        id: feed.travelPlanId || (index + 1),
+        author: feed.createdBy || feed.authorName || '익명',
+        avatar: avatarUrl, // 완전한 URL로 변환된 프로필 이미지
+        image: imageUrl,
+        likes: feed.reviewCount || 0,
+        caption: feed.caption || `${feed.title} - ${feed.location}`,
+        location: feed.location,
+        startDate: feed.startDate,
+        endDate: feed.endDate,
+        budget: feed.budget,
+        numberOfPeople: feed.numberOfPeople,
+      };
+    });
 
     return {
       feeds,
@@ -123,7 +137,7 @@ export const getFeeds = async (
     const feeds: FeedItem[] = response.data.map((feed, index) => ({
       id: feed.travelPlanId || (page * size + index + 1),
       author: feed.createdBy || feed.authorName || '익명',
-      avatar: feed.profileImage || '/api/profile/image/default', // 🔧 실제 백엔드 프로필 이미지
+      avatar: feed.profileImage || '', // 🔧 ProfileImageComponent에서 처리
       image: feed.imageUrl || '/default-place-image.jpg', // 🔧 프로필페이지와 완전히 동일한 방식
       likes: feed.reviewCount || 0, // 🔧 실제 후기 개수
       caption: feed.caption || `${feed.title} - ${feed.location}`,

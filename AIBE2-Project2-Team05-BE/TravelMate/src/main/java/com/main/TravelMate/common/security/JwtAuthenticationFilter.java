@@ -73,6 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || (path.startsWith("/api/profile/user") && "GET".equals(method)) // 프로필 조회만 허용  
                 || (path.startsWith("/api/review") && "GET".equals(method))       // 후기 조회만 허용
                 || path.startsWith("/api/places")                            // 장소 API 모든 메서드 허용
+                || path.startsWith("/uploads/")                              // 업로드 파일 접근 허용
                 || (path.equals("/api/admin/login") && "POST".equals(method))    // 관리자 로그인 허용 (POST만)
                 || (path.equals("/api/auth/login") && "POST".equals(method))     // 사용자 로그인 허용 (POST만)
                 || (path.equals("/api/users/signup") && "POST".equals(method))   // 사용자 회원가입 허용 (POST만)

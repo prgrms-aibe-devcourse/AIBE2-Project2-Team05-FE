@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { FeedItem as FeedItemType } from '../../services/feedApi';
 import ImageModal from '../profile/ImageModal';
 import LazyImage from '../common/LazyImage';
+import ProfileImageComponent from '../common/ProfileImage';
 import PlanPage from '../../pages/PlanPage';
 
 interface FeedItemProps {
@@ -155,7 +156,7 @@ const FeedItem: React.FC<FeedItemProps> = memo(({ feed }) => {
       <FeedCard onClick={handleFeedClick}>
         {/* ✅ 1. 프로필 섹션 - 중앙 정렬된 큰 프로필사진 */}
         <ProfileSection>
-          <LargeAvatar src={feed.avatar} alt={feed.author} />
+          <ProfileImageComponent src={feed.avatar} alt={feed.author} size={80} />
         </ProfileSection>
 
         {/* ✅ 2. 사용자 정보 - 닉네임과 나이 */}
@@ -214,7 +215,7 @@ const FeedItem: React.FC<FeedItemProps> = memo(({ feed }) => {
             planId={feed.id.toString()}
             authorInfo={{
               author: feed.author,
-              avatar: feed.avatar,
+              avatar: feed.avatar || '', // null인 경우 빈 문자열로 변환
               age: userAge,
             }}
             onClose={closeTravelPlanModal}
